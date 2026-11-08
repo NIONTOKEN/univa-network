@@ -1,25 +1,34 @@
 """
-UNIVA Network - Telegram Mini App Bot
-=====================================
-Bu bot, Telegram kullanıcılarının Telegram'dan çıkmadan UNIVA cüzdanına,
-madenciliğe ve transferlere tek tıkla erişmesini sağlayan resmi WebApp botudur.
+UNIVA Network - Telegram Mini App Bot (Universal Lightweight Runner)
+===================================================================
+Python 3.14+ tam uyumlu, sifir harici kutuphane bagimliligi.
+Telegram WebApp Mini App + /start komutu ve buton yonetimi.
 """
 
-import os
+import urllib.request
 import json
-import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import time
+import sys
 
-TELEGRAM_BOT_TOKEN = os.getenv("UNIVA_BOT_TOKEN", "9078631819:AAFc2foI-f1EP4t3GovO7qmrVwEb0UpyOzA")
-WEBAPP_URL = os.getenv("UNIVA_WEBAPP_URL", "https://univa-network-l1.vercel.app")
+BOT_TOKEN = "9078631819:AAFc2foI-f1EP4t3Gov07qmrVwEbOUpy0zA"
+WEBAPP_URL = "https://univa-network-l1.vercel.app"
+API_BASE = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+def api_call(method, payload=None):
+    url = f"{API_BASE}/{method}"
+    headers = {"Content-Type": "application/json"}
+    data = json.dumps(payload).encode("utf-8") if payload else None
+    req = urllib.request.Request(url, data=data, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        print(f"[BOT API ERROR] {method}: {e}", file=sys.stderr)
+        return None
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
+def send_welcome(chat_id, first_name):
     welcome_text = (
-        f"👋 Merhaba {user.first_name}!\n\n"
+        f"👋 **Merhaba {first_name}!**\n\n"
         "🌐 **UNIVA Network Resmi Cüzdan ve Madencilik Botuna Hoş Geldiniz.**\n\n"
         "⚡ **Sovereign Layer 1 Blockchain**\n"
         "⛏️ **SHA-256 Proof-of-Work Madencilik**\n"
@@ -27,29 +36,72 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💎 **21.000.001 UNIVA Maksimum Arz**\n\n"
         "Cüzdanınızı açmak, bakiye görüntülemek ve tek tıkla madencilik başlatmak için aşağıdaki butona dokunun! 👇"
     )
-
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "🚀 UNIVA WebApp Cüzdanını Aç",
-                web_app=WebAppInfo(url=WEBAPP_URL)
-            )
-        ],
-        [
-            InlineKeyboardButton("🌐 Web Cüzdan", url=WEBAPP_URL),
-            InlineKeyboardButton("📖 Whitepaper", url=f"{WEBAPP_URL}/#whitepaper")
+    reply_markup = {
+        "inline_keyboard": [
+            [
+                {
+                    "text": "🚀 UNIVA WebApp Cüzdanını Aç",
+                    "web_app": {"url": WEBAPP_URL}
+                }
+            ],
+            [
+                {"text": "🌐 Web Cüzdan", "url": WEBAPP_URL},
+                {"text": "📖 GitHub Kaynak", "url": "https://github.com/NIONTOKEN/univa-network"}
+            ]
         ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
+    }
+    payload = {
+        "chat_id": chat_id,
+        "text": welcome_text,
+        "parse_mode": "Markdown",
+        "reply_markup": reply_markup
+    }
+    return api_call("sendMessage", payload)
 
 def main():
-    print(f"[UNIVA BOT] Token: {TELEGRAM_BOT_TOKEN[:10]}... WebApp: {WEBAPP_URL}")
-    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    print("[UNIVA BOT] Telegram botu aktif ve dinlemede...")
-    app.run_polling()
+    print(f"[UNIVA TELEGRAM BOT] Baslatiliyor... Token: {BOT_TOKEN[:10]}...")
+    me = api_call("getMe")
+    if not me or not me.get("ok"):
+        print("[HATA] Bot token dogrulanamadi!")
+        return
+
+    bot_info = me["result"]
+    print(f"[UNIVA TELEGRAM BOT] Aktif: @{bot_info.get('username')} ({bot_info.get('first_name')})")
+
+    # Set Menu Button
+    api_call("setChatMenuButton", {
+        "menu_button": {
+            "type": "web_app",
+            "text": "🚀 UNIVA Cüzdan",
+            "web_app": {"url": WEBAPP_URL}
+        }
+    })
+
+    offset = 0
+    print("[UNIVA TELEGRAM BOT] Mesaj dinleme moduna gecildi...")
+    while True:
+        try:
+            updates = api_call("getUpdates", {"offset": offset, "timeout": 20})
+            if updates and updates.get("ok"):
+                for u in updates.get("result", []):
+                    offset = u["update_id"] + 1
+                    msg = u.get("message")
+                    if not msg:
+                        continue
+                    text = msg.get("text", "")
+                    chat = msg.get("chat", {})
+                    chat_id = chat.get("id")
+                    first_name = msg.get("from", {}).get("first_name", "Kullanıcı")
+
+                    if text.startswith("/start"):
+                        send_welcome(chat_id, first_name)
+            time.sleep(1)
+        except KeyboardInterrupt:
+            print("Bot durduruldu.")
+            break
+        except Exception as e:
+            print(f"[HATA] Döngü hatası: {e}")
+            time.sleep(3)
 
 if __name__ == "__main__":
     main()
