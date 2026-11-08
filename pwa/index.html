@@ -543,38 +543,64 @@ let walletPrivKey = localStorage.getItem('univa_pwa_priv_v4') || '';
 let walletEvmAddr = localStorage.getItem('univa_pwa_evm_v4') || '';
 let privKeyShown = false;
 
+function generateLocalWallet() {
+  const charset = '23456789abcdefghjkmnpqrstuvwxyz';
+  const rand = new Uint8Array(32);
+  crypto.getRandomValues(rand);
+  const priv = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
+  let addr = 'univa';
+  for (let i = 0; i < 25; i++) {
+    addr += charset[rand[i % 32] % 31];
+  }
+  const evm = '0x' + priv.substring(0, 40);
+  return { address: addr, private_key: priv, evm_address: evm };
+}
+
 async function initClientWallet() {
   let savedAddr = localStorage.getItem('univa_pwa_addr_v4');
   let savedPriv = localStorage.getItem('univa_pwa_priv_v4');
   let savedEvm  = localStorage.getItem('univa_pwa_evm_v4');
 
-  // Yeni univa... formatında L1 cüzdanı sunucudan üret ve kilitle
-  if (!savedPriv || savedPriv.length !== 64 || !savedAddr || !savedAddr.startsWith('univa') || savedAddr.endsWith('univa') || savedAddr.length < 24) {
+  const needsNew = !savedPriv || savedPriv.length !== 64 || !savedAddr || !savedAddr.startsWith('univa') || savedAddr.endsWith('univa') || savedAddr.length < 25;
+
+  if (needsNew) {
+    let created = false;
     try {
       const r = await fetch(NODE_URL + '/api/v1/wallet/create', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ private_key: savedPriv || '' })
       });
-      const d = await r.json();
-      if (d && d.status === 'ok' && d.address && d.private_key) {
-        savedAddr = d.address;
-        savedPriv = d.private_key;
-        savedEvm  = d.evm_address || ('0x' + (d.public_key ? d.public_key.substring(0, 40) : '0'));
-        localStorage.setItem('univa_pwa_addr_v4', savedAddr);
-        localStorage.setItem('univa_pwa_priv_v4', savedPriv);
-        localStorage.setItem('univa_pwa_evm_v4', savedEvm);
-        localStorage.setItem('univa_pwa_pub_v4', d.public_key || '');
+      if (r.ok) {
+        const d = await r.json();
+        if (d && d.status === 'ok' && d.address && d.private_key) {
+          savedAddr = d.address;
+          savedPriv = d.private_key;
+          savedEvm  = d.evm_address || ('0x' + (d.public_key ? d.public_key.substring(0, 40) : '0'));
+          localStorage.setItem('univa_pwa_pub_v4', d.public_key || '');
+          created = true;
+        }
       }
-    } catch (e) {
-      // Çevrimdışıysa varsayılan
+    } catch (e) {}
+
+    if (!created) {
+      const local = generateLocalWallet();
+      savedAddr = local.address;
+      savedPriv = local.private_key;
+      savedEvm  = local.evm_address;
     }
+
+    localStorage.setItem('univa_pwa_addr_v4', savedAddr);
+    localStorage.setItem('univa_pwa_priv_v4', savedPriv);
+    localStorage.setItem('univa_pwa_evm_v4', savedEvm);
   }
 
-  walletAddr = savedAddr || 'univaf63aua23vxdvcmvkunx66yzh2';
+  walletAddr = savedAddr;
   walletPrivKey = savedPriv || '';
   walletEvmAddr = savedEvm || '';
-  document.getElementById('my-addr').textContent = walletAddr;
+
+  const myAddrEl = document.getElementById('my-addr');
+  if (myAddrEl) myAddrEl.textContent = walletAddr;
   const recv = document.getElementById('recv-addr');
   if (recv) recv.textContent = walletAddr;
   const evmBox = document.getElementById('my-evm-addr');
@@ -901,14 +927,6 @@ async function sendTx() {
       res.innerHTML = `<span style="color:var(--green2)">✅ ECDSA İmzalı İşlem Mempool'a Eklendi!<br><small style="color:var(--dim)">TX ID: ${d.tx_id?.substring(0,24)}... (Sonraki blokta onaylanacak)</small></span>`;
       document.getElementById('send-amount').value = '';
       showToast('✅ Gönderim başarılı!');
-      refreshStats();
-    } else {
-      res.innerHTML = `<span style="color:#ef4444">❌ Hata: ${d?.detail || d?.message || 'Yetersiz bakiye veya imza hatası'}</span>`;
-    }
-  } catch (e) {
-    res.innerHTML = '<span style="color:#ef4444">❌ Bağlantı hatası</span>';
-  }
-}
       refreshStats();
     } else {
       res.innerHTML = `<span style="color:#ef4444">❌ Hata: ${d?.detail || d?.message || 'Yetersiz bakiye veya imza hatası'}</span>`;
