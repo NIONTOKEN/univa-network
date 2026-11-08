@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "public": true,
+  "builds": [
+    {
+      "src": "pwa/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/pwa/assets/$1"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/pwa/manifest.json"
+    },
+    {
+      "src": "/sw.js",
+      "dest": "/pwa/sw.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/pwa/index.html"
+    }
+  ]
+}
