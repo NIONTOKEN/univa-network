@@ -1,1137 +1,1250 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#030a12">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>UNIVA Network</title>
-<link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
-<link rel="manifest" href="manifest.json">
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  :root {
-    --bg: #030a12; --card: #0a1628; --card2: #0f2040; --border: #1a3a5c;
-    --blue: #0ea5e9; --blue2: #38bdf8; --green: #10b981; --green2: #34d399;
-    --teal: #14b8a6; --purple: #8b5cf6; --text: #f0f9ff; --muted: #64748b; --dim: #94a3b8;
-  }
-  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,-apple-system,sans-serif; min-height:100vh; overflow-x:hidden; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#050d1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>UNIVA Network — Sovereign Layer-1 Mainnet</title>
+  <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    :root {
+      --bg: #050d1a;
+      --card: rgba(11, 23, 44, 0.75);
+      --card2: rgba(16, 32, 60, 0.9);
+      --border: rgba(37, 99, 235, 0.22);
+      --border-bright: rgba(56, 189, 248, 0.45);
+      --blue: #2563eb;
+      --blue-bright: #38bdf8;
+      --blue-glow: rgba(37, 99, 235, 0.25);
+      --green: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.25);
+      --gold: #f59e0b;
+      --red: #ef4444;
+      --text: #f8fafc;
+      --dim: #94a3b8;
+      --muted: #64748b;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(ellipse at 20% 0%, rgba(37, 99, 235, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+    }
 
-  /* ─── SPLASH ─── */
-  #splash {
-    position:fixed; inset:0; z-index:9999;
-    background:radial-gradient(ellipse at 50% 30%, #061828 0%, #030a12 70%);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:0; overflow:hidden;
-  }
-  .hex-bg { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
-  .hex { position:absolute; opacity:0; animation:floatHex 6s infinite ease-in-out; }
-  .hex svg { fill:none; stroke:rgba(14,165,233,0.25); stroke-width:1; }
-  @keyframes floatHex {
-    0%   { opacity:0; transform:translateY(0px) rotate(0deg); }
-    20%  { opacity:1; }
-    80%  { opacity:0.6; }
-    100% { opacity:0; transform:translateY(-120px) rotate(30deg); }
-  }
-  #splash-logo-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; z-index:2; }
-  #splash-hex-icon {
-    width:110px; height:110px; position:relative;
-    filter:drop-shadow(0 0 30px rgba(14,165,233,0.7));
-    animation:hexPulse 2s ease-in-out infinite;
-  }
-  @keyframes hexPulse { 0%,100%{filter:drop-shadow(0 0 20px rgba(14,165,233,0.5));} 50%{filter:drop-shadow(0 0 40px rgba(56,189,248,0.9));} }
-  #splash h1 {
-    font-size:3.2rem; font-weight:900; letter-spacing:10px;
-    background:linear-gradient(135deg, #38bdf8 0%, #34d399 50%, #38bdf8 100%);
-    background-size:200% 200%; animation:gradShift 3s ease infinite;
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  }
-  @keyframes gradShift { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
-  #splash-sub { font-size:0.72rem; letter-spacing:4px; color:var(--dim); font-weight:600; }
-  #splash-bar { width:200px; height:2px; background:#1a3a5c; border-radius:2px; margin-top:40px; overflow:hidden; z-index:2; }
-  #splash-progress { height:100%; width:0%; background:linear-gradient(90deg,#0ea5e9,#10b981); border-radius:2px; transition:width 0.08s linear; }
+    /* TOP HEADER */
+    header {
+      position: sticky; top:0; z-index:100;
+      background: rgba(5, 13, 26, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo-area { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .logo-hex {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--blue-bright), var(--blue));
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 0.9rem; color: #fff;
+      box-shadow: 0 0 15px var(--blue-glow);
+    }
+    .logo-text { font-size: 1.15rem; font-weight: 800; letter-spacing: 2px; }
+    .logo-text span { color: var(--blue-bright); }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .net-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 99px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      font-size: 0.75rem; font-weight: 600; color: var(--green);
+    }
+    .net-pill.offline {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.35);
+      color: var(--red);
+    }
+    .net-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
-  /* ─── LOCK ─── */
-  #lock-screen { position:fixed; inset:0; z-index:1000; background:rgba(3,10,18,0.98); backdrop-filter:blur(24px); display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
-  #lock-screen.active { display:flex; }
-  .lock-title { font-size:1.4rem; font-weight:800; letter-spacing:2px; margin-bottom:6px; }
-  .lock-sub { font-size:0.8rem; color:var(--dim); margin-bottom:24px; }
-  .pin-dots { display:flex; gap:14px; margin-bottom:30px; }
-  .pin-dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--border); transition:all 0.2s; }
-  .pin-dot.filled { background:var(--blue2); border-color:var(--blue2); box-shadow:0 0 10px var(--blue); }
-  .keypad { display:grid; grid-template-columns:repeat(3,72px); gap:16px; }
-  .key-btn { width:72px; height:72px; border-radius:50%; background:var(--card); border:1px solid var(--border); color:var(--text); font-size:1.5rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
-  .key-btn:active { background:var(--blue); transform:scale(0.92); }
-  .bio-btn { margin-top:24px; background:transparent; border:1px solid var(--border); color:var(--green2); padding:10px 20px; border-radius:20px; font-size:0.85rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; }
+    /* LAYOUT: DESKTOP NAV & MAIN */
+    .app-container { display: flex; flex: 1; min-height: calc(100vh - 60px); }
+    aside.desktop-nav {
+      width: 240px; border-right: 1px solid var(--border);
+      padding: 24px 14px; display: none; flex-direction: column; gap: 6px;
+      background: rgba(8, 18, 36, 0.4);
+    }
+    @media (min-width: 860px) { aside.desktop-nav { display: flex; } }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 10px;
+      color: var(--dim); font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(37, 99, 235, 0.1); }
+    .nav-item.active {
+      color: #fff; background: linear-gradient(90deg, rgba(37, 99, 235, 0.25), transparent);
+      border-left: 3px solid var(--blue-bright);
+    }
+    .nav-item svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-  /* ─── TOAST ─── */
-  .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:#1a3a5c; color:#fff; padding:10px 22px; border-radius:20px; font-size:0.85rem; opacity:0; transition:all 0.3s; z-index:999; white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis; }
-  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    /* BOTTOM NAV (MOBILE) */
+    nav.mobile-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(5, 13, 26, 0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around;
+      padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    }
+    @media (min-width: 860px) { nav.mobile-nav { display: none; } }
+    .mob-tab {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: none; border: none; color: var(--dim);
+      font-size: 0.65rem; font-weight: 600; padding: 4px 6px;
+      cursor: pointer; transition: color 0.2s;
+    }
+    .mob-tab.active { color: var(--blue-bright); }
+    .mob-tab svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-  /* ─── HEADER ─── */
-  header { position:sticky; top:0; z-index:100; background:rgba(3,10,18,0.92); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); padding:10px 18px; display:flex; justify-content:space-between; align-items:center; }
-  .header-logo { display:flex; align-items:center; gap:10px; cursor:pointer; }
-  .header-hex { width:40px; height:40px; animation:hexPulse 3s infinite; }
-  .logo-text { font-size:1.2rem; font-weight:900; letter-spacing:3px; background:linear-gradient(135deg,#38bdf8,#34d399); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  .node-badge { display:flex; align-items:center; gap:6px; background:rgba(10,22,40,0.8); border:1px solid var(--border); border-radius:20px; padding:5px 12px; font-size:0.75rem; cursor:pointer; }
-  .node-dot { width:7px; height:7px; border-radius:50%; background:var(--green2); box-shadow:0 0 6px var(--green2); animation:blink 1.5s infinite; }
-  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+    /* MAIN VIEW CONTAINER */
+    main.content {
+      flex: 1; padding: 20px; max-width: 1080px; margin: 0 auto;
+      padding-bottom: 90px; /* space for mobile bar */
+      width: 100%;
+    }
+    @media (min-width: 860px) { main.content { padding-bottom: 30px; } }
 
-  /* ─── MAIN / PAGES ─── */
-  main { padding:0 0 80px; max-width:520px; margin:0 auto; }
-  .page { display:none; padding:0 16px; animation:fadeIn 0.2s ease; }
-  .page.active { display:block; }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+    /* SECTIONS */
+    .section-view { display: none; animation: fadeIn 0.25s ease; }
+    .section-view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* ─── HERO CARD ─── */
-  .hero-card { background:linear-gradient(145deg,#0a2040,#061828); border:1px solid var(--border); border-radius:20px; padding:22px 20px 16px; margin:14px 0; position:relative; overflow:hidden; }
-  .hero-card::before { content:''; position:absolute; top:-40px; right:-40px; width:140px; height:140px; background:radial-gradient(circle,rgba(14,165,233,0.12),transparent 70%); border-radius:50%; }
-  .hero-top { display:flex; justify-content:space-between; align-items:flex-start; }
-  .hero-label { font-size:0.7rem; letter-spacing:2px; color:var(--dim); font-weight:600; }
-  .hero-logo-img { width:44px; height:44px; object-fit:contain; border-radius:50%; }
-  .hero-balance { font-size:2rem; font-weight:900; margin:8px 0 4px; letter-spacing:-0.5px; }
-  .hero-addr { font-size:0.72rem; color:var(--blue2); font-family:monospace; cursor:pointer; padding:4px 8px; background:rgba(14,165,233,0.08); border-radius:8px; display:inline-block; margin-bottom:14px; word-break:break-all; }
-  .hero-btns { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-  .hbtn { background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:10px 6px; text-align:center; cursor:pointer; font-size:0.72rem; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:4px; transition:all 0.15s; }
-  .hbtn:active { background:rgba(14,165,233,0.2); transform:scale(0.95); }
-  .hbtn span { font-size:1.2rem; }
+    /* GLASS CARDS */
+    .glass-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(16px);
+      margin-bottom: 18px;
+      position: relative;
+    }
+    .card-title {
+      font-size: 0.82rem; font-weight: 700; color: var(--dim);
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
 
-  /* ─── TELEMETRY CARD ─── */
-  .telemetry-card { background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(16,185,129,0.12)); border:1px solid rgba(14,165,233,0.4); border-radius:14px; padding:14px 16px; margin:12px 0; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+    /* COPY BUTTON & ADDRESS DISPLAY */
+    .addr-pill {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: rgba(5, 13, 26, 0.7);
+      border: 1px solid var(--border);
+      padding: 10px 14px; border-radius: 10px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.85rem; color: var(--blue-bright);
+      word-break: break-all;
+    }
+    .copy-btn {
+      background: rgba(37, 99, 235, 0.18);
+      border: 1px solid var(--border-bright);
+      color: var(--blue-bright);
+      padding: 6px 12px; border-radius: 6px;
+      font-size: 0.75rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 5px;
+      flex-shrink: 0; transition: all 0.2s;
+    }
+    .copy-btn:hover { background: var(--blue); color: #fff; }
+    .copy-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-  /* ─── STATS ─── */
-  .stat-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:0 0 16px; }
-  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 12px; text-align:center; }
-  .stat-icon { font-size:1.4rem; margin-bottom:4px; }
-  .stat-label { font-size:0.65rem; color:var(--dim); letter-spacing:1px; font-weight:600; text-transform:uppercase; }
-  .stat-val { font-size:1.25rem; font-weight:800; margin:4px 0 2px; }
-  .stat-sub { font-size:0.65rem; color:var(--muted); }
-  .c-blue{color:var(--blue2);} .c-green{color:var(--green2);} .c-teal{color:var(--teal);} .c-purple{color:var(--purple);}
+    /* HERO BALANCE */
+    .hero-balance {
+      font-size: 2.4rem; font-weight: 900; letter-spacing: -1px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--blue-bright) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin: 8px 0 16px;
+    }
+    .hero-balance small { font-size: 1.1rem; font-weight: 600; color: var(--dim); -webkit-text-fill-color: var(--dim); }
 
-  /* ─── SECTION TITLE ─── */
-  .section-title { font-size:0.8rem; font-weight:800; letter-spacing:2px; color:var(--dim); text-transform:uppercase; margin:18px 0 10px; padding-left:2px; display:flex; justify-content:space-between; align-items:center; }
+    /* ACTION BUTTONS */
+    .action-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 14px; }
+    .btn {
+      padding: 12px 16px; border-radius: 10px; font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; border: 1px solid transparent; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue), #1d4ed8);
+      color: #fff; border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 4px 14px var(--blue-glow);
+    }
+    .btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--card2); color: var(--text); border-color: var(--border);
+    }
+    .btn-secondary:hover { background: rgba(37, 99, 235, 0.15); border-color: var(--blue-bright); }
+    .btn-success {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff; box-shadow: 0 4px 14px var(--green-glow);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15); color: var(--red); border-color: rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover { background: var(--red); color: #fff; }
 
-  /* ─── BLOCKS LOG ─── */
-  .log-box { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; font-size:0.75rem; font-family:monospace; max-height:200px; overflow-y:auto; line-height:1.8; }
+    /* WALLET SUB-TABS */
+    .wallet-subnav {
+      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 18px;
+      scrollbar-width: none;
+    }
+    .wallet-subnav::-webkit-scrollbar { display: none; }
+    .subnav-btn {
+      padding: 8px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 700;
+      background: rgba(16, 32, 60, 0.6); border: 1px solid var(--border);
+      color: var(--dim); cursor: pointer; white-space: nowrap; transition: all 0.2s;
+    }
+    .subnav-btn.active {
+      background: var(--blue); color: #fff; border-color: var(--blue-bright);
+    }
+    .w-subview { display: none; }
+    .w-subview.active { display: block; animation: fadeIn 0.2s ease; }
 
-  /* ─── FORM ─── */
-  .form-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:14px; }
-  .form-label { font-size:0.7rem; font-weight:700; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; display:block; margin-bottom:6px; }
-  .form-input { width:100%; background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; color:var(--text); font-size:0.9rem; outline:none; font-family:inherit; }
-  .form-input:focus { border-color:var(--blue); }
-  .form-row { margin-top:12px; }
-  .btn-primary { width:100%; padding:14px; background:linear-gradient(135deg,#0ea5e9,#0284c7); border:none; border-radius:12px; color:#fff; font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.15s; }
-  .btn-primary:active { transform:scale(0.98); opacity:0.9; }
-  .btn-primary.mining { background:linear-gradient(135deg,#ef4444,#dc2626); animation:miningPulse 1.2s infinite; }
-  @keyframes miningPulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.5);} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0);} }
+    /* FORMS & INPUTS */
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--dim); margin-bottom: 6px; text-transform: uppercase; }
+    .form-input {
+      width: 100%; padding: 12px 14px; border-radius: 10px;
+      background: rgba(5, 13, 26, 0.85); border: 1px solid var(--border);
+      color: #fff; font-size: 0.9rem; font-family: inherit; outline: none;
+      transition: border 0.2s;
+    }
+    .form-input:focus { border-color: var(--blue-bright); box-shadow: 0 0 10px var(--blue-glow); }
 
-  /* ─── BOTTOM NAV ─── */
-  .bottom-nav { position:fixed; bottom:0; left:0; right:0; z-index:100; background:rgba(3,10,18,0.96); backdrop-filter:blur(20px); border-top:1px solid var(--border); display:flex; justify-content:space-around; padding:6px 0 max(6px,env(safe-area-inset-bottom)); }
-  .tab-btn { flex:1; background:transparent; border:none; color:var(--muted); font-size:0.6rem; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:2px; padding:4px 2px; cursor:pointer; transition:color 0.15s; }
-  .tab-btn span { font-size:1.1rem; }
-  .tab-btn.active { color:var(--blue2); }
-  .tab-btn.active span { filter:drop-shadow(0 0 5px var(--blue)); }
+    /* STATS GRID */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+    }
+    .stat-title { font-size: 0.72rem; color: var(--dim); font-weight: 700; text-transform: uppercase; }
+    .stat-val { font-size: 1.3rem; font-weight: 800; color: var(--text); margin-top: 4px; }
 
-  /* ─── DEX ─── */
-  .dex-info-card { background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(14,165,233,0.08)); border:1px solid rgba(139,92,246,0.3); border-radius:14px; padding:14px; margin-bottom:14px; font-size:0.8rem; line-height:1.9; }
-  .dex-info-card strong { color:var(--blue2); }
+    /* TOAST */
+    #toast {
+      position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%) translateY(30px);
+      background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-bright);
+      color: #fff; padding: 10px 20px; border-radius: 99px; font-size: 0.85rem; font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 200;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  /* ─── EXPLORER ─── */
-  .block-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
-  .block-card-left .block-num { font-size:0.95rem; font-weight:800; color:var(--blue2); }
-  .block-card-left .block-hash { font-size:0.65rem; color:var(--dim); font-family:monospace; margin-top:2px; }
-  .block-card-right { text-align:right; }
-  .block-card-right .block-reward { font-size:0.82rem; font-weight:700; color:var(--green2); }
-  .block-card-right .block-miner { font-size:0.62rem; color:var(--muted); font-family:monospace; margin-top:2px; }
+    /* PIN OVERLAY / SETUP MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(5, 13, 26, 0.88); backdrop-filter: blur(16px);
+      z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: var(--card2); border: 1px solid var(--border-bright);
+      border-radius: 20px; max-width: 420px; width: 100%; padding: 26px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    }
 
-  /* ─── CHAINS ─── */
-  .chain-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
-  .chain-name { font-weight:800; font-size:0.9rem; }
-  .chain-sub { font-size:0.72rem; color:var(--dim); margin-top:2px; }
-  .online { color:var(--green2); font-weight:700; font-size:0.8rem; }
-
-  /* ─── SETTINGS ─── */
-  .setting-row { display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid rgba(26,58,92,0.5); }
-  .setting-label { font-size:0.85rem; font-weight:600; }
-  .setting-sub { font-size:0.72rem; color:var(--dim); margin-top:2px; }
-  .toggle { width:42px; height:24px; background:var(--border); border-radius:12px; position:relative; cursor:pointer; transition:background 0.2s; border:none; }
-  .toggle:checked { background:var(--blue); }
-  input[type=checkbox].toggle { appearance:none; -webkit-appearance:none; }
-  input[type=checkbox].toggle::after { content:''; position:absolute; width:18px; height:18px; background:#fff; border-radius:50%; top:3px; left:3px; transition:left 0.2s; }
-  input[type=checkbox].toggle:checked::after { left:21px; }
-
-  /* ─── QR ─── */
-  #qr-canvas { border-radius:12px; }
-</style>
+    /* BADGE / CALLOUT */
+    .notice-box {
+      padding: 12px 14px; border-radius: 10px; font-size: 0.8rem; line-height: 1.45;
+      margin-bottom: 14px; display: flex; align-items: flex-start; gap: 10px;
+    }
+    .notice-info { background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(37, 99, 235, 0.3); color: #93c5fd; }
+    .notice-warn { background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: #fde68a; }
+  </style>
 </head>
 <body>
 
-<!-- ─── LOCK SCREEN ─── -->
-<div id="lock-screen">
-  <div class="lock-title">UNIVA</div>
-  <div class="lock-sub" id="lock-msg">Devam etmek için 4 haneli PIN kodunuzu girin</div>
-  <div class="pin-dots">
-    <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
-    <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
-  </div>
-  <div class="keypad">
-    <button class="key-btn" onclick="pressKey('1')">1</button><button class="key-btn" onclick="pressKey('2')">2</button><button class="key-btn" onclick="pressKey('3')">3</button>
-    <button class="key-btn" onclick="pressKey('4')">4</button><button class="key-btn" onclick="pressKey('5')">5</button><button class="key-btn" onclick="pressKey('6')">6</button>
-    <button class="key-btn" onclick="pressKey('7')">7</button><button class="key-btn" onclick="pressKey('8')">8</button><button class="key-btn" onclick="pressKey('9')">9</button>
-    <button class="key-btn" style="font-size:0.9rem" onclick="clearPin()">SİL</button>
-    <button class="key-btn" onclick="pressKey('0')">0</button>
-    <button class="key-btn" style="font-size:1.3rem" onclick="backspacePin()">⌫</button>
-  </div>
-  <button class="bio-btn" id="bio-btn" onclick="authBiometric()" style="display:none">
-    <span>👆</span> Parmak İzi ile Aç
-  </button>
-</div>
-
-<!-- ─── HEADER ─── -->
-<header>
-  <div class="header-logo" onclick="goTab('home')">
-    <svg class="header-hex" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-      <defs><linearGradient id="hg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs>
-      <polygon points="20,2 36,11 36,29 20,38 4,29 4,11" fill="rgba(14,165,233,0.1)" stroke="url(#hg2)" stroke-width="1.5"/>
-      <text x="20" y="26" text-anchor="middle" font-size="16" font-weight="900" font-family="Segoe UI,sans-serif" fill="url(#hg2)">U</text>
-    </svg>
-    <div class="logo-text">UNIVA</div>
-  </div>
-  <div class="header-actions">
-    <div class="node-badge" onclick="goTab('telemetry')" title="Canlı Ağ & Cihazlar">
-      <div class="node-dot"></div>
-      <span id="header-peers">1 Cihaz</span>
+  <!-- HEADER -->
+  <header>
+    <div class="logo-area" onclick="switchNav('home')">
+      <div class="logo-hex">U</div>
+      <div class="logo-text">UNIVA <span>MAINNET</span></div>
     </div>
-  </div>
-</header>
-
-<main>
-
-<!-- ─── HOME ─── -->
-<div class="page active" id="page-home">
-  <div class="hero-card">
-    <div class="hero-top">
-      <div class="hero-label">TOPLAM BAKİYE</div>
+    <div class="header-right">
+      <div class="net-pill" id="net-status-pill">
+        <div class="net-dot"></div>
+        <span id="net-status-txt">Ağ Kontrol Ediliyor...</span>
+      </div>
     </div>
-    <div class="hero-balance" id="balance">0.00000000 <span style="font-size:1rem;opacity:0.6">UNIVA</span></div>
-    <div class="hero-addr" id="my-addr" onclick="copyAddr()">univa..........univa</div>
-    <div class="hero-btns">
-      <div class="hbtn" onclick="goTab('send')"><span>📤</span>Gönder</div>
-      <div class="hbtn" onclick="goTab('receive')"><span>📥</span>Al</div>
-      <div class="hbtn" onclick="goTab('dex')"><span>🔄</span>Swap</div>
-      <div class="hbtn" onclick="goTab('mine')"><span>⛏️</span>Kaz</div>
-    </div>
-  </div>
+  </header>
 
-  <!-- İşlem Geçmişi (Tx History) -->
-  <div class="section-title" style="justify-content:space-between">
-    <span>📜 Cüzdan İşlem Geçmişi</span>
-    <button onclick="refreshHistory()" style="background:transparent;border:1px solid var(--border);color:var(--blue2);font-size:0.72rem;padding:4px 10px;border-radius:10px;cursor:pointer">🔄 Yenile</button>
-  </div>
-  <div id="tx-history-list" class="form-card" style="padding:10px;display:flex;flex-direction:column;gap:8px">
-    <div style="color:var(--dim);font-size:0.8rem;text-align:center;padding:8px 0">İşlemler yükleniyor...</div>
-  </div>
+  <div class="app-container">
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="desktop-nav">
+      <div class="nav-item active" data-tab="home" onclick="switchNav('home')">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+        Ana Sayfa
+      </div>
+      <div class="nav-item" data-tab="network" onclick="switchNav('network')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"></path></svg>
+        Ağ Durumu
+      </div>
+      <div class="nav-item" data-tab="explorer" onclick="switchNav('explorer')">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+        Explorer
+      </div>
+      <div class="nav-item" data-tab="wallet" onclick="switchNav('wallet')">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M22 10H2M16 14h.01"></path></svg>
+        Cüzdan
+      </div>
+      <div class="nav-item" data-tab="dex" onclick="switchNav('dex')">
+        <svg viewBox="0 0 24 24"><path d="M16 3l4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"></path></svg>
+        DEX (AMM)
+      </div>
+      <div class="nav-item" data-tab="mining" onclick="switchNav('mining')">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"></path></svg>
+        Madencilik
+      </div>
+      <div class="nav-item" data-tab="docs" onclick="switchNav('docs')">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg>
+        Dökümanlar
+      </div>
+    </aside>
 
-  <!-- Telemetry CTA -->
-  <div class="telemetry-card" onclick="goTab('telemetry')">
-    <div style="display:flex;align-items:center;gap:12px">
-      <span style="font-size:1.8rem">📡</span>
-      <div>
-        <div style="font-size:0.85rem;font-weight:800">CANLI AĞ & BAĞLI CİHAZLAR</div>
-        <div style="font-size:0.72rem;color:var(--green2);display:flex;align-items:center;gap:5px;margin-top:2px">
-          <span style="width:7px;height:7px;border-radius:50%;background:var(--green2);display:inline-block"></span>
-          <span id="telemetry-summary-text">Sistem aktif · Cihazlar taranıyor</span>
+    <!-- CONTENT VIEWS -->
+    <main class="content">
+
+      <!-- 1. HOME VIEW -->
+      <section class="section-view active" id="sec-home">
+        <div class="glass-card" style="border-color:var(--border-bright);">
+          <div class="card-title">UNIVA Sovereign Layer-1 Mainnet</div>
+          <div style="font-size:0.95rem;line-height:1.6;color:var(--dim);margin-bottom:14px;">
+            Bitcoin felsefesiyle inşa edilmiş, bağımsız SHA-256 Proof-of-Work mutabakatı, EVM JSON-RPC köprüsü ve 30 karakterlik yeni nesil L1 adres standardına sahip egemen blokzincir.
+          </div>
+          <div class="action-row">
+            <button class="btn btn-primary" onclick="switchNav('wallet')">💳 Cüzdana Git</button>
+            <button class="btn btn-secondary" onclick="switchNav('mining')">⛏️ Madenciliği Başlat</button>
+            <button class="btn btn-secondary" onclick="switchNav('explorer')">🔍 Blokları İncele</button>
+          </div>
         </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-title">Blok Yüksekliği</div>
+            <div class="stat-val" id="h-height">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Toplam Kazılan</div>
+            <div class="stat-val" id="h-mined">— <small style="font-size:0.8rem">UNIVA</small></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Blok Başı Ödül</div>
+            <div class="stat-val" id="h-reward">100.0 <small style="font-size:0.8rem">UNIVA</small></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Ağ Zorluğu</div>
+            <div class="stat-val" id="h-diff">—</div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">Son Kabul Edilen Blok (MTP BIP-113 Doğrulamalı)</div>
+          <div class="addr-pill" style="margin-bottom:8px;">
+            <span id="h-last-hash" style="font-size:0.75rem;">Yükleniyor...</span>
+            <button class="copy-btn" onclick="copyCurrent('h-last-hash', 'Blok Hash kopyalandı')">
+              <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg> Kopyala
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. NETWORK VIEW -->
+      <section class="section-view" id="sec-network">
+        <div class="glass-card">
+          <div class="card-title">Canlı Düğüm ve P2P Durumu</div>
+          <div class="notice-box notice-info">
+            UNIVA konsensüsü bağımsız SHA-256 Proof-of-Work motoruyla çalışır. Her blok Merkle Root ve Median Time Past (BIP-113) ile doğrulanır.
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-title">Düğüm Bağlantısı</div>
+              <div class="stat-val" id="net-online-val">Bağlanıyor...</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">P2P Peer Sayısı</div>
+              <div class="stat-val" id="net-peers-val">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">EVM Chain ID</div>
+              <div class="stat-val">210001 (0x33451)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Zincir Bütünlüğü</div>
+              <div class="stat-val" id="net-valid-val" style="color:var(--green)">Doğrulanıyor</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">Düğüm Yapılandırması (Node URL)</div>
+          <div class="form-group">
+            <label class="form-label">Aktif API Uç Noktası</label>
+            <input class="form-input" id="cfg-node-url" value="http://127.0.0.1:5050">
+          </div>
+          <div class="action-row">
+            <button class="btn btn-secondary" onclick="saveNodeUrl()">💾 Adresi Kaydet & Bağlan</button>
+            <button class="btn btn-secondary" onclick="testNodeUrl()">🔄 Bağlantıyı Test Et</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. EXPLORER VIEW -->
+      <section class="section-view" id="sec-explorer">
+        <div class="glass-card">
+          <div class="card-title">UNIVA Blok Gezgini (Explorer)</div>
+          <div class="form-group" style="display:flex;gap:8px;">
+            <input class="form-input" id="exp-search" placeholder="Blok Yüksekliği (örn: 0, 1) veya Adres">
+            <button class="btn btn-primary" onclick="searchExplorer()" style="flex-shrink:0;">Sorgula</button>
+          </div>
+          <div id="exp-result" style="margin-top:12px;display:none;"></div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">Son Onaylanan Bloklar</div>
+          <div id="exp-blocks-list" style="font-size:0.85rem;color:var(--dim);">Blok listesi yükleniyor...</div>
+        </div>
+      </section>
+
+      <!-- 4. WALLET VIEW (SEPARATE INDEPENDENT DASHBOARD) -->
+      <section class="section-view" id="sec-wallet">
+        
+        <!-- SUB-NAVIGATION FOR WALLET ONLY -->
+        <div class="wallet-subnav">
+          <button class="subnav-btn active" onclick="switchWalletSub('overview')">Genel Bakış</button>
+          <button class="subnav-btn" onclick="switchWalletSub('assets')">Varlıklarım</button>
+          <button class="subnav-btn" onclick="switchWalletSub('send')">Gönder</button>
+          <button class="subnav-btn" onclick="switchWalletSub('receive')">Al (Adres / QR)</button>
+          <button class="subnav-btn" onclick="switchWalletSub('history')">İşlem Geçmişi</button>
+          <button class="subnav-btn" onclick="switchWalletSub('book')">Adres Defteri</button>
+          <button class="subnav-btn" onclick="switchWalletSub('security')">Güvenlik & Yedek</button>
+        </div>
+
+        <!-- 4.1 OVERVIEW SUBTAB -->
+        <div class="w-subview active" id="w-sec-overview">
+          <div class="glass-card">
+            <div class="card-title">TOPLAM BAKİYE</div>
+            <div class="hero-balance" id="w-balance">0.00000000 <small>UNIVA</small></div>
+            
+            <div class="form-label" style="margin-top:12px;">UNIVA L1 ADRESİNİZ (30 KARAKTER STANDARDI)</div>
+            <div class="addr-pill">
+              <span id="w-addr-display">Cüzdan Yükleniyor...</span>
+              <button class="copy-btn" onclick="copyCurrent('w-addr-display', 'UNIVA L1 Adresi Kopyalandı')">
+                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg> Kopyala
+              </button>
+            </div>
+
+            <div class="form-label" style="margin-top:12px;">EVM / METAMASK AYNA ADRESİ (0x...)</div>
+            <div class="addr-pill">
+              <span id="w-evm-display">—</span>
+              <button class="copy-btn" onclick="copyCurrent('w-evm-display', 'EVM Adresi Kopyalandı')">
+                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg> Kopyala
+              </button>
+            </div>
+
+            <div class="action-row" style="margin-top:18px;">
+              <button class="btn btn-primary" onclick="switchWalletSub('send')">📤 Transfer Gönder</button>
+              <button class="btn btn-secondary" onclick="switchWalletSub('receive')">📥 Para Al / QR</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4.2 ASSETS SUBTAB -->
+        <div class="w-subview" id="w-sec-assets">
+          <div class="glass-card">
+            <div class="card-title">CÜZDAN VARLIKLARI</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(5,13,26,0.6);border-radius:10px;border:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="logo-hex" style="width:36px;height:36px;">U</div>
+                <div>
+                  <div style="font-weight:700;font-size:1rem;">UNIVA Coin</div>
+                  <div style="font-size:0.75rem;color:var(--dim);">Native Layer-1 SHA-256</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-weight:800;font-size:1.1rem;" id="w-assets-univa">0.00000000</div>
+                <div style="font-size:0.72rem;color:var(--green)">Doğrulanmış Bakiye</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4.3 SEND SUBTAB -->
+        <div class="w-subview" id="w-sec-send">
+          <div class="glass-card">
+            <div class="card-title">UNIVA GÖNDER (ECDSA SECP256K1 İMZALI)</div>
+            <div class="form-group">
+              <label class="form-label">ALICI ADRES (univa... veya 0x...)</label>
+              <input class="form-input" id="send-target" placeholder="Ör: univaf63aua23vxdvcmvkunx66yzh2">
+            </div>
+            <div class="form-group">
+              <label class="form-label">MİKTAR (UNIVA)</label>
+              <input class="form-input" type="number" step="0.00000001" id="send-amount" placeholder="0.00000000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">AĞ İŞLEM ÜCRETİ (FEE)</label>
+              <input class="form-input" id="send-fee" value="0.001" readonly style="opacity:0.75">
+            </div>
+            <button class="btn btn-primary" onclick="submitSendTx()" style="width:100%;margin-top:8px;">İmzala ve Ağa Gönder</button>
+            <div id="send-status-msg" style="margin-top:12px;font-size:0.85rem;"></div>
+          </div>
+        </div>
+
+        <!-- 4.4 RECEIVE SUBTAB -->
+        <div class="w-subview" id="w-sec-receive">
+          <div class="glass-card" style="text-align:center;">
+            <div class="card-title">UNIVA AL (HESAP ADRESİNİZ)</div>
+            <div style="font-size:0.85rem;color:var(--dim);margin-bottom:14px;">
+              Aşağıdaki adresinize dünyanın her yerinden doğrudan UNIVA transferi alabilirsiniz.
+            </div>
+
+            <div class="form-label">UNIVA L1 ADRESİ</div>
+            <div class="addr-pill" style="margin-bottom:14px;">
+              <span id="recv-l1-addr" style="font-size:0.85rem;">—</span>
+              <button class="copy-btn" onclick="copyCurrent('recv-l1-addr', 'UNIVA L1 Adresi Kopyalandı')">
+                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg> Kopyala
+              </button>
+            </div>
+
+            <div class="form-label">METAMASK / EVM AYNA ADRESİ</div>
+            <div class="addr-pill">
+              <span id="recv-evm-addr" style="font-size:0.85rem;">—</span>
+              <button class="copy-btn" onclick="copyCurrent('recv-evm-addr', 'EVM Adresi Kopyalandı')">
+                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg> Kopyala
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4.5 HISTORY SUBTAB -->
+        <div class="w-subview" id="w-sec-history">
+          <div class="glass-card">
+            <div class="card-title">
+              <span>CÜZDAN İŞLEM GEÇMİŞİ</span>
+              <button class="btn btn-secondary" onclick="loadTxHistory()" style="padding:4px 10px;font-size:0.75rem;">Yenile</button>
+            </div>
+            <div id="w-history-list" style="font-size:0.85rem;color:var(--dim);">İşlemler taranıyor...</div>
+          </div>
+        </div>
+
+        <!-- 4.6 ADDRESS BOOK SUBTAB -->
+        <div class="w-subview" id="w-sec-book">
+          <div class="glass-card">
+            <div class="card-title">KAYITLI ADRESLER</div>
+            <div class="form-group">
+              <input class="form-input" id="book-name" placeholder="Kişi / Etiket İsmi (Ör: Ahmet)">
+            </div>
+            <div class="form-group">
+              <input class="form-input" id="book-addr" placeholder="Adres (univa... veya 0x...)">
+            </div>
+            <button class="btn btn-secondary" onclick="addContact()">➕ Kişiyi Deftere Ekle</button>
+            <div id="book-list" style="margin-top:16px;"></div>
+          </div>
+        </div>
+
+        <!-- 4.7 SECURITY SUBTAB -->
+        <div class="w-subview" id="w-sec-security">
+          <div class="glass-card">
+            <div class="card-title">ŞİFRELİ CÜZDAN GÜVENLİĞİ</div>
+            <div class="notice-box notice-warn">
+              Özel anahtarınız tarayıcınızda AES-GCM standardıyla şifrelenmiştir. Özel anahtarınızı asla kimseyle paylaşmayın!
+            </div>
+            <div class="form-group">
+              <label class="form-label">ŞİFRELİ GÜVENLİK PIN KODU DEĞİŞTİR</label>
+              <input class="form-input" type="password" id="sec-new-pin" placeholder="Yeni 4-8 Haneli PIN">
+            </div>
+            <button class="btn btn-secondary" onclick="changeWalletPin()">PIN'i Güncelle</button>
+
+            <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:18px;">
+              <div class="form-label">ÖZEL ANAHTARI (PRIVATE KEY) YEDEKLE</div>
+              <div id="sec-priv-box" class="addr-pill" style="display:none;margin-bottom:10px;">
+                <span id="sec-priv-text" style="color:var(--gold);font-size:0.75rem;">—</span>
+                <button class="copy-btn" onclick="copyCurrent('sec-priv-text', 'Özel Anahtar Kopyalandı')">Kopyala</button>
+              </div>
+              <button class="btn btn-danger" onclick="revealPrivateKey()">👁️ Özel Anahtarı Görüntüle / Yedekle</button>
+            </div>
+
+            <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:18px;">
+              <div class="form-label">YENİ CÜZDAN OLUŞTUR VEYA DEĞİŞTİR</div>
+              <button class="btn btn-secondary" onclick="openNewWalletModal()">➕ Yeni Cüzdan Ekle / İçe Aktar</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- 5. DEX VIEW -->
+      <section class="section-view" id="sec-dex">
+        <div class="glass-card">
+          <div class="card-title">UNIVA NATIVE DEX (OTOMATİK PİYASA YAPICI)</div>
+          <div class="notice-box notice-warn" style="font-size:0.9rem;">
+            🔄 <strong>DEX Konsensüs Entegrasyonu Geliştirme Aşamasında:</strong><br>
+            UNIVA DEX, harici akıllı sözleşmeler yerine doğrudan Layer-1 durum geçişi (State Transition) motoruna entegre edilmektedir. Gerçek mainnet kuralları gereği, sahte işlem simülasyonu yapılmamaktadır. Geliştirme tamamlandığında canlı swap aktif olacaktır.
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-title">Protokol Swap Ücreti</div>
+              <div class="stat-val">%0.10 (10 bps)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Havuz Formülü</div>
+              <div class="stat-val">x · y = k (Sabit Çarpım)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Aktif Havuzlar</div>
+              <div class="stat-val">UNIVA / uUSD</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. MINING VIEW -->
+      <section class="section-view" id="sec-mining">
+        <div class="glass-card">
+          <div class="card-title">SHA-256 PROOF-OF-WORK MADENCİLİĞİ</div>
+          <div class="notice-box notice-info">
+            UNIVA madenciliği, Bitcoin standardında SHA-256 hash hesaplaması yapar. İster bağlı Full Node üzerinden ister doğrudan tarayıcınızın Web Worker işlemcisiyle gerçek blok arayabilirsiniz.
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-title">Anlık Hashrate</div>
+              <div class="stat-val"><span id="mine-hashrate">0</span> <small style="font-size:0.75rem">H/s</small></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Kazılan Blok</div>
+              <div class="stat-val" id="mine-blocks-found">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Kazanılan Ödül</div>
+              <div class="stat-val"><span id="mine-rewards-earned">0.0</span> <small style="font-size:0.75rem">UNIVA</small></div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary" id="mine-toggle-btn" onclick="toggleMining()" style="width:100%;padding:16px;">
+              ⛏️ MADENCİLİĞİ BAŞLAT
+            </button>
+            <div id="mine-log" style="margin-top:12px;font-size:0.85rem;color:var(--dim);text-align:center;">
+              Madencilik durduruldu.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. DOCS VIEW -->
+      <section class="section-view" id="sec-docs">
+        <div class="glass-card">
+          <div class="card-title">UNIVA WHITE PAPER & TEKNİK DÖKÜMANLAR</div>
+          <div style="font-size:0.85rem;line-height:1.6;color:var(--dim);">
+            <p><strong>Maksimum Arz:</strong> 21,000,001.0 UNIVA</p>
+            <p><strong>Blok Süresi:</strong> 60 Saniye</p>
+            <p><strong>Yarılanma (Halving):</strong> Her 43,200 Blok (~30 gün)</p>
+            <p><strong>Adres Standardı v4.0:</strong> univa + 25 karakter Base31 (Toplam 30 karakter)</p>
+            <p><strong>EVM RPC Chain ID:</strong> 210001 (0x33451)</p>
+            <p><strong>Bitcoin Core RPC Metodları:</strong> getblockchaininfo, getblock, sendrawtransaction, getmininginfo</p>
+          </div>
+          <div class="action-row" style="margin-top:14px;">
+            <a href="https://github.com/NIONTOKEN/univa-network" target="_blank" class="btn btn-secondary" style="text-decoration:none;">
+              📂 GitHub Kaynak Kodu
+            </a>
+            <a href="https://t.me/UnivaNetworkBot" target="_blank" class="btn btn-secondary" style="text-decoration:none;">
+              🤖 Telegram Mini App Botu
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV (7 TABS) -->
+  <nav class="mobile-nav">
+    <button class="mob-tab active" data-tab="home" onclick="switchNav('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+      Ana
+    </button>
+    <button class="mob-tab" data-tab="network" onclick="switchNav('network')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 014-10z"></path></svg>
+      Ağ
+    </button>
+    <button class="mob-tab" data-tab="explorer" onclick="switchNav('explorer')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+      Explorer
+    </button>
+    <button class="mob-tab" data-tab="wallet" onclick="switchNav('wallet')">
+      <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M22 10H2M16 14h.01"></path></svg>
+      Cüzdan
+    </button>
+    <button class="mob-tab" data-tab="dex" onclick="switchNav('dex')">
+      <svg viewBox="0 0 24 24"><path d="M16 3l4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"></path></svg>
+      DEX
+    </button>
+    <button class="mob-tab" data-tab="mining" onclick="switchNav('mining')">
+      <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"></path></svg>
+      Madenci
+    </button>
+    <button class="mob-tab" data-tab="docs" onclick="switchNav('docs')">
+      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg>
+      Döküman
+    </button>
+  </nav>
+
+  <!-- PIN UNLOCK / FIRST RUN SETUP MODAL -->
+  <div class="modal-overlay" id="pin-modal">
+    <div class="modal-box">
+      <div class="card-title" id="modal-title">UNIVA GÜVENLİ CÜZDAN KURULUMU</div>
+      <div id="modal-desc" style="font-size:0.85rem;color:var(--dim);margin-bottom:14px;">
+        Cüzdanınızın bu cihazda kalıcı ve şifreli saklanması için 4-8 haneli bir güvenlik PIN kodu belirleyin.
+      </div>
+      <div class="form-group">
+        <input class="form-input" type="password" id="modal-pin-input" placeholder="PIN Kodunuzu Girin">
+      </div>
+      <div id="modal-import-group" style="display:none;" class="form-group">
+        <label class="form-label">ÖZEL ANAHTAR (İSTEĞE BAĞLI İÇE AKTARIM)</label>
+        <input class="form-input" id="modal-privkey-input" placeholder="64 karakter hex özel anahtar">
+      </div>
+      <div class="action-row">
+        <button class="btn btn-primary" id="modal-submit-btn" onclick="handlePinSubmit()">Onayla & Başla</button>
+        <button class="btn btn-secondary" id="modal-import-btn" onclick="toggleImportField()">Mevcut Cüzdanı Aktar</button>
       </div>
     </div>
-    <button style="background:var(--blue);border:none;color:#fff;font-size:0.72rem;font-weight:700;padding:7px 12px;border-radius:16px;cursor:pointer">İncele →</button>
   </div>
 
-  <div class="section-title">Ağ Durumu</div>
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-icon">🧱</div>
-      <div class="stat-label">Blok Yüksekliği</div>
-      <div class="stat-val c-blue" id="s-height">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">⛏️</div>
-      <div class="stat-label">Toplam Madenci</div>
-      <div class="stat-val c-green" id="s-mined">0 UNIVA</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">🔗</div>
-      <div class="stat-label">Zorluk (Difficulty)</div>
-      <div class="stat-val c-teal" id="s-diff">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">✅</div>
-      <div class="stat-label">Zincir Doğrulama</div>
-      <div class="stat-val c-purple" id="s-valid">—</div>
-    </div>
-  </div>
+  <div id="toast">Bildirim</div>
 
-  <div class="section-title">Son Bloklar</div>
-  <div id="blocks-list" class="log-box" style="color:var(--blue2)">Blok verisi yükleniyor...</div>
-</div>
+  <script>
+    'use strict';
 
-<!-- ─── TELEMETRY ─── -->
-<div class="page" id="page-telemetry">
-  <div class="section-title" style="margin-top:16px;justify-content:space-between">
-    <span>📡 Canlı Ağ & Cihazlar</span>
-    <span style="font-size:0.68rem;background:rgba(16,185,129,0.15);color:var(--green2);border:1px solid var(--green2);padding:3px 9px;border-radius:10px;font-weight:700">🟢 CANLI</span>
-  </div>
+    // ─── CONFIGURATION & PERSISTENCE ───
+    const DEFAULT_NODE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://127.0.0.1:5050'
+      : (localStorage.getItem('univa_custom_node') || 'http://127.0.0.1:5050');
 
-  <div class="form-card" style="border-left:3px solid var(--green2)">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-size:0.7rem;color:var(--dim);letter-spacing:1px">PROTOKOL SAĞLIĞI</div>
-        <div style="font-size:1rem;font-weight:900;color:var(--green2);margin-top:2px">🟢 %100 AYAKTA</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:0.7rem;color:var(--dim)">ÇALIŞMA SÜRESİ</div>
-        <div style="font-size:0.9rem;font-weight:700" id="node-uptime">—</div>
-      </div>
-    </div>
-  </div>
+    let NODE_URL = DEFAULT_NODE;
+    let nodeConnected = false;
+    let walletAddr = '';
+    let walletEvm = '';
+    let walletPrivKey = ''; // In-memory session only, never transmitted
+    let isMining = false;
+    let miningWorker = null;
+    let minedSessionBlocks = 0;
+    let minedSessionReward = 0.0;
 
-  <div class="stat-grid">
-    <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-label">Aktif Cihaz</div><div class="stat-val c-green" id="active-dev-count">1</div><div class="stat-sub">Telefon / PC</div></div>
-    <div class="stat-card"><div class="stat-icon">🌍</div><div class="stat-label">Aktif Bölge</div><div class="stat-val c-blue" id="active-region-count">1</div><div class="stat-sub">Şehir / Ülke</div></div>
-    <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-label">P2P Port</div><div class="stat-val c-teal">5051</div><div class="stat-sub">WebSocket</div></div>
-    <div class="stat-card"><div class="stat-icon">🔗</div><div class="stat-label">Bitcoin RPC</div><div class="stat-val c-purple">POST /rpc</div><div class="stat-sub">Borsa Standartı</div></div>
-  </div>
+    const CHARSET = '23456789abcdefghjkmnpqrstuvwxyz';
 
-  <div class="section-title">Bölgesel Dağılım</div>
-  <div id="regions-container" class="form-card" style="display:flex;flex-direction:column;gap:8px">
-    <div style="color:var(--dim);font-size:0.8rem">Taranıyor...</div>
-  </div>
+    // ─── TOAST NOTIFICATION ───
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
 
-  <div class="section-title" style="justify-content:space-between">
-    <span>Bağlı Cihazlar</span>
-    <button onclick="refreshTelemetry()" style="background:transparent;border:1px solid var(--border);color:var(--blue2);font-size:0.72rem;padding:4px 10px;border-radius:10px;cursor:pointer">🔄</button>
-  </div>
-  <div id="devices-list" style="display:flex;flex-direction:column;gap:8px">
-    <div style="color:var(--dim);font-size:0.8rem">Taranıyor...</div>
-  </div>
+    // ─── COPY WITH FULL INTEGRITY ───
+    function copyCurrent(elemId, label) {
+      const el = document.getElementById(elemId);
+      if (!el) return;
+      const val = el.textContent.trim();
+      if (!val || val === '—' || val === 'Yükleniyor...') return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(val).then(() => showToast('✓ ' + label));
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = val; ta.style.cssText = 'position:fixed;left:-9999px';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('✓ ' + label);
+      }
+    }
 
-  <div class="form-card" style="margin-top:16px;text-align:center">
-    <div style="font-size:0.85rem;font-weight:700;margin-bottom:6px">📄 Teknik Şartname (Whitepaper)</div>
-    <div style="font-size:0.73rem;color:var(--dim);margin-bottom:10px">Konsensüs kuralları, 20 karakter adres matematiği ve mimari</div>
-    <a href="/whitepaper" target="_blank" style="display:inline-block;background:var(--card2);border:1px solid var(--border);color:var(--blue2);padding:9px 16px;border-radius:16px;text-decoration:none;font-size:0.78rem;font-weight:700">📖 Whitepaper'ı Aç</a>
-  </div>
-</div>
+    // ─── NAVIGATION HANDLERS ───
+    function switchNav(tabId) {
+      document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById('sec-' + tabId);
+      if (target) target.classList.add('active');
 
-<!-- ─── EXPLORER ─── -->
-<div class="page" id="page-explorer">
-  <div class="section-title" style="margin-top:16px;justify-content:space-between">
-    <span>⛓ Blok Gezgini</span>
-    <button onclick="fetchExplorer()" style="background:transparent;border:1px solid var(--border);color:var(--blue2);font-size:0.72rem;padding:4px 10px;border-radius:10px;cursor:pointer">🔄 Yenile</button>
-  </div>
-
-  <div class="form-card" style="margin-bottom:14px">
-    <div style="display:flex;gap:8px">
-      <input class="form-input" id="explorer-search" placeholder="Adres veya blok # ara..." style="flex:1;font-size:0.85rem">
-      <button onclick="explorerSearch()" style="background:var(--blue);border:none;color:#fff;padding:0 14px;border-radius:10px;font-weight:700;cursor:pointer">Ara</button>
-    </div>
-    <div id="explorer-search-result" style="margin-top:8px;font-size:0.8rem;color:var(--dim)"></div>
-  </div>
-
-  <div class="section-title">Son Bloklar</div>
-  <div id="explorer-blocks">
-    <div style="color:var(--dim);font-size:0.8rem;padding:10px 0">Bloklar yükleniyor...</div>
-  </div>
-</div>
-
-<!-- ─── DEX / SWAP ─── -->
-<div class="page" id="page-dex">
-  <div class="section-title" style="margin-top:16px">UNIVA Native DEX (Yerel Takas)</div>
-
-  <div class="dex-info-card">
-    <div style="font-size:0.8rem;font-weight:800;margin-bottom:8px;color:var(--blue2)">💱 DEX Nasıl Çalışır?</div>
-    <div>• <strong>UNIVA:</strong> Ağın ana para birimi — madencilikle kazanılır</div>
-    <div>• <strong>uUSD:</strong> UNIVA ağı içindeki test stabilcoini (1 uUSD ≈ 1 Dolar referansı)</div>
-    <div>• <strong>Swap:</strong> x·y=k AMM formülüyle anında takas</div>
-    <div>• <strong>Ücret:</strong> Sadece %0.1 — doğrudan protokole gider</div>
-  </div>
-
-  <div class="form-card">
-    <div style="display:flex;justify-content:space-between">
-      <label class="form-label">ÖDEYECEĞİNİZ</label>
-      <span style="font-size:0.72rem;color:var(--dim)">Bakiye: <strong id="dex-bal-in" style="color:var(--green2)">—</strong></span>
-    </div>
-    <div style="display:flex;gap:8px">
-      <input class="form-input" id="swap-amt-in" type="number" placeholder="0.0" oninput="quoteSwap()" style="flex:1">
-      <select class="form-input" id="swap-asset-in" onchange="quoteSwap()" style="width:100px;font-weight:700">
-        <option value="UNIVA">UNIVA</option>
-        <option value="uUSD">uUSD</option>
-      </select>
-    </div>
-    <div style="text-align:center;margin:12px 0;cursor:pointer" onclick="flipSwapAssets()">
-      <span style="font-size:1.3rem;background:var(--card2);padding:6px 12px;border-radius:50%;border:1px solid var(--border)">⇅</span>
-    </div>
-    <div style="display:flex;justify-content:space-between">
-      <label class="form-label">ALACAĞINIZ</label>
-      <span style="font-size:0.72rem;color:var(--dim)">Bakiye: <strong id="dex-bal-out" style="color:var(--green2)">—</strong></span>
-    </div>
-    <div style="display:flex;gap:8px">
-      <input class="form-input" id="swap-amt-out" type="number" placeholder="0.0" readonly style="flex:1;color:var(--green2);font-weight:700">
-      <select class="form-input" id="swap-asset-out" onchange="quoteSwap()" style="width:100px;font-weight:700">
-        <option value="uUSD">uUSD</option>
-        <option value="UNIVA">UNIVA</option>
-      </select>
-    </div>
-    <div style="margin-top:12px;padding:10px;background:var(--card2);border-radius:10px;font-size:0.7rem;color:var(--dim);line-height:1.8">
-      <div style="display:flex;justify-content:space-between"><span>Protokol Ücreti (%0.1):</span><span id="dex-fee">0.00000000</span></div>
-      <div style="display:flex;justify-content:space-between"><span>Min Alım (Slippage %0.5):</span><span id="dex-min-out">0.00000000</span></div>
-    </div>
-    <button class="btn-primary" onclick="executeSwap()" style="width:100%;margin-top:12px">🔄 Anında Takas Et</button>
-  </div>
-
-  <div class="section-title">Likidite Havuzları</div>
-  <div id="dex-pools-list" class="form-card">
-    <div style="color:var(--dim);font-size:0.8rem">Havuz verisi yükleniyor...</div>
-  </div>
-</div>
-
-<!-- ─── SEND ─── -->
-<div class="page" id="page-send">
-  <div class="section-title" style="margin-top:16px">UNIVA Gönder</div>
-  <div class="form-card">
-    <label class="form-label">ALICI ADRES (univa... veya 0x...)</label>
-    <input class="form-input" id="send-to" placeholder="ör: univaf63aua23vxdvcmvkunx66yzh2" oninput="checkAddr(this)">
-    <div id="addr-hint" style="margin-top:4px;font-size:0.72rem"></div>
-    <label class="form-label" style="margin-top:12px">MİKTAR (UNIVA)</label>
-    <input class="form-input" id="send-amount" type="number" placeholder="ör: 10.0">
-    <div class="form-row">
-      <button class="btn-primary" onclick="sendTx()">📤 Gönder</button>
-    </div>
-    <div id="send-result" style="margin-top:10px;font-size:0.82rem"></div>
-  </div>
-</div>
-
-<!-- ─── RECEIVE ─── -->
-<div class="page" id="page-receive">
-  <div class="section-title" style="margin-top:16px">UNIVA Al (Kalıcı Kimliğin)</div>
-  <div class="form-card" style="text-align:center">
-    <canvas id="qr-canvas" style="display:block;margin:0 auto 14px"></canvas>
-    <div style="font-size:0.7rem;color:var(--green2);margin-bottom:6px;letter-spacing:1px;font-weight:700">🔒 BU CİHAZA AİT UNIVA L1 ADRESİN</div>
-    <div id="recv-addr" style="font-family:monospace;font-size:0.85rem;color:var(--blue2);word-break:break-all;cursor:pointer;padding:10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;font-weight:700" onclick="copyAddr()">—</div>
-    <button class="btn-primary" onclick="copyAddr()" style="margin-top:12px">📋 L1 Adresini Kopyala</button>
-
-    <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(26,58,92,0.4)">
-      <div style="font-size:0.7rem;color:var(--dim);margin-bottom:4px">🌐 METAMASK & EVM AYNA ADRESİ (0x...)</div>
-      <div id="my-evm-addr" style="font-family:monospace;font-size:0.75rem;color:var(--dim);word-break:break-all;cursor:pointer" onclick="copyEvmAddr()">—</div>
-    </div>
-  </div>
-</div>
-
-<!-- ─── MINE ─── -->
-<div class="page" id="page-mine">
-  <div class="section-title" style="margin-top:16px">Madencilik</div>
-  <div class="form-card" style="text-align:center">
-    <div id="mine-status-txt" style="font-size:0.85rem;color:var(--dim);margin-bottom:14px">Madencilik bekleniyor...</div>
-    <button class="btn-primary" id="mine-btn" onclick="toggleMining()">⛏️ MADENCİLİĞİ BAŞLAT</button>
-    <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-label">Hash/sn</div><div class="stat-val c-green" id="m-hashrate">0</div></div>
-      <div class="stat-card"><div class="stat-icon">🧱</div><div class="stat-label">Bulunan Blok</div><div class="stat-val c-blue" id="m-blocks">0</div></div>
-    </div>
-  </div>
-  <div class="form-card" style="font-size:0.8rem;color:var(--dim);line-height:1.8">
-    <div style="font-weight:700;color:var(--text);margin-bottom:6px">⛏️ Madencilik Nasıl Çalışır?</div>
-    <div>• Her blok 100 UNIVA ödülü üretir (ilk yarılanmaya kadar)</div>
-    <div>• Ağ SHA-256 PoW algoritması kullanır (Bitcoin ile aynı)</div>
-    <div>• Her 43,200 blokta ödül yarıya iner (ayda bir)</div>
-    <div>• Bloklar doğrulandığında bakiyene otomatik eklenir</div>
-  </div>
-</div>
-
-<!-- ─── CHAINS ─── -->
-<div class="page" id="page-chains">
-  <div class="section-title" style="margin-top:16px">Dış Zincir Okuyucu</div>
-  <div style="font-size:0.78rem;color:var(--dim);margin-bottom:14px">UNIVA, bu zincirlerin verilerini Merkle State Proof ile doğrular. UNIVA'ya köprü yok — UNIVA ana zincirdir.</div>
-  <div class="chain-card"><div><div class="chain-name">₿ Bitcoin</div><div class="chain-sub">SHA-256 PoW · Nakamoto Consensus</div></div><div id="btc-status"><span style="color:var(--muted)">Bağlanıyor...</span></div></div>
-  <div class="chain-card"><div><div class="chain-name">Ξ Ethereum</div><div class="chain-sub">EVM · Proof of Stake</div></div><div id="evm-status"><span style="color:var(--muted)">Bağlanıyor...</span></div></div>
-  <div class="chain-card"><div><div class="chain-name">◎ Solana</div><div class="chain-sub">PoH · Gulf Stream</div></div><div id="sol-status"><span style="color:var(--muted)">Bağlanıyor...</span></div></div>
-  <div class="chain-card"><div><div class="chain-name">💎 TON</div><div class="chain-sub">TON Blockchain · Telegram</div></div><div id="ton-status"><span style="color:var(--muted)">Bağlanıyor...</span></div></div>
-  <div class="section-title">Merkle State Proof</div>
-  <div class="form-card">
-    <div style="font-size:0.78rem;color:var(--dim);margin-bottom:10px">UNIVA'nın herhangi bir işlemi Merkle kanıtıyla doğrula</div>
-    <button class="btn-primary" onclick="loadProof()">🛡️ Genesis Bloğu Kanıtla</button>
-    <pre id="proof-out" style="margin-top:10px;font-size:0.65rem;color:var(--green2);word-break:break-all;white-space:pre-wrap"></pre>
-  </div>
-</div>
-
-<!-- ─── SETTINGS ─── -->
-<div class="page" id="page-settings">
-  <div class="section-title" style="margin-top:16px">Ayarlar & Şifreli Kimlik</div>
-  <div class="form-card">
-    <div class="setting-row">
-      <div><div class="setting-label">PIN Kilidi</div><div class="setting-sub">Girişte 4 haneli doğrulama şifresi</div></div>
-      <input type="checkbox" class="toggle" id="toggle-pin-lock" onchange="togglePinLock()">
-    </div>
-    <div class="setting-row">
-      <div><div class="setting-label">Biyometrik Doğrulama</div><div class="setting-sub">Parmak izi / yüz kimliği</div></div>
-      <input type="checkbox" class="toggle" id="toggle-bio-lock" onchange="toggleBioLock()">
-    </div>
-    <div class="setting-row" style="border:none">
-      <div><div class="setting-label">Node URL</div><div class="setting-sub" id="node-url-display" style="font-family:monospace;font-size:0.65rem">—</div></div>
-    </div>
-    <div class="form-row" style="margin-top:0">
-      <button class="btn-primary" onclick="changePinModal()">🔑 PIN Şifresini Değiştir</button>
-    </div>
-  </div>
-
-  <div class="section-title">Kriptografik Özel Anahtar (ECDSA secp256k1)</div>
-  <div class="form-card">
-    <div style="font-size:0.75rem;color:var(--dim);margin-bottom:8px">Bu cihazdaki tekil 20 karakterlik adresinin matematiksel sahibi bu özel anahtardır. Kimseyle paylaşmayın.</div>
-    <div id="priv-key-box" style="font-family:monospace;font-size:0.72rem;color:var(--gold);background:var(--card2);padding:10px;border-radius:8px;word-break:break-all;border:1px solid var(--border)">••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••</div>
-    <div class="form-row" style="margin-top:10px">
-      <button class="btn-primary" onclick="togglePrivKey()" id="priv-key-btn" style="background:var(--card2);border:1px solid var(--border);color:var(--blue2)">👁️ Özel Anahtarı Göster / Kopyala</button>
-    </div>
-  </div>
-
-  <div class="section-title">P2P Düğüm Bağlantısı</div>
-  <div class="form-card">
-    <label class="form-label">BAĞLANILACAK DÜĞÜM IP:PORT</label>
-    <input class="form-input" id="peer-ip" placeholder="192.168.1.100:5050">
-    <div class="form-row">
-      <button class="btn-primary" onclick="connectPeer()">🔗 Bağlan</button>
-    </div>
-  </div>
-</div>
-
-</main>
-
-<!-- ─── BOTTOM NAV ─── -->
-<nav class="bottom-nav">
-  <button class="tab-btn active" onclick="goTab('home')" id="tab-home"><span>🏠</span>Ana</button>
-  <button class="tab-btn" onclick="goTab('telemetry')" id="tab-telemetry"><span>📡</span>Canlı</button>
-  <button class="tab-btn" onclick="goTab('explorer')" id="tab-explorer"><span>⛓</span>Explorer</button>
-  <button class="tab-btn" onclick="goTab('dex')" id="tab-dex"><span>🔄</span>Swap</button>
-  <button class="tab-btn" onclick="goTab('send')" id="tab-send"><span>📤</span>Gönder</button>
-  <button class="tab-btn" onclick="goTab('receive')" id="tab-receive"><span>📥</span>Al</button>
-  <button class="tab-btn" onclick="goTab('mine')" id="tab-mine"><span>⛏️</span>Kaz</button>
-  <button class="tab-btn" onclick="goTab('chains')" id="tab-chains"><span>🌐</span>Ağlar</button>
-  <button class="tab-btn" onclick="goTab('settings')" id="tab-settings"><span>⚙️</span>Ayarlar</button>
-</nav>
-
-<script>
-const NODE_URL = window.location.origin || 'http://localhost:5050';
-let walletAddr = '';
-let isMining = false;
-let miningTimer = null;
-let blocksFound = 0;
-let pinLocked = localStorage.getItem('univa_pin_locked') === 'true';
-let bioLocked = localStorage.getItem('univa_bio_locked') === 'true';
-let savedPin   = localStorage.getItem('univa_pin_hash') || '';
-let pinBuffer  = '';
-
-// ─── TEKİL KRİPTOGRAFİK UNIVA L1 + EVM CÜZDAN & GİRİŞ ŞİFRELEMESİ ──────────────
-// Eski v1/v2/v3 20-karakter anahtarlarını tamamen temizle (v4 yeni L1 standardına zorla)
-if (localStorage.getItem('univa_pwa_addr_v3') || (localStorage.getItem('univa_pwa_addr_v4') && localStorage.getItem('univa_pwa_addr_v4').endsWith('univa'))) {
-  localStorage.removeItem('univa_pwa_addr_v3');
-  localStorage.removeItem('univa_pwa_priv_v3');
-  localStorage.removeItem('univa_pwa_addr_v4');
-  localStorage.removeItem('univa_pwa_priv_v4');
-  localStorage.removeItem('univa_pwa_evm_v4');
-}
-
-let walletPrivKey = localStorage.getItem('univa_pwa_priv_v4') || '';
-let walletEvmAddr = localStorage.getItem('univa_pwa_evm_v4') || '';
-let privKeyShown = false;
-
-function generateLocalWallet() {
-  const charset = '23456789abcdefghjkmnpqrstuvwxyz';
-  const rand = new Uint8Array(32);
-  crypto.getRandomValues(rand);
-  const priv = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
-  let addr = 'univa';
-  for (let i = 0; i < 25; i++) {
-    addr += charset[rand[i % 32] % 31];
-  }
-  const evm = '0x' + priv.substring(0, 40);
-  return { address: addr, private_key: priv, evm_address: evm };
-}
-
-async function initClientWallet() {
-  let savedAddr = localStorage.getItem('univa_pwa_addr_v4');
-  let savedPriv = localStorage.getItem('univa_pwa_priv_v4');
-  let savedEvm  = localStorage.getItem('univa_pwa_evm_v4');
-
-  const needsNew = !savedPriv || savedPriv.length !== 64 || !savedAddr || !savedAddr.startsWith('univa') || savedAddr.endsWith('univa') || savedAddr.length < 25;
-
-  if (needsNew) {
-    let created = false;
-    try {
-      const r = await fetch(NODE_URL + '/api/v1/wallet/create', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ private_key: savedPriv || '' })
+      document.querySelectorAll('.desktop-nav .nav-item').forEach(i => {
+        i.classList.toggle('active', i.getAttribute('data-tab') === tabId);
       });
-      if (r.ok) {
-        const d = await r.json();
-        if (d && d.status === 'ok' && d.address && d.private_key) {
-          savedAddr = d.address;
-          savedPriv = d.private_key;
-          savedEvm  = d.evm_address || ('0x' + (d.public_key ? d.public_key.substring(0, 40) : '0'));
-          localStorage.setItem('univa_pwa_pub_v4', d.public_key || '');
-          created = true;
+      document.querySelectorAll('.mobile-nav .mob-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-tab') === tabId);
+      });
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+
+    function switchWalletSub(subId) {
+      document.querySelectorAll('.w-subview').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById('w-sec-' + subId);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.wallet-subnav .subnav-btn').forEach((b, idx) => {
+        b.classList.toggle('active', b.getAttribute('onclick').includes(subId));
+      });
+    }
+
+    // ─── CRYPTOGRAPHIC WALLET ENCRYPTION (AES-GCM) ───
+    async function deriveKeyFromPin(pin, salt) {
+      const enc = new TextEncoder();
+      const material = await crypto.subtle.importKey('raw', enc.encode(pin), {name:'PBKDF2'}, false, ['deriveKey']);
+      return await crypto.subtle.deriveKey(
+        {name:'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256'},
+        material, {name:'AES-GCM', length: 256}, false, ['encrypt', 'decrypt']
+      );
+    }
+
+    async function encryptData(text, pin) {
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveKeyFromPin(pin, salt);
+      const encrypted = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(text));
+      return {
+        salt: Array.from(salt).map(b => b.toString(16).padStart(2,'0')).join(''),
+        iv: Array.from(iv).map(b => b.toString(16).padStart(2,'0')).join(''),
+        ciphertext: Array.from(new Uint8Array(encrypted)).map(b => b.toString(16).padStart(2,'0')).join('')
+      };
+    }
+
+    async function decryptData(stored, pin) {
+      const fromHex = hex => new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+      const salt = fromHex(stored.salt);
+      const iv = fromHex(stored.iv);
+      const ciphertext = fromHex(stored.ciphertext);
+      const key = await deriveKeyFromPin(pin, salt);
+      const decrypted = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ciphertext);
+      return new TextDecoder().decode(decrypted);
+    }
+
+    function generateEntropyWallet(optionalPrivKey) {
+      let privHex = optionalPrivKey;
+      if (!privHex || privHex.length !== 64) {
+        const rand = new Uint8Array(32);
+        crypto.getRandomValues(rand);
+        privHex = Array.from(rand).map(b => b.toString(16).padStart(2,'0')).join('');
+      }
+
+      // Generate 25 Base31 chars
+      let addr = 'univa';
+      for (let i = 0; i < 25; i++) {
+        const sub = parseInt(privHex.substr((i*2)%58, 2), 16);
+        addr += CHARSET[sub % 31];
+      }
+      const evm = '0x' + privHex.substring(0, 40);
+      return { address: addr, evm_address: evm, private_key: privHex };
+    }
+
+    // ─── INITIALIZE WALLET SYSTEM ───
+    async function initWalletSystem() {
+      const stored = localStorage.getItem('univa_vault_v5');
+      if (!stored) {
+        // First run setup
+        document.getElementById('modal-title').textContent = 'UNIVA GÜVENLİ CÜZDAN KURULUMU';
+        document.getElementById('modal-desc').textContent = 'Cüzdanınızın bu cihazda kalıcı ve güvenli saklanması için 4-8 haneli bir PIN kodu belirleyin.';
+        document.getElementById('modal-submit-btn').textContent = 'Cüzdanı Oluştur ve Kilitle';
+        document.getElementById('pin-modal').classList.add('active');
+      } else {
+        // Unlock existing
+        document.getElementById('modal-title').textContent = 'CÜZDAN KİLİDİNİ AÇ';
+        document.getElementById('modal-desc').textContent = 'Cüzdanınıza erişmek için belirlediğiniz PIN kodunu girin.';
+        document.getElementById('modal-submit-btn').textContent = 'Kilidi Aç';
+        document.getElementById('modal-import-btn').style.display = 'none';
+        document.getElementById('pin-modal').classList.add('active');
+      }
+    }
+
+    function toggleImportField() {
+      const g = document.getElementById('modal-import-group');
+      g.style.display = g.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function handlePinSubmit() {
+      const pin = document.getElementById('modal-pin-input').value.trim();
+      if (!pin || pin.length < 4) {
+        alert('PIN kodu en az 4 haneli olmalıdır.');
+        return;
+      }
+
+      const stored = localStorage.getItem('univa_vault_v5');
+      if (!stored) {
+        // Create new
+        const imp = document.getElementById('modal-privkey-input').value.trim();
+        const w = generateEntropyWallet(imp);
+        const vault = await encryptData(JSON.stringify(w), pin);
+        localStorage.setItem('univa_vault_v5', JSON.stringify(vault));
+        localStorage.setItem('univa_cached_addr_v5', w.address);
+        localStorage.setItem('univa_cached_evm_v5', w.evm_address);
+        setWalletActive(w);
+      } else {
+        // Unlock
+        try {
+          const vault = JSON.parse(stored);
+          const decrypted = await decryptData(vault, pin);
+          const w = JSON.parse(decrypted);
+          setWalletActive(w);
+        } catch(e) {
+          alert('Hatalı PIN kodu! Lütfen tekrar deneyin.');
+          return;
         }
       }
-    } catch (e) {}
 
-    if (!created) {
-      const local = generateLocalWallet();
-      savedAddr = local.address;
-      savedPriv = local.private_key;
-      savedEvm  = local.evm_address;
+      document.getElementById('pin-modal').classList.remove('active');
+      document.getElementById('modal-pin-input').value = '';
     }
 
-    localStorage.setItem('univa_pwa_addr_v4', savedAddr);
-    localStorage.setItem('univa_pwa_priv_v4', savedPriv);
-    localStorage.setItem('univa_pwa_evm_v4', savedEvm);
-  }
+    function setWalletActive(w) {
+      walletAddr = w.address;
+      walletEvm = w.evm_address;
+      walletPrivKey = w.private_key;
 
-  walletAddr = savedAddr;
-  walletPrivKey = savedPriv || '';
-  walletEvmAddr = savedEvm || '';
-
-  const myAddrEl = document.getElementById('my-addr');
-  if (myAddrEl) myAddrEl.textContent = walletAddr;
-  const recv = document.getElementById('recv-addr');
-  if (recv) recv.textContent = walletAddr;
-  const evmBox = document.getElementById('my-evm-addr');
-  if (evmBox) evmBox.textContent = walletEvmAddr || '—';
-  refreshStats();
-}
-initClientWallet();
-
-function togglePrivKey() {
-  const box = document.getElementById('priv-key-box');
-  const btn = document.getElementById('priv-key-btn');
-  if (!box) return;
-  privKeyShown = !privKeyShown;
-  if (privKeyShown) {
-    box.textContent = walletPrivKey || 'Anahtar yükleniyor...';
-    btn.textContent = '📋 Özel Anahtarı Kopyala & Gizle';
-  } else {
-    if (walletPrivKey) {
-      try { navigator.clipboard.writeText(walletPrivKey); showToast('Özel anahtar kopyalandı!'); } catch(e) {}
+      document.getElementById('w-addr-display').textContent = walletAddr;
+      document.getElementById('w-evm-display').textContent = walletEvm;
+      document.getElementById('recv-l1-addr').textContent = walletAddr;
+      document.getElementById('recv-evm-addr').textContent = walletEvm;
+      showToast('Cüzdan aktif: ' + walletAddr.substring(0, 12) + '...');
+      refreshAll();
     }
-    box.textContent = '••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••';
-    btn.textContent = '👁️ Özel Anahtarı Göster / Kopyala';
-  }
-}
 
-function checkAddr(el) {
-  const v = el.value.trim();
-  const hint = document.getElementById('addr-hint');
-  if (!hint) return;
-  if (v.startsWith('univa') && v.length >= 15 && v.length <= 37) {
-    hint.innerHTML = '<span style="color:var(--green2)">✅ Geçerli UNIVA L1 adresi</span>';
-  } else if (v.startsWith('0x') && v.length === 42) {
-    hint.innerHTML = '<span style="color:var(--blue2)">🌐 Geçerli EVM (MetaMask) ayna adresi</span>';
-  } else if (v.length > 0) {
-    hint.innerHTML = `<span style="color:#ef4444">❌ Geçersiz adres formatı (univa... veya 0x...)</span>`;
-  } else { hint.innerHTML = ''; }
-}
-
-// ─── KOPYALA ─────────────────────────────────────────────────────────────────
-function copyAddr() {
-  const ta = document.createElement('textarea');
-  ta.value = walletAddr; ta.style.cssText = 'position:fixed;left:-9999px;top:0';
-  document.body.appendChild(ta); ta.focus(); ta.select();
-  try { document.execCommand('copy'); showToast('UNIVA L1 Adresi kopyalandı'); }
-  catch(e) { showToast('Adres: ' + walletAddr); }
-  document.body.removeChild(ta);
-}
-
-function copyEvmAddr() {
-  if (!walletEvmAddr) return;
-  const ta = document.createElement('textarea');
-  ta.value = walletEvmAddr; ta.style.cssText = 'position:fixed;left:-9999px;top:0';
-  document.body.appendChild(ta); ta.focus(); ta.select();
-  try { document.execCommand('copy'); showToast('EVM (0x) adresi kopyalandı'); }
-  catch(e) { showToast('EVM: ' + walletEvmAddr); }
-  document.body.removeChild(ta);
-}
-
-// ─── LOCK (İSTEĞE BAĞLI ŞİFRELEME) ──────────────────────────────────────────
-function checkAppLock() {
-  const ls = document.getElementById('lock-screen');
-  const msg = document.getElementById('lock-msg');
-  // Sadece kullanıcı Ayarlar'dan özellikle PIN kilidini açtıysa kilit ekranını göster
-  if (pinLocked && savedPin) {
-    if (ls) ls.classList.add('active');
-    if (msg) msg.textContent = 'Cüzdan kilidini açmak için 4 haneli PIN şifrenizi girin';
-    if (bioLocked && 'PublicKeyCredential' in window) {
-      const bBtn = document.getElementById('bio-btn');
-      if (bBtn) bBtn.style.display = 'flex';
-    }
-  }
-}
-function pressKey(k) {
-  if (pinBuffer.length >= 4) return;
-  pinBuffer += k;
-  for (let i = 0; i < 4; i++) document.getElementById('dot-'+i).classList.toggle('filled', i < pinBuffer.length);
-  if (pinBuffer.length === 4) setTimeout(checkPin, 200);
-}
-function checkPin() {
-  const h = btoa(pinBuffer);
-  if (!savedPin) {
-    savedPin = h;
-    localStorage.setItem('univa_pin_hash', h);
-    localStorage.setItem('univa_pin_locked', 'true');
-    pinLocked = true;
-    const toggleEl = document.getElementById('toggle-pin-lock');
-    if (toggleEl) toggleEl.checked = true;
-    document.getElementById('lock-screen').classList.remove('active');
-    showToast('🔒 Cüzdanınız PIN ile şifrelendi!');
-  } else if (h === savedPin) {
-    document.getElementById('lock-screen').classList.remove('active');
-    showToast('🔓 Kimlik doğrulandı');
-  } else {
-    document.getElementById('lock-msg').innerHTML = '<span style="color:#ef4444">❌ Yanlış PIN! Tekrar deneyin.</span>';
-  }
-  pinBuffer = ''; for (let i = 0; i < 4; i++) document.getElementById('dot-'+i).classList.remove('filled');
-}
-function clearPin() { pinBuffer = ''; for (let i=0;i<4;i++) document.getElementById('dot-'+i).classList.remove('filled'); }
-function backspacePin() { pinBuffer = pinBuffer.slice(0,-1); for (let i=0;i<4;i++) document.getElementById('dot-'+i).classList.toggle('filled',i<pinBuffer.length); }
-async function authBiometric() { try { showToast('Biyometrik doğrulama...'); document.getElementById('lock-screen').classList.remove('active'); } catch(e) { showToast('Biyometrik başarısız, PIN kullanın'); } }
-function togglePinLock() { pinLocked = document.getElementById('toggle-pin-lock').checked; localStorage.setItem('univa_pin_locked', pinLocked); showToast(pinLocked ? 'PIN kilidi aktif' : 'PIN kilidi kapatıldı'); }
-function toggleBioLock() { bioLocked = document.getElementById('toggle-bio-lock').checked; localStorage.setItem('univa_bio_locked', bioLocked); showToast(bioLocked ? 'Biyometrik aktif' : 'Biyometrik kapatıldı'); }
-function changePinModal() { savedPin = ''; localStorage.removeItem('univa_pin_hash'); pinLocked = true; localStorage.setItem('univa_pin_locked','true'); document.getElementById('lock-screen').classList.add('active'); document.getElementById('lock-msg').textContent = 'Yeni 4 haneli PIN belirleyin'; }
-
-// ─── NAVİGASYON ──────────────────────────────────────────────────────────────
-function goTab(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-' + name)?.classList.add('active');
-  document.getElementById('tab-' + name)?.classList.add('active');
-  if (name === 'chains') fetchChains();
-  if (name === 'receive') { document.getElementById('recv-addr').textContent = walletAddr; drawQR(); }
-  if (name === 'dex') refreshDexBalances();
-  if (name === 'telemetry') refreshTelemetry();
-  if (name === 'explorer') fetchExplorer();
-}
-
-// ─── API ─────────────────────────────────────────────────────────────────────
-async function api(path, opts) {
-  try {
-    const r = await fetch(NODE_URL + path, { ...opts, headers: {'Content-Type':'application/json'} });
-    return await r.json();
-  } catch(e) { return null; }
-}
-
-// ─── STATS & HISTORY ─────────────────────────────────────────────────────────
-async function refreshStats() {
-  const d = await api('/stats');
-  if (!d) return;
-  document.getElementById('s-height').textContent = d.height ?? '—';
-  document.getElementById('s-mined').textContent = (d.total_mined ?? 0).toLocaleString() + ' UNIVA';
-  document.getElementById('s-diff').textContent = d.difficulty ?? '—';
-  document.getElementById('s-valid').textContent = d.chain_valid ? 'GEÇERLI ✅' : 'HATA ❌';
-  const bal = await api('/balance/' + walletAddr);
-  if (bal) document.getElementById('balance').innerHTML = (bal.balance || 0).toFixed(8) + ' <span style="font-size:1rem;opacity:0.6">UNIVA</span>';
-
-  const chain = await api('/chain');
-  if (chain && chain.chain) {
-    const recent = chain.chain.slice(-5).reverse();
-    document.getElementById('blocks-list').innerHTML = recent.map(b =>
-      `<div style="padding:3px 0;border-bottom:1px solid rgba(26,58,92,0.3)">
-        <span style="color:var(--blue2)">Blok #${b.index}</span>
-        <span style="color:var(--dim)"> · ${b.miner_address?.substring(0,14) || 'genesis'}</span>
-        <span style="color:var(--green2);float:right">${b.reward} UNIVA</span>
-      </div>`
-    ).join('') || 'Henüz blok yok';
-  }
-
-  refreshHistory();
-}
-
-async function refreshHistory() {
-  const histEl = document.getElementById('tx-history-list');
-  if (!histEl || !walletAddr) return;
-  const data = await api('/api/v1/history/' + walletAddr);
-  if (!data || !data.history || data.history.length === 0) {
-    histEl.innerHTML = '<div style="color:var(--dim);font-size:0.78rem;text-align:center;padding:12px 0">Henüz bir işlem (gönderim/alım/kazım) bulunmuyor.</div>';
-    return;
-  }
-
-  histEl.innerHTML = data.history.slice(0, 10).map(tx => {
-    const isPending = tx.status === 'pending';
-    const isIncome = tx.is_incoming;
-    const sign = isIncome ? '+' : '-';
-    const color = isIncome ? 'var(--green2)' : '#f87171';
-    const icon = tx.type === 'coinbase' ? '⛏️ Madencilik Ödülü' : (isIncome ? '📥 Gelen Transfer' : '📤 Giden Transfer');
-    const targetAddr = isIncome ? tx.from : tx.to;
-    const timeStr = tx.timestamp ? new Date(tx.timestamp * 1000).toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '—';
-    const txIdShort = tx.tx_id ? (tx.tx_id.length > 20 ? tx.tx_id.substring(0, 16) + '...' : tx.tx_id) : '—';
-    const blockBadge = isPending 
-      ? '<span style="color:var(--gold);font-weight:700">⏳ Havuzda (Onay Bekliyor)</span>' 
-      : `<span style="color:var(--dim)">Blok #${tx.block_index}</span>`;
-
-    return `
-      <div style="padding:9px 12px;background:var(--card2);border-radius:10px;border-left:3px solid ${color};display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="font-size:0.82rem;font-weight:800;color:var(--text)">${icon}</div>
-          <div style="font-size:0.68rem;color:var(--dim);margin-top:2px;font-family:monospace">
-            ${isIncome ? 'Gönderen' : 'Alıcı'}: <span style="color:var(--blue2)">${targetAddr?.substring(0,14) || 'network'}...</span>
-          </div>
-          <div style="font-size:0.65rem;color:var(--dim);margin-top:2px">
-            ${blockBadge} · <span style="opacity:0.8">${timeStr}</span> · <span style="font-family:monospace">${txIdShort}</span>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:0.92rem;font-weight:900;color:${color}">${sign}${tx.amount} UNIVA</div>
-          <div style="font-size:0.65rem;color:var(--green2)">${isPending ? 'Onay Bekliyor' : '✅ Başarılı'}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// ─── EXPLORER ────────────────────────────────────────────────────────────────
-async function fetchExplorer() {
-  const chain = await api('/chain');
-  if (!chain || !chain.chain) return;
-  const blocks = chain.chain.slice().reverse().slice(0, 15);
-  document.getElementById('explorer-blocks').innerHTML = blocks.map(b => {
-    const ts = new Date(b.timestamp * 1000).toLocaleTimeString('tr-TR');
-    return `<div class="block-card">
-      <div class="block-card-left">
-        <div class="block-num">Blok #${b.index}</div>
-        <div class="block-hash">${b.hash?.substring(0,18)}...</div>
-        <div style="font-size:0.62rem;color:var(--dim);margin-top:2px">${ts}</div>
-      </div>
-      <div class="block-card-right">
-        <div class="block-reward">${b.reward} UNIVA</div>
-        <div class="block-miner">${b.miner_address?.substring(0,14) || '—'}</div>
-        <div style="font-size:0.6rem;color:var(--dim);margin-top:2px">${b.transactions?.length || 0} işlem</div>
-      </div>
-    </div>`;
-  }).join('') || '<div style="color:var(--dim);padding:10px 0">Henüz blok yok</div>';
-}
-
-async function explorerSearch() {
-  const q = document.getElementById('explorer-search').value.trim();
-  const el = document.getElementById('explorer-search-result');
-  if (!q) return;
-  el.textContent = 'Aranıyor...';
-  if (/^\d+$/.test(q)) {
-    const d = await api('/block/' + q);
-    if (d && d.index !== undefined) {
-      el.innerHTML = `<div style="color:var(--green2)">Blok #${d.index} · Hash: ${d.hash?.substring(0,20)}... · Ödül: ${d.reward} UNIVA</div>`;
-    } else { el.innerHTML = '<span style="color:#ef4444">Blok bulunamadı</span>'; }
-  } else {
-    const d = await api('/balance/' + q);
-    if (d && !d.error) {
-      el.innerHTML = `<div style="color:var(--blue2)">Adres: ${q}<br>Bakiye: <strong style="color:var(--green2)">${d.balance} UNIVA</strong> · Format: ${d.valid_format ? '✅' : '❌'}</div>`;
-    } else { el.innerHTML = '<span style="color:#ef4444">Adres bulunamadı</span>'; }
-  }
-}
-
-// ─── DEX ─────────────────────────────────────────────────────────────────────
-async function refreshDexBalances() {
-  const d = await api('/api/v1/dex/balances/' + walletAddr);
-  if (!d) return;
-  const aIn = document.getElementById('swap-asset-in').value;
-  const aOut = document.getElementById('swap-asset-out').value;
-  document.getElementById('dex-bal-in').textContent = (d[aIn] || 0) + ' ' + aIn;
-  document.getElementById('dex-bal-out').textContent = (d[aOut] || 0) + ' ' + aOut;
-
-  const pools = await api('/api/v1/dex/pools');
-  if (pools && pools.pools) {
-    document.getElementById('dex-pools-list').innerHTML = pools.pools.map(p =>
-      `<div style="padding:8px 0;border-bottom:1px solid rgba(26,58,92,0.4);font-size:0.78rem">
-        <div style="font-weight:700;color:var(--blue2)">${p.asset_a} / ${p.asset_b}</div>
-        <div style="color:var(--dim);margin-top:3px">
-          Reserve: ${(p.reserve_a/1e8).toFixed(2)} ${p.asset_a} · ${(p.reserve_b/1e8).toFixed(2)} ${p.asset_b}
-        </div>
-      </div>`
-    ).join('') || '<div style="color:var(--dim)">Havuz bulunamadı</div>';
-  }
-}
-
-async function quoteSwap() {
-  const amtIn = parseFloat(document.getElementById('swap-amt-in').value) || 0;
-  if (amtIn <= 0) return;
-  const assetIn = document.getElementById('swap-asset-in').value;
-  const assetOut = document.getElementById('swap-asset-out').value;
-  const d = await api('/api/v1/dex/quote', { method:'POST', body: JSON.stringify({asset_in:assetIn,asset_out:assetOut,amount_in:amtIn}) });
-  if (!d || d.error) return;
-  document.getElementById('swap-amt-out').value = d.amount_out.toFixed(8);
-  document.getElementById('dex-fee').textContent = d.fee.toFixed(8);
-  document.getElementById('dex-min-out').textContent = (d.amount_out * 0.995).toFixed(8);
-}
-
-function flipSwapAssets() {
-  const si = document.getElementById('swap-asset-in');
-  const so = document.getElementById('swap-asset-out');
-  [si.value, so.value] = [so.value, si.value];
-  quoteSwap(); refreshDexBalances();
-}
-
-async function executeSwap() {
-  const amtIn = parseFloat(document.getElementById('swap-amt-in').value);
-  const minOut = parseFloat(document.getElementById('dex-min-out').textContent) || 0;
-  const assetIn = document.getElementById('swap-asset-in').value;
-  const assetOut = document.getElementById('swap-asset-out').value;
-  if (!amtIn || amtIn <= 0) { showToast('Geçersiz miktar'); return; }
-  showToast('İşlem gönderiliyor...');
-  const d = await api('/api/v1/dex/swap', { method:'POST', body:JSON.stringify({user:walletAddr,asset_in:assetIn,asset_out:assetOut,amount_in:amtIn,min_out:minOut}) });
-  if (d && d.status === 'ok') {
-    showToast(`Takas tamam: ${amtIn} ${assetIn} → ${d.received_out?.toFixed(6)} ${assetOut}`);
-    document.getElementById('swap-amt-in').value = '';
-    document.getElementById('swap-amt-out').value = '';
-    refreshDexBalances(); refreshStats();
-  } else { showToast('Hata: ' + (d?.message || 'Yetersiz bakiye')); }
-}
-
-// ─── SEND TX (ECDSA secp256k1 İMZALI TRANSFER) ───────────────────────────────
-async function sendTx() {
-  const to = document.getElementById('send-to').value.trim();
-  const amt = parseFloat(document.getElementById('send-amount').value);
-  const res = document.getElementById('send-result');
-  const isL1 = to.startsWith('univa') && to.length >= 15 && to.length <= 37;
-  const isEvm = to.startsWith('0x') && to.length === 42;
-  if (!to || (!isL1 && !isEvm)) {
-    res.innerHTML = '<span style="color:#ef4444">❌ Geçersiz adres formatı (univa... veya 0x...)</span>';
-    return;
-  }
-  if (!amt || amt <= 0) {
-    res.innerHTML = '<span style="color:#ef4444">❌ Geçersiz miktar</span>';
-    return;
-  }
-  res.innerHTML = '<span style="color:var(--blue2)">🔏 ECDSA secp256k1 imzası oluşturuluyor ve ağa yayınlanıyor...</span>';
-  showToast('İşlem imzalanıyor...');
-  try {
-    const r = await fetch(NODE_URL + '/tx', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        from: walletAddr,
-        to: to,
-        amount: amt,
-        fee: 0.0,
-        private_key: walletPrivKey,
-        type: 'transfer',
-        timestamp: Date.now() / 1000
-      })
-    });
-    const d = await r.json();
-    if (r.ok && d && d.status === 'ok') {
-      res.innerHTML = `<span style="color:var(--green2)">✅ ECDSA İmzalı İşlem Mempool'a Eklendi!<br><small style="color:var(--dim)">TX ID: ${d.tx_id?.substring(0,24)}... (Sonraki blokta onaylanacak)</small></span>`;
-      document.getElementById('send-amount').value = '';
-      showToast('✅ Gönderim başarılı!');
-      refreshStats();
-    } else {
-      res.innerHTML = `<span style="color:#ef4444">❌ Hata: ${d?.detail || d?.message || 'Yetersiz bakiye veya imza hatası'}</span>`;
-    }
-  } catch (e) {
-    res.innerHTML = '<span style="color:#ef4444">❌ Bağlantı hatası</span>';
-  }
-}
-
-// ─── MINING ──────────────────────────────────────────────────────────────────
-let minedCountSession = parseInt(localStorage.getItem('univa_mined_count') || '0', 10);
-let mineInFlight = false;
-
-function toggleMining() {
-  isMining = !isMining;
-  const btn = document.getElementById('mine-btn');
-  const status = document.getElementById('mine-status-txt');
-  const mBlocksEl = document.getElementById('m-blocks');
-  if (mBlocksEl) mBlocksEl.textContent = minedCountSession;
-  if (isMining) {
-    localStorage.setItem('univa_mining_state', 'active');
-    btn.textContent = '🛑 MADENCİLİĞİ DURDUR'; btn.classList.add('mining');
-    status.innerHTML = '<span style="color:var(--green2)">⛏️ SHA-256 PoW Madencilik aktif — Blok kazılıyor...</span>';
-    simHashrate();
-    mineNextBlockLoop();
-  } else {
-    localStorage.removeItem('univa_mining_state');
-    btn.textContent = '⛏️ MADENCİLİĞİ BAŞLAT'; btn.classList.remove('mining');
-    status.textContent = '⏸ Madencilik durduruldu.';
-    clearTimeout(miningTimer);
-    document.getElementById('m-hashrate').textContent = '0';
-  }
-}
-function simHashrate() {
-  if (!isMining) return;
-  document.getElementById('m-hashrate').textContent = (45000 + Math.random()*25000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  miningTimer = setTimeout(simHashrate, 1400);
-}
-async function mineNextBlockLoop() {
-  if (!isMining || mineInFlight) return;
-  mineInFlight = true;
-  const status = document.getElementById('mine-status-txt');
-  try {
-    const t0 = performance.now();
-    const res = await api('/mine/' + walletAddr, { method: 'POST' });
-    const dt = ((performance.now() - t0) / 1000).toFixed(2);
-    if (res && res.status === 'ok' && res.block) {
-      minedCountSession++;
-      localStorage.setItem('univa_mined_count', minedCountSession.toString());
-      const mBlocksEl = document.getElementById('m-blocks');
-      if (mBlocksEl) mBlocksEl.textContent = minedCountSession;
-      if (status && isMining) {
-        status.innerHTML = `<span style="color:var(--green2)">✅ Blok #${res.height} bulundu (${dt}s) · +${res.block.reward} UNIVA eklendi!</span>`;
+    function revealPrivateKey() {
+      const box = document.getElementById('sec-priv-box');
+      const txt = document.getElementById('sec-priv-text');
+      if (box.style.display === 'none') {
+        txt.textContent = walletPrivKey;
+        box.style.display = 'flex';
+      } else {
+        box.style.display = 'none';
+        txt.textContent = '—';
       }
-      showToast(`⛏️ Blok #${res.height} kazıldı! +${res.block.reward} UNIVA`);
-      await refreshStats();
-    } else if (status && isMining) {
-      status.innerHTML = `<span style="color:var(--gold)">⏳ PoW hesaplanıyor / Yeni blok bekleniyor...</span>`;
     }
-  } catch (e) {
-    // Bağlantı gecikmesi olursa döngü devam eder
-  } finally {
-    mineInFlight = false;
-    if (isMining) {
-      setTimeout(mineNextBlockLoop, 8000);
+
+    async function changeWalletPin() {
+      const p = document.getElementById('sec-new-pin').value.trim();
+      if (!p || p.length < 4) { alert('PIN en az 4 hane olmalı.'); return; }
+      const w = { address: walletAddr, evm_address: walletEvm, private_key: walletPrivKey };
+      const vault = await encryptData(JSON.stringify(w), p);
+      localStorage.setItem('univa_vault_v5', JSON.stringify(vault));
+      document.getElementById('sec-new-pin').value = '';
+      showToast('✓ Güvenlik PIN kodu başarıyla güncellendi.');
     }
-  }
-}
-function initMiningState() {
-  const mBlocksEl = document.getElementById('m-blocks');
-  if (mBlocksEl) mBlocksEl.textContent = minedCountSession;
-  if (localStorage.getItem('univa_mining_state') === 'active' && !isMining) toggleMining();
-}
 
-// ─── CHAINS / PROOF ──────────────────────────────────────────────────────────
-async function fetchChains() {
-  const d = await api('/api/v1/interop/chains');
-  if (!d || !d.chains) return;
-  const map = {BTC:'btc', ETH:'evm', SOL:'sol', TON:'ton'};
-  d.chains.forEach(c => {
-    const k = map[c.symbol];
-    if (k && document.getElementById(k+'-status')) {
-      document.getElementById(k+'-status').innerHTML = `<span class="online">🟢 #${(c.height||0).toLocaleString()}</span>`;
+    function openNewWalletModal() {
+      if (confirm('Mevcut cüzdan değiştirilsin mi? Özel anahtarınızı yedeklediğinizden emin olun!')) {
+        localStorage.removeItem('univa_vault_v5');
+        location.reload();
+      }
     }
-  });
-}
-async function loadProof() {
-  const box = document.getElementById('proof-out');
-  box.textContent = 'Kanıt hesaplanıyor...';
-  const d = await api('/api/v1/interop/proof/coinbase');
-  if (d && d.merkle_root) { box.textContent = JSON.stringify(d, null, 2); showToast('Merkle Kanıtı Doğrulandı!'); }
-  else { box.textContent = 'Henüz kanıtlanacak işlem yok'; }
-}
 
-// ─── PEER ────────────────────────────────────────────────────────────────────
-async function connectPeer() {
-  const peer = document.getElementById('peer-ip').value.trim();
-  if (!peer) return;
-  const d = await api('/connect', { method:'POST', body: JSON.stringify({peer}) });
-  showToast(d?.status === 'ok' ? 'Peer bağlantısı kuruldu: ' + peer : 'Bağlantı başarısız');
-}
-
-// ─── QR CODE (basit canvas QR) ───────────────────────────────────────────────
-function drawQR() {
-  const canvas = document.getElementById('qr-canvas');
-  if (!canvas) return;
-  const size = Math.min(window.innerWidth - 80, 200);
-  canvas.width = size; canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#0a1628'; ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = '#38bdf8';
-  // Sembolik QR efekti
-  const cell = size / 10;
-  const pattern = walletAddr.split('').map(c => c.charCodeAt(0) % 2);
-  for (let r = 0; r < 10; r++) for (let c = 0; c < 10; c++) {
-    if (pattern[(r * 10 + c) % pattern.length]) {
-      ctx.fillRect(c * cell + 2, r * cell + 2, cell - 4, cell - 4);
+    // ─── API COMMUNICATION & REFRESH ───
+    async function api(path, opts = {}) {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 4000);
+      try {
+        const res = await fetch(NODE_URL + path, { ...opts, signal: ctrl.signal });
+        clearTimeout(tid);
+        if (res.ok) return await res.json();
+      } catch(e) {
+        clearTimeout(tid);
+      }
+      return null;
     }
-  }
-  ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2; ctx.strokeRect(4, 4, size - 8, size - 8);
-}
 
-// ─── TELEMETRY ───────────────────────────────────────────────────────────────
-async function sendHeartbeat() {
-  let devId = localStorage.getItem('univa_dev_id_v2');
-  if (!devId) { devId = 'dev_' + Math.random().toString(36).substring(2,9); localStorage.setItem('univa_dev_id_v2', devId); }
-  let plat = 'PC / Tarayıcı';
-  if (/Android/i.test(navigator.userAgent)) plat = 'Android Telefon';
-  else if (/iPhone|iPad/i.test(navigator.userAgent)) plat = 'iPhone / iOS';
-  else if (/Mac/i.test(navigator.userAgent)) plat = 'Apple Mac';
-  try {
-    const res = await api('/api/v1/telemetry/heartbeat', { method:'POST', body: JSON.stringify({
-      device_id:devId, platform:plat, browser:navigator.userAgent.substring(0,40),
-      screen:window.innerWidth+'x'+window.innerHeight, wallet:walletAddr, latency_ms: Math.floor(Math.random()*15)+8
-    })});
-    if (res && res.active_devices !== undefined) {
-      const txt = res.active_devices + ' Cihaz';
-      ['header-peers','active-dev-count'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = txt; });
-      const se = document.getElementById('telemetry-summary-text');
-      if(se) se.textContent = `${res.active_devices} Cihaz Aktif · Ağ Ayakta`;
+    async function checkNode() {
+      const pill = document.getElementById('net-status-pill');
+      const txt = document.getElementById('net-status-txt');
+      const stats = await api('/stats');
+      if (stats && stats.network) {
+        nodeConnected = true;
+        pill.classList.remove('offline');
+        txt.textContent = 'Mainnet Aktif · Blok #' + stats.height;
+        document.getElementById('net-online-val').textContent = 'Bağlandı (Port 5050)';
+        document.getElementById('net-online-val').style.color = 'var(--green)';
+        document.getElementById('net-peers-val').textContent = stats.peer_count || '0';
+        document.getElementById('h-height').textContent = stats.height;
+        document.getElementById('h-mined').textContent = stats.total_mined.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('h-diff').textContent = stats.difficulty;
+        document.getElementById('h-last-hash').textContent = stats.last_hash || '—';
+      } else {
+        nodeConnected = false;
+        pill.classList.add('offline');
+        txt.textContent = 'Düğüm Bağlantısı Yok';
+        document.getElementById('net-online-val').textContent = 'Çevrimdışı';
+        document.getElementById('net-online-val').style.color = 'var(--red)';
+      }
     }
-  } catch(e) {}
-}
 
-async function refreshTelemetry() {
-  const d = await api('/api/v1/telemetry/nodes');
-  if (!d) return;
-  const count = d.active_device_count || 1;
-  ['active-dev-count','header-peers'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = id === 'active-dev-count' ? count : count + ' Cihaz'; });
-  const ue = document.getElementById('node-uptime'); if(ue) ue.textContent = d.uptime_formatted || '—';
-  const se = document.getElementById('telemetry-summary-text'); if(se) se.textContent = `${count} Cihaz Aktif · Ağ Ayakta`;
+    async function refreshBalance() {
+      if (!walletAddr) return;
+      if (nodeConnected) {
+        const data = await api('/api/v1/balance/' + walletAddr);
+        if (data && typeof data.balance !== 'undefined') {
+          const b = parseFloat(data.balance).toFixed(8);
+          document.getElementById('w-balance').innerHTML = b + ' <small>UNIVA</small>';
+          document.getElementById('w-assets-univa').textContent = b;
+          return;
+        }
+      }
+      // Offline fallback: keep display honest
+      document.getElementById('w-balance').innerHTML = '0.00000000 <small>UNIVA (Düğüm Bekleniyor)</small>';
+    }
 
-  const regions = d.regions || {};
-  const rk = Object.keys(regions);
-  const re = document.getElementById('active-region-count'); if(re) re.textContent = Math.max(1, rk.length);
-  const rc = document.getElementById('regions-container');
-  if (rc) {
-    rc.innerHTML = (rk.length === 0
-      ? ['TR - İstanbul (Merkez Düğüm)']
-      : rk
-    ).map(k => `<div style="display:flex;justify-content:space-between;padding:7px 10px;background:var(--card2);border-radius:8px;font-size:0.78rem"><span>📍 ${k}</span><span style="color:var(--green2);font-weight:700">${regions[k] || 1} Cihaz</span></div>`).join('');
-  }
+    async function loadTxHistory() {
+      const box = document.getElementById('w-history-list');
+      if (!walletAddr) return;
+      if (!nodeConnected) {
+        box.innerHTML = '<span style="color:var(--muted)">Düğüm çevrimdışı — Canlı zincir geçmişi görüntülenemiyor.</span>';
+        return;
+      }
+      const data = await api('/api/v1/history/' + walletAddr);
+      if (data && data.transactions && data.transactions.length > 0) {
+        let html = '';
+        data.transactions.forEach(t => {
+          html += `<div style="padding:10px;margin-bottom:8px;background:rgba(5,13,26,0.6);border-radius:8px;border:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;font-weight:700;">
+              <span>${t.type === 'coinbase' ? '⛏️ Madencilik Ödülü' : 'Transfer'}</span>
+              <span style="color:var(--green);">+${t.amount} UNIVA</span>
+            </div>
+            <div style="font-size:0.75rem;color:var(--dim);margin-top:4px;">TX: ${t.tx_id ? t.tx_id.substring(0,24)+'...' : 'Blok Onaylı'}</div>
+          </div>`;
+        });
+        box.innerHTML = html;
+      } else {
+        box.innerHTML = '<span style="color:var(--dim)">Bu cüzdana ait işlem kaydı bulunamadı.</span>';
+      }
+    }
 
-  const dc = document.getElementById('devices-list');
-  const devs = d.devices || [];
-  if (dc) {
-    if (devs.length === 0) {
-      dc.innerHTML = `<div class="form-card" style="border-left:3px solid var(--green2);padding:10px"><div style="font-size:0.82rem;font-weight:700">Ana Düğüm Sunucusu</div><div style="font-size:0.7rem;color:var(--dim);margin-top:2px">127.0.0.*** · İstanbul · Doğrulayıcı</div></div>`;
-    } else {
-      dc.innerHTML = devs.map(dev => `
-        <div class="form-card" style="padding:10px;display:flex;justify-content:space-between;align-items:center;border-left:3px solid var(--blue2)">
+    // ─── SUBMIT REAL SIGNED TX ───
+    async function submitSendTx() {
+      const to = document.getElementById('send-target').value.trim();
+      const amt = parseFloat(document.getElementById('send-amount').value);
+      const msg = document.getElementById('send-status-msg');
+
+      if (!to || (!to.startsWith('univa') && !to.startsWith('0x'))) {
+        msg.innerHTML = '<span style="color:var(--red)">Geçersiz alıcı adres formatı.</span>';
+        return;
+      }
+      if (!amt || amt <= 0) {
+        msg.innerHTML = '<span style="color:var(--red)">Geçerli bir transfer miktarı girin.</span>';
+        return;
+      }
+      if (!nodeConnected) {
+        msg.innerHTML = '<span style="color:var(--red)">Düğüm çevrimdışı! İşlem canlı zincire iletilemedi.</span>';
+        return;
+      }
+
+      msg.innerHTML = '<span style="color:var(--blue-bright)">İşlem imzalanıyor ve ağa gönderiliyor...</span>';
+      const res = await api('/tx', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          from: walletAddr,
+          to: to,
+          amount: amt,
+          fee: 0.001,
+          private_key: walletPrivKey
+        })
+      });
+
+      if (res && res.status === 'ok') {
+        msg.innerHTML = `<span style="color:var(--green)">✓ İşlem Mempool'a eklendi! TX ID: ${res.tx_id.substring(0, 16)}...</span>`;
+        document.getElementById('send-amount').value = '';
+        refreshBalance();
+      } else {
+        msg.innerHTML = `<span style="color:var(--red)">Hata: ${res?.detail || 'Yetersiz bakiye veya imza hatası.'}</span>`;
+      }
+    }
+
+    // ─── MINING (NODE & WEB WORKER) ───
+    async function toggleMining() {
+      isMining = !isMining;
+      const btn = document.getElementById('mine-toggle-btn');
+      const log = document.getElementById('mine-log');
+
+      if (isMining) {
+        btn.textContent = '🛑 MADENCİLİĞİ DURDUR';
+        btn.classList.add('btn-danger');
+        log.innerHTML = '<span style="color:var(--green);">SHA-256 Madencilik Aktif — Gerçek blok aranıyor...</span>';
+
+        // Check if Web Worker supported
+        if (window.Worker) {
+          if (!miningWorker) {
+            miningWorker = new Worker('miner.worker.js');
+            miningWorker.onmessage = handleWorkerMessage;
+          }
+          startWorkerTask();
+        } else {
+          // Fallback to node mining loop
+          runNodeMiningLoop();
+        }
+      } else {
+        btn.textContent = '⛏️ MADENCİLİĞİ BAŞLAT';
+        btn.classList.remove('btn-danger');
+        log.textContent = 'Madencilik durduruldu.';
+        document.getElementById('mine-hashrate').textContent = '0';
+        if (miningWorker) miningWorker.postMessage({type:'STOP'});
+      }
+    }
+
+    async function startWorkerTask() {
+      if (!isMining || !miningWorker) return;
+      const stats = await api('/stats') || { difficulty: 4, height: 0, last_hash: '0'.repeat(64) };
+      const taskData = {
+        index: (stats.height || 0) + 1,
+        timestamp: Math.floor(Date.now() / 1000),
+        merkle_root: '0'.repeat(64),
+        previous_hash: stats.last_hash || '0'.repeat(64),
+        difficulty: stats.difficulty || 4,
+        miner_address: walletAddr,
+        reward: 100.0,
+        startNonce: 0
+      };
+      miningWorker.postMessage({type:'START', data: taskData});
+    }
+
+    async function handleWorkerMessage(e) {
+      const msg = e.data;
+      if (!msg) return;
+      if (msg.type === 'PROGRESS') {
+        document.getElementById('mine-hashrate').textContent = msg.hashrate.toLocaleString();
+      } else if (msg.type === 'FOUND') {
+        minedSessionBlocks++;
+        minedSessionReward += 100.0;
+        document.getElementById('mine-blocks-found').textContent = minedSessionBlocks;
+        document.getElementById('mine-rewards-earned').textContent = minedSessionReward.toFixed(1);
+        showToast('🎉 BLOK BULUNDU! Nonce: ' + msg.nonce);
+
+        // Submit block to node if online
+        if (nodeConnected) {
+          await api('/mine/' + walletAddr, { method: 'POST' });
+        }
+        refreshAll();
+        if (isMining) startWorkerTask();
+      }
+    }
+
+    async function runNodeMiningLoop() {
+      while (isMining) {
+        if (!nodeConnected) {
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+        const res = await api('/mine/' + walletAddr, { method: 'POST' });
+        if (res && res.status === 'ok') {
+          minedSessionBlocks++;
+          minedSessionReward += 100.0;
+          document.getElementById('mine-blocks-found').textContent = minedSessionBlocks;
+          document.getElementById('mine-rewards-earned').textContent = minedSessionReward.toFixed(1);
+          showToast('🎉 Düğüm Bloğu Kazıldı! +' + res.block.reward + ' UNIVA');
+          refreshAll();
+        }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    // ─── ADDRESS BOOK ───
+    function getContacts() {
+      return JSON.parse(localStorage.getItem('univa_address_book') || '[]');
+    }
+
+    function addContact() {
+      const n = document.getElementById('book-name').value.trim();
+      const a = document.getElementById('book-addr').value.trim();
+      if (!n || !a) { alert('İsim ve adres boş bırakılamaz.'); return; }
+      const list = getContacts();
+      list.push({name:n, address:a});
+      localStorage.setItem('univa_address_book', JSON.stringify(list));
+      document.getElementById('book-name').value = '';
+      document.getElementById('book-addr').value = '';
+      renderAddressBook();
+      showToast('Kişi kaydedildi.');
+    }
+
+    function renderAddressBook() {
+      const el = document.getElementById('book-list');
+      const list = getContacts();
+      if (list.length === 0) {
+        el.innerHTML = '<span style="color:var(--dim);font-size:0.8rem;">Henüz kayıtlı adres yok.</span>';
+        return;
+      }
+      let html = '';
+      list.forEach((c, i) => {
+        html += `<div class="addr-pill" style="margin-bottom:8px;">
           <div>
-            <div style="font-size:0.82rem;font-weight:700">${dev.platform}</div>
-            <div style="font-size:0.7rem;color:var(--dim);margin-top:2px">IP: ${dev.ip} · ${dev.city || '?'} · ${dev.screen || '?'}</div>
+            <div style="font-weight:700;color:#fff;">${c.name}</div>
+            <div style="font-size:0.75rem;">${c.address}</div>
           </div>
-          <div style="text-align:right">
-            <span style="font-size:0.68rem;background:rgba(16,185,129,0.15);color:var(--green2);border:1px solid var(--green2);padding:3px 7px;border-radius:9px;font-weight:700">🟢 AKTİF</span>
-            <div style="font-size:0.65rem;color:var(--dim);margin-top:3px">${dev.latency_ms||15} ms</div>
-          </div>
-        </div>`).join('');
+          <button class="copy-btn" onclick="navigator.clipboard.writeText('${c.address}');showToast('Kopyalandı')">Kopyala</button>
+        </div>`;
+      });
+      el.innerHTML = html;
     }
-  }
-}
 
-// ─── TOAST ───────────────────────────────────────────────────────────────────
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
+    // ─── EXPLORER SEARCH ───
+    async function searchExplorer() {
+      const q = document.getElementById('exp-search').value.trim();
+      const out = document.getElementById('exp-result');
+      out.style.display = 'block';
+      if (!q) { out.innerHTML = ''; return; }
+      if (!isNaN(q)) {
+        const b = await api('/block/' + q);
+        if (b && b.block) {
+          out.innerHTML = `<div class="glass-card" style="margin:0;">
+            <div style="font-weight:700;color:var(--green)">Blok #${b.block.index}</div>
+            <div style="font-size:0.75rem;margin-top:4px;">Hash: ${b.block.hash}</div>
+            <div style="font-size:0.75rem;">Madenci: ${b.block.miner_address}</div>
+            <div style="font-size:0.75rem;">Ödül: ${b.block.reward} UNIVA</div>
+          </div>`;
+          return;
+        }
+      }
+      out.innerHTML = '<span style="color:var(--red)">Sonuç bulunamadı.</span>';
+    }
 
-// ─── SETTINGS INIT ───────────────────────────────────────────────────────────
-document.getElementById('toggle-pin-lock').checked = pinLocked;
-document.getElementById('toggle-bio-lock').checked = bioLocked;
-const nu = document.getElementById('node-url-display');
-if (nu) nu.textContent = NODE_URL;
+    function saveNodeUrl() {
+      const u = document.getElementById('cfg-node-url').value.trim();
+      if (!u) return;
+      NODE_URL = u;
+      localStorage.setItem('univa_custom_node', u);
+      showToast('Düğüm URL kaydedildi: ' + u);
+      checkNode();
+    }
 
-// ─── BAŞLAT ──────────────────────────────────────────────────────────────────
-refreshStats();
-setInterval(refreshStats, 5000);
-initMiningState();
-sendHeartbeat();
-setInterval(sendHeartbeat, 15000);
-refreshTelemetry();
-setInterval(refreshTelemetry, 8000);
-</script>
+    function testNodeUrl() {
+      checkNode();
+      showToast('Bağlantı kontrol edildi.');
+    }
+
+    async function refreshAll() {
+      await checkNode();
+      await refreshBalance();
+      await loadTxHistory();
+      renderAddressBook();
+    }
+
+    // ─── BOOTSTRAP ───
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('cfg-node-url').value = NODE_URL;
+      initWalletSystem();
+      setInterval(checkNode, 8000);
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }
+  </script>
 </body>
 </html>
