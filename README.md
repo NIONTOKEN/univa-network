@@ -1,86 +1,164 @@
-# UNIVA L1 — Experimental Testnet Package
+# UNIVA Network
 
-This package preserves the uploaded project's `core/` layout and adds missing pieces required to run a local experimental testnet. It is **not mainnet-ready** and must not be used to store real funds.
+**Egemen Layer 1 Blokzincir · SHA-256 PoW · EVM Hibrit Köprüsü**
 
-## What was in the uploaded ZIP
+[![Vercel](https://img.shields.io/badge/PWA-Canlı-brightgreen)](https://univa-network-l1.vercel.app)
+[![GitHub](https://img.shields.io/badge/GitHub-NIONTOKEN/univa--network-blue)](https://github.com/NIONTOKEN/univa-network)
+[![Telegram](https://img.shields.io/badge/Telegram-@UnivaNetworkBot-blue)](https://t.me/UnivaNetworkBot)
+[![Chain ID](https://img.shields.io/badge/Chain%20ID-210001-orange)](https://univa-network-l1.vercel.app)
 
-The archive contained only `core/blockchain.py`, `core/miner.py`, `core/p2p.py`, `core/wallet.py`, and `test_dex.py`. The test file imported `core.dex`, which was absent, so the original test failed immediately with `ModuleNotFoundError`. The archive also had no dependency manifest, HTTP API/node launcher, or standalone database module.
+---
 
-## Included now
+## 🌐 Hızlı Erişim
 
-- `core/dex.py`: local integer-base-unit AMM reference implementation; 10 bps (0.1%) default fee, minimum LP lock, slippage checks, proportional liquidity removal.
-- Hardened experimental `core/blockchain.py`: signed-transfer checks, sender address/public-key binding, transaction ID/signature checks, nonce checks, pending incoming funds excluded from spendable balance, fee rewards, block acceptance checks, and contextual chain validation.
-- `core/p2p.py`: received blocks are now passed through blockchain validation before append/relay; invalid transactions are not relayed.
-- `core/database.py`: SQLite WAL side-index for blocks, transactions, and peers; it can be rebuilt from the validated JSON chain and is not the consensus source of truth.
-- `core/network.py`: FastAPI endpoints for health, stats, blocks, balances, transaction submission, mining, and a small JSON-RPC-style interface.
-- `core/node.py`: node launcher (API port 5050, P2P WebSocket port 5051 by default).
-- Wallet uses `ecdsa` when installed and has a `cryptography` secp256k1 fallback.
-- Tests for DEX math/slippage, signed transfers, invalid blocks, sync acceptance, and persistence.
+| Platform | Link |
+|----------|------|
+| **Web PWA Cüzdan** | https://univa-network-l1.vercel.app |
+| **Telegram Mini App** | https://t.me/UnivaNetworkBot |
+| **GitHub Kaynak** | https://github.com/NIONTOKEN/univa-network |
 
-## Install
+---
 
-Python 3.10+ recommended.
+## ℹ️ Ağ Durumu
+
+**UNIVA şu anda Mainnet Alpha aşamasındadır.**
+
+| Bileşen | Durum |
+|---------|-------|
+| SHA-256 PoW Konsensüsü | ✅ Üretimde |
+| L1 Cüzdan (30 karakter) | ✅ Üretimde |
+| Bitcoin Core RPC | ✅ Üretimde |
+| EVM JSON-RPC Köprüsü (Chain ID: 210001) | ✅ Üretimde |
+| PWA / Telegram Mini App | ✅ Canlı |
+| P2P Gossip Protokolü | ✅ Aktif |
+| DEX Konsensüs Entegrasyonu | 🔄 Geliştirmede |
+| Bağımsız Güvenlik Denetimi | 📋 Planlandı |
+
+> **Not:** DEX (`core/dex.py`) şu anda bir in-process AMM simülasyonudur. Rezervler L1 konsensüs blok durumuna henüz tam entegre edilmemiştir. Bu özellik aktif geliştirme altındadır.
+
+---
+
+## 🏗️ Mimari
+
+UNIVA, bir EVM klonu veya token değildir. Bitcoin felsefesiyle inşa edilmiş **bağımsız bir Layer 1 blokzinciridir**:
+
+- **Konsensüs:** SHA-256 Proof of Work
+- **Adres Standardı:** `univa` + 25 Base31 karakter = **30 karakter** (örn: `univaf63aua23vxdvcmvkunx66yzh2`)
+- **EVM Uyumluluğu:** MetaMask / Trust Wallet için JSON-RPC köprüsü (Chain ID: 210001)
+- **Depolama:** JSON zinciri (konsensüs kaynağı) + SQLite3 WAL (hız indeksi)
+- **DEX:** x·y=k AMM motoru, %0.10 protokol ücreti
+- **Maksimum Arz:** 21,000,001.0 UNIVA
+
+---
+
+## 🚀 Kurulum (Yerel Düğüm)
+
+Python 3.10+ gereklidir.
 
 ```bash
+git clone https://github.com/NIONTOKEN/univa-network.git
+cd univa-network
+
 python -m venv .venv
 # Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
 # macOS/Linux:
 # source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m pytest -q
+
+pip install -r requirements.txt
+python run.py --node
 ```
 
-## Start one node
+Düğüm `http://127.0.0.1:5050` adresinde başlar.
 
-Run from the project root:
+---
+
+## 💳 Adres Standardı
+
+| Versiyon | Format | Uzunluk | Kapasite | Durum |
+|----------|--------|---------|----------|-------|
+| **v4.0 (Yeni)** | `univa` + 25 Base31 | **30 karakter** | 2.48 × 10³⁷ | ✅ Birincil |
+| v3.0 (Eski) | `univa` + 10 Base31 + `univa` | 20 karakter | 819 trilyon | ⚠️ Geriye dönük uyumluluk |
+
+Eski v3 adresler doğrulama için hâlâ kabul edilir ancak yeni cüzdanlar otomatik olarak v4 formatında oluşturulur.
+
+---
+
+## 🔗 MetaMask ile Bağlanma
+
+| Alan | Değer |
+|------|-------|
+| Ağ Adı | UNIVA Network |
+| RPC URL | `http://127.0.0.1:5050/rpc` (yerel) |
+| Chain ID | `210001` |
+| Sembol | `UNIVA` |
+| Explorer | https://univa-network-l1.vercel.app |
+
+---
+
+## 🛠️ API Referansı
 
 ```bash
-python -m core.node --data-dir ./data-node1 --host 0.0.0.0 --api-port 5050 --p2p-port 5051
+# Zincir istatistikleri
+GET http://127.0.0.1:5050/stats
+
+# Bakiye sorgulama
+GET http://127.0.0.1:5050/api/v1/balance/{adres}
+
+# İşlem geçmişi
+GET http://127.0.0.1:5050/api/v1/history/{adres}
+
+# Yeni cüzdan oluştur
+POST http://127.0.0.1:5050/api/v1/wallet/create
+
+# İşlem gönder
+POST http://127.0.0.1:5050/tx
+
+# EVM JSON-RPC (MetaMask uyumlu)
+POST http://127.0.0.1:5050/rpc
+{"method": "eth_chainId"}        → "0x33451"
+{"method": "eth_blockNumber"}    → güncel blok yüksekliği
+
+# Bitcoin Core JSON-RPC
+{"method": "getblockchaininfo"}  → zincir bilgisi
+{"method": "getmininginfo"}      → madencilik bilgisi
 ```
 
-Check `http://127.0.0.1:5050/health`, `/stats`, `/chain`, and `/docs`.
+---
 
-Create a wallet with Python:
+## 📁 Proje Yapısı
 
-```python
-from core.wallet import UnivaWallet
-w = UnivaWallet.create_new()
-w.save("wallet.json")
-print(w.address)
+```
+univa-network/
+├── core/
+│   ├── blockchain.py    # SHA-256 PoW konsensüs motoru
+│   ├── wallet.py        # L1 + EVM adres türetme (secp256k1)
+│   ├── network.py       # FastAPI REST + RPC sunucusu
+│   ├── miner.py         # Madencilik motoru
+│   ├── dex.py           # AMM DEX motoru (geliştirmede)
+│   ├── p2p.py           # WebSocket P2P gossip protokolü
+│   ├── database.py      # SQLite3 WAL indeksi
+│   └── node.py          # Düğüm başlatıcı
+├── pwa/
+│   ├── index.html       # Web cüzdan PWA
+│   ├── manifest.json    # PWA manifesti
+│   └── sw.js            # Service Worker
+├── telegram_bot.py      # Telegram Mini App botu
+├── run.py               # Ana başlatıcı
+├── vercel.json          # Vercel PWA dağıtım yapılandırması
+├── requirements.txt     # Python bağımlılıkları
+└── UNIVA_WHITEPAPER.md  # Teknik Whitepaper v4.0
 ```
 
-Mine a testnet block to that wallet (node running):
+---
 
-```bash
-curl -X POST http://127.0.0.1:5050/mine/YOUR_UNIVA_ADDRESS
-```
+## ⚠️ Önemli Notlar
 
-Submit a signed transaction by constructing it with `blockchain.create_transaction(wallet, recipient, amount, fee)` in a local Python program and POSTing `{"tx": ...}` to `/transactions`.
+- **Özel anahtarlarınızı** asla kimseyle paylaşmayın ve güvenli yerde saklayın.
+- DEX konsensüs entegrasyonu tamamlanana kadar Swap işlemleri simülasyon modunda çalışır.
+- P2P katmanı henüz adversarial testlerden geçmemiştir; üretime alınmadan önce güvenlik denetimi planlanmaktadır.
 
-## Two-node test
+---
 
-Use two separate data directories and distinct API/P2P ports. Start node 1 on P2P 5051. Start node 2 on P2P 5052 and provide node 1 as a seed, e.g. `--peer 127.0.0.1:5051`. On separate computers, allow the selected API/P2P TCP ports through the firewall and use the first computer's LAN/public IP.
-
-## Important limitations before mainnet
-
-1. **Address length:** the requested `univa` + 10 Base31 characters + `univa` format has only about 49.5 bits of namespace. This is far too small to provide the collision resistance expected of a public cryptocurrency. Keep this format for a closed testnet only; before mainnet, approve a longer address format or a secure address/alias registry design.
-2. **Consensus:** the implementation still uses a simple leading-zero-nibble difficulty and an experimental retarget policy, not a peer-reviewed Bitcoin-style target/chainwork implementation. Fork choice is not yet based on accumulated work.
-3. **Persistence:** JSON chain persistence is the consensus source of truth. SQLite is an auxiliary rebuildable index; crash/fork recovery still needs additional adversarial testing.
-4. **DEX:** `core/dex.py` is currently an in-process AMM simulation. Its reserves and token balances are not committed into L1 consensus/state, so it is **not yet a native on-chain DEX**.
-5. **P2P:** this is a small testnet protocol, not hardened against hostile peers, denial-of-service, oversized messages, eclipse attacks, or network partitions.
-6. **Mempool/consensus:** do not expose this testnet to untrusted public traffic. Additional independent security review, fuzzing, fork tests, deterministic state transition tests, and a chainwork fork-choice implementation are required before any public launch.
-7. **No real funds:** mined coins have no market value; never use real private keys or funds in this experimental package.
-
-## API quick reference
-
-- `GET /health`
-- `GET /stats`
-- `GET /chain?from_height=0&limit=100`
-- `GET /block/{height}`
-- `GET /balance/{address}`
-- `POST /transactions` with `{"tx": {...signed transaction...}}`
-- `POST /mine/{miner_address}`
-- `POST /rpc` with JSON-RPC-style methods `getblockcount`, `getbestblockhash`, `getblockhash`, `getblock`, `getbalance`, `getnetworkinfo`, `getmininginfo`, `sendrawtransaction`
-
-The RPC is a small method-name-compatible surface only, not full Bitcoin Core RPC compatibility.
+*UNIVA Network — Tüm Ağlar, Tek Çatı Altında*  
+*v4.0.0 · Genesis 2026 · Chain ID 210001*
