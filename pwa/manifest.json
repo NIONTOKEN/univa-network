@@ -1,12 +1,12 @@
 {
-  "name": "UNIVA Network",
+  "name": "UNIVA Network — Sovereign Layer-1",
   "short_name": "UNIVA",
-  "description": "UNIVA Universal Freedom Blockchain & Mobile Node",
+  "description": "UNIVA Sovereign Layer-1 Blockchain Ecosystem & Node",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#030a12",
-  "theme_color": "#0ea5e9",
-  "orientation": "portrait-primary",
+  "background_color": "#05070B",
+  "theme_color": "#05070B",
+  "orientation": "any",
   "icons": [
     {
       "src": "/assets/logo.png",
