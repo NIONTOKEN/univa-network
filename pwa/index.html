@@ -109,11 +109,12 @@
     }
     .brand-logo-hex {
       width: 36px; height: 36px;
-      background: linear-gradient(135deg, var(--metallic), #64748b 50%, var(--blue) 100%);
-      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
       display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 1rem; color: #fff;
-      box-shadow: 0 0 16px rgba(35, 139, 255, 0.4);
+      border-radius: 50%;
+      filter: drop-shadow(0 0 10px rgba(35, 139, 255, 0.22));
+    }
+    .brand-logo-img {
+      width: 36px; height: 36px; object-fit: contain; display: block;
     }
     .brand-title {
       font-size: 1.15rem; font-weight: 800; letter-spacing: 2px;
@@ -215,20 +216,97 @@
     }
     .copy-icon-btn:hover { background: var(--blue); color: #fff; }
 
-    /* HERO SECTION */
-    .hero-container {
-      position: relative; min-height: 580px; display: flex; align-items: center;
-      background: radial-gradient(circle at 75% 40%, rgba(35, 139, 255, 0.12) 0%, transparent 60%);
-      border-bottom: 1px solid var(--border); overflow: hidden;
-      padding: 48px 24px;
+    /* HERO SECTION & UNIVA HERO LOGO WATERMARK */
+    .hero-container,
+    .univa-hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      min-height: 580px;
+      display: flex;
+      align-items: center;
+      background:
+        radial-gradient(circle at 76% 50%, rgba(35, 139, 255, 0.08) 0%, rgba(21, 87, 165, 0.04) 38%, transparent 68%),
+        linear-gradient(180deg, #05070B 0%, #070B12 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px;
+    }
+    .univa-hero-inner {
+      position: relative;
+      z-index: 2;
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
     .hero-canvas-wrap {
-      position: absolute; right: 0; top: 0; bottom: 0; width: 55%;
-      pointer-events: none; opacity: 0.85;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.42;
+      z-index: -3;
     }
-    @media (max-width: 860px) { .hero-canvas-wrap { width: 100%; opacity: 0.35; } }
+    .univa-hero-logo-halo {
+      position: absolute;
+      width: clamp(330px, 31vw, 500px);
+      height: clamp(330px, 31vw, 500px);
+      right: 6.5%;
+      top: 50%;
+      transform: translateY(-50%);
+      background: radial-gradient(circle, rgba(35, 139, 255, 0.13) 0%, rgba(21, 87, 165, 0.05) 45%, transparent 72%);
+      filter: blur(26px);
+      pointer-events: none;
+      z-index: -2;
+    }
+    .univa-hero-logo {
+      position: absolute;
+      width: clamp(280px, 26vw, 430px);
+      height: auto;
+      right: 9%;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.15;
+      pointer-events: none;
+      user-select: none;
+      z-index: -1;
+      filter: drop-shadow(0 0 24px rgba(35, 139, 255, 0.16));
+      animation: univa-breathe 10s ease-in-out infinite;
+    }
+    @keyframes univa-breathe {
+      0%, 100% { opacity: 0.12; }
+      50% { opacity: 0.18; }
+    }
+    @media (max-width: 768px) {
+      .univa-hero-logo-halo {
+        width: 250px;
+        height: 250px;
+        right: -35px;
+        top: 38%;
+        opacity: 0.5;
+      }
+      .univa-hero-logo {
+        width: 210px;
+        right: -25px;
+        top: 38%;
+        opacity: 0.08;
+      }
+      .hero-canvas-wrap {
+        opacity: 0.25;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .univa-hero-logo {
+        animation: none;
+      }
+    }
     .hero-content {
-      position: relative; z-index: 2; max-width: 640px;
+      position: relative;
+      z-index: 2;
+      max-width: 620px;
     }
     .hero-tag {
       display: inline-flex; align-items: center; gap: 6px;
@@ -397,8 +475,8 @@
   <!-- HEADER -->
   <header class="main-header">
     <div class="brand-wrap" onclick="navigate('landing')">
-      <div class="brand-logo-hex">U</div>
-      <div class="brand-title">UNIVA <span>L1</span></div>
+      <div class="brand-logo-hex"><img src="logo.png" alt="UNIVA" class="brand-logo-img"></div>
+      <div class="brand-title">UNIVA</div>
     </div>
 
     <!-- MAIN NAV LINKS (DESKTOP) -->
@@ -486,18 +564,22 @@
 
     <!-- 1. LANDING PAGE -->
     <section class="view-section active" id="view-landing">
-      <div class="hero-container">
-        <canvas id="hero-network-canvas" class="hero-canvas-wrap"></canvas>
-        <div class="hero-content">
-          <div class="hero-tag">Sovereign Layer-1 Blockchain</div>
-          <h1 class="hero-title">ONE NETWORK.<br>INFINITE POSSIBILITIES.</h1>
-          <p class="hero-desc">
-            UNIVA is an independent Layer-1 blockchain infrastructure engineered to unify decentralized networks, global computing power, and sovereign digital value with Bitcoin-grade security and EVM liquidity interoperability.
-          </p>
-          <div class="hero-buttons">
-            <button class="btn btn-primary" onclick="navigate('dashboard')">Explore UNIVA</button>
-            <button class="btn btn-metallic" onclick="navigate('network')">Enter Network</button>
-            <button class="btn btn-outline" onclick="navigate('core')">Discover Technology</button>
+      <div class="hero-container univa-hero">
+        <canvas id="hero-network-canvas" class="hero-canvas-wrap" aria-hidden="true"></canvas>
+        <div class="univa-hero-logo-halo" aria-hidden="true"></div>
+        <img src="logo.png" alt="UNIVA" class="univa-hero-logo" id="univa-hero-logo-mark" decoding="async" />
+        <div class="univa-hero-inner">
+          <div class="hero-content">
+            <div class="hero-tag">Sovereign Layer-1 Blockchain</div>
+            <h1 class="hero-title">ONE NETWORK.<br>INFINITE POSSIBILITIES.</h1>
+            <p class="hero-desc">
+              UNIVA is an independent Layer-1 blockchain infrastructure engineered to unify decentralized networks, global computing power, and sovereign digital value with Bitcoin-grade security and EVM liquidity interoperability.
+            </p>
+            <div class="hero-buttons">
+              <button class="btn btn-primary" onclick="navigate('dashboard')">Explore UNIVA</button>
+              <button class="btn btn-metallic" onclick="navigate('network')">Enter Network</button>
+              <button class="btn btn-outline" onclick="navigate('core')">Discover Technology</button>
+            </div>
           </div>
         </div>
       </div>
@@ -510,7 +592,7 @@
             <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:14px;">
               Pure Proof-of-Work Nakamoto consensus hardened with BIP-113 Median Time Past (MTP) timestamp enforcement, resisting miner manipulation.
             </p>
-            <span class="badge badge-live">Verified Mainnet PoW</span>
+            <span class="badge badge-live">Verified UNIVA PoW</span>
           </div>
           <div class="card card-accent">
             <div class="card-title">Hybrid EVM Bridge</div>
@@ -1288,8 +1370,8 @@ Block Explorer: https://univa-network-l1.vercel.app
     <div class="footer-grid">
       <div class="footer-col">
         <div class="brand-wrap" style="margin-bottom:14px;">
-          <div class="brand-logo-hex">U</div>
-          <div class="brand-title">UNIVA <span>NETWORK</span></div>
+          <div class="brand-logo-hex"><img src="logo.png" alt="UNIVA" class="brand-logo-img"></div>
+          <div class="brand-title">UNIVA</div>
         </div>
         <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;">
           Independent Sovereign Layer-1 Blockchain Ecosystem. Built on Nakamoto SHA-256 Proof-of-Work, BIP-113 MTP consensus, and EVM multi-chain interoperability.
@@ -1331,7 +1413,7 @@ Block Explorer: https://univa-network-l1.vercel.app
 
     <div class="footer-bottom">
       <div>© 2026 UNIVA Network. Sovereign Layer-1 Infrastructure. Genesis Block #0 Verified.</div>
-      <div class="mono" style="color:var(--text-muted);">Mainnet Chain ID: 210001 (0x33451)</div>
+      <div class="mono" style="color:var(--text-muted);">UNIVA Chain ID: 210001 (0x33451)</div>
     </div>
   </footer>
 
@@ -1459,7 +1541,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (stats && stats.network) {
         nodeConnected = true;
         pill.classList.remove('offline');
-        text.textContent = 'Mainnet Live · Block #' + stats.height;
+        text.textContent = 'UNIVA · Block #' + stats.height;
 
         // Dashboard statistics
         document.getElementById('dash-height').textContent = stats.height;
@@ -1695,6 +1777,8 @@ Block Explorer: https://univa-network-l1.vercel.app
       walletAddr = kp.address;
       walletEvm = kp.evm_address;
       walletPrivKey = kp.private_key;
+      localStorage.setItem('univa_public_addr', walletAddr);
+      localStorage.setItem('univa_public_evm', walletEvm);
       const uname = kp.username || localStorage.getItem('univa_vault_username') || 'Sovereign User';
 
       const userPill = document.getElementById('header-user-pill');
@@ -1725,9 +1809,10 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (!walletAddr) return;
       const box = document.getElementById('w-history-container');
       const res = await apiCall('/api/v1/history/' + walletAddr);
-      if (res && res.transactions && res.transactions.length > 0) {
+      const txList = res ? (res.history || res.transactions || []) : [];
+      if (txList.length > 0) {
         let html = '';
-        res.transactions.forEach(tx => {
+        txList.forEach(tx => {
           html += `<div style="padding:10px 14px;margin-bottom:8px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);">
             <div style="display:flex;justify-content:space-between;font-weight:700;">
               <span>${tx.type === 'coinbase' ? '⛏️ Block Reward' : 'Transfer'}</span>
@@ -1804,6 +1889,27 @@ Block Explorer: https://univa-network-l1.vercel.app
     }
 
     // ─── MINING OPERATIONS (NODE & WEB WORKER) ───
+    async function ensureMinerAddress() {
+      if (walletAddr && walletAddr.startsWith('univa')) return walletAddr;
+      const cached = localStorage.getItem('univa_public_addr');
+      if (cached && cached.startsWith('univa')) {
+        walletAddr = cached;
+        document.getElementById('mining-target-addr').textContent = walletAddr;
+        return walletAddr;
+      }
+      const nodeWallet = await apiCall('/wallet');
+      if (nodeWallet && nodeWallet.address) {
+        walletAddr = nodeWallet.address;
+        document.getElementById('mining-target-addr').textContent = walletAddr;
+        return walletAddr;
+      }
+      const tempKp = generateKeypair();
+      walletAddr = tempKp.address;
+      localStorage.setItem('univa_public_addr', walletAddr);
+      document.getElementById('mining-target-addr').textContent = walletAddr;
+      return walletAddr;
+    }
+
     async function toggleMiningOperation() {
       isMining = !isMining;
       const btn = document.getElementById('mining-action-btn');
@@ -1811,18 +1917,27 @@ Block Explorer: https://univa-network-l1.vercel.app
       const msg = document.getElementById('mining-log-msg');
 
       if (isMining) {
+        await ensureMinerAddress();
         btn.textContent = '🛑 STOP MINING';
         btn.classList.add('btn-danger');
         badge.textContent = 'HASHING LIVE';
         badge.className = 'badge badge-live';
-        msg.innerHTML = '<span style="color:var(--success);">SHA-256 Multi-threaded worker active. Hashing candidates...</span>';
+        msg.innerHTML = '<span style="color:var(--success);">SHA-256 Multi-threaded worker active. Hashing candidates for ' + walletAddr + '...</span>';
 
         if (window.Worker) {
-          if (!miningWorker) {
-            miningWorker = new Worker('miner.worker.js');
-            miningWorker.onmessage = handleWorkerMiningEvent;
+          try {
+            if (!miningWorker) {
+              miningWorker = new Worker('miner.worker.js');
+              miningWorker.onmessage = handleWorkerMiningEvent;
+              miningWorker.onerror = function() {
+                miningWorker = null;
+                runNodeMiningFallback();
+              };
+            }
+            dispatchMiningBlock();
+          } catch (err) {
+            runNodeMiningFallback();
           }
-          dispatchMiningBlock();
         } else {
           runNodeMiningFallback();
         }
@@ -1840,6 +1955,7 @@ Block Explorer: https://univa-network-l1.vercel.app
 
     async function dispatchMiningBlock() {
       if (!isMining || !miningWorker) return;
+      const targetAddr = await ensureMinerAddress();
       const stats = await apiCall('/stats') || { difficulty: 4, height: 0, last_hash: '0'.repeat(64) };
       const task = {
         index: (stats.height || 0) + 1,
@@ -1847,9 +1963,9 @@ Block Explorer: https://univa-network-l1.vercel.app
         merkle_root: '0'.repeat(64),
         previous_hash: stats.last_hash || '0'.repeat(64),
         difficulty: stats.difficulty || 4,
-        miner_address: walletAddr,
+        miner_address: targetAddr,
         reward: 100.0,
-        startNonce: 0
+        startNonce: Math.floor(Math.random() * 100000)
       };
       miningWorker.postMessage({ type: 'START', data: task });
     }
@@ -1862,18 +1978,35 @@ Block Explorer: https://univa-network-l1.vercel.app
         document.getElementById('mining-hashrate-val').textContent = rate;
         document.getElementById('dash-hashrate').textContent = rate + ' H/s';
       } else if (msg.type === 'FOUND') {
+        const targetAddr = await ensureMinerAddress();
+        let minedBlockInfo = null;
+        if (nodeConnected) {
+          const res = await apiCall('/mine/' + targetAddr, { method: 'POST' });
+          if (res && res.block) {
+            minedBlockInfo = res.block;
+          }
+        }
         sessionMinedBlocks++;
-        sessionMinedRewards += 100.0;
+        const rewardAmt = minedBlockInfo ? (minedBlockInfo.reward || 100.0) : 100.0;
+        sessionMinedRewards += rewardAmt;
         document.getElementById('mining-blocks-val').textContent = sessionMinedBlocks;
         document.getElementById('mining-reward-val').textContent = sessionMinedRewards.toFixed(2);
-        showToast('🎉 VALID BLOCK FOUND! Nonce: ' + msg.nonce);
 
-        if (nodeConnected) {
-          await apiCall('/mine/' + walletAddr, { method: 'POST' });
+        const logEl = document.getElementById('mining-log-msg');
+        if (minedBlockInfo) {
+          logEl.innerHTML = `<span style="color:var(--success);">✓ Block #${minedBlockInfo.index} Mined & Verified! Hash: <span class="mono">${minedBlockInfo.hash.substring(0, 20)}...</span> (+${rewardAmt} UNIVA)</span>`;
+          showToast('🎉 BLOCK #' + minedBlockInfo.index + ' MINED! +' + rewardAmt + ' UNIVA');
+        } else {
+          logEl.innerHTML = `<span style="color:var(--success);">✓ Valid PoW Block Found! Nonce: ${msg.nonce} | Hash: <span class="mono">${msg.hash.substring(0, 20)}...</span></span>`;
+          showToast('🎉 VALID BLOCK FOUND! Nonce: ' + msg.nonce);
         }
-        fetchLiveStats();
-        fetchWalletBalance();
-        if (isMining) dispatchMiningBlock();
+
+        await fetchLiveStats();
+        await fetchWalletBalance();
+        await fetchLiveHistory();
+        if (isMining) {
+          setTimeout(dispatchMiningBlock, 400);
+        }
       }
     }
 
@@ -1949,14 +2082,15 @@ Block Explorer: https://univa-network-l1.vercel.app
       fetchLiveStats();
     }
 
-    // ─── 3D INTERACTIVE HERO NETWORK CANVAS ───
+    // ─── SUBTLE CORPORATE HERO NETWORK CANVAS ───
     function initHeroCanvas() {
       const canvas = document.getElementById('hero-network-canvas');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       let width, height;
       const nodes = [];
-      const nodeCount = 38;
+      const nodeCount = 22;
+      const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       function resize() {
         width = canvas.width = canvas.offsetWidth;
@@ -1969,25 +2103,25 @@ Block Explorer: https://univa-network-l1.vercel.app
         nodes.push({
           x: Math.random() * width,
           y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.7,
-          vy: (Math.random() - 0.5) * 0.7,
-          r: Math.random() * 2.5 + 2,
-          color: i % 4 === 0 ? '#238BFF' : '#C5CCD5'
+          vx: (Math.random() - 0.5) * 0.25,
+          vy: (Math.random() - 0.5) * 0.25,
+          r: Math.random() * 1.2 + 1.2,
+          color: i % 4 === 0 ? 'rgba(35, 139, 255, 0.55)' : 'rgba(197, 204, 213, 0.45)'
         });
       }
 
       function draw() {
         ctx.clearRect(0, 0, width, height);
 
-        // Draw connections
+        // Subtle network connection lines
         for (let i = 0; i < nodeCount; i++) {
           for (let j = i + 1; j < nodeCount; j++) {
             const dx = nodes[i].x - nodes[j].x;
             const dy = nodes[i].y - nodes[j].y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 130) {
-              ctx.strokeStyle = `rgba(35, 139, 255, ${0.28 * (1 - dist / 130)})`;
-              ctx.lineWidth = 1;
+            if (dist < 140) {
+              ctx.strokeStyle = `rgba(35, 139, 255, ${0.14 * (1 - dist / 140)})`;
+              ctx.lineWidth = 0.85;
               ctx.beginPath();
               ctx.moveTo(nodes[i].x, nodes[i].y);
               ctx.lineTo(nodes[j].x, nodes[j].y);
@@ -1996,7 +2130,7 @@ Block Explorer: https://univa-network-l1.vercel.app
           }
         }
 
-        // Draw nodes
+        // Low-density network nodes
         for (let i = 0; i < nodeCount; i++) {
           const n = nodes[i];
           ctx.fillStyle = n.color;
@@ -2004,13 +2138,17 @@ Block Explorer: https://univa-network-l1.vercel.app
           ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
           ctx.fill();
 
-          n.x += n.vx;
-          n.y += n.vy;
-          if (n.x < 0 || n.x > width) n.vx *= -1;
-          if (n.y < 0 || n.y > height) n.vy *= -1;
+          if (!reduceMotion) {
+            n.x += n.vx;
+            n.y += n.vy;
+            if (n.x < 0 || n.x > width) n.vx *= -1;
+            if (n.y < 0 || n.y > height) n.vy *= -1;
+          }
         }
 
-        requestAnimationFrame(draw);
+        if (!reduceMotion) {
+          requestAnimationFrame(draw);
+        }
       }
       draw();
     }

@@ -32,6 +32,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def add_pna_headers(request: Request, call_next):
+    if request.method == "OPTIONS" and "access-control-request-private-network" in request.headers:
+        response = PlainTextResponse("OK", status_code=200)
+        response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = request.headers.get("access-control-request-headers", "*")
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
+
 # Native AMM instance for testnet quotes and balance checking
 dex_engine = UnivaDEX()
 try:
@@ -79,6 +93,22 @@ def serve_sw():
         return FileResponse(p, media_type="application/javascript")
     raise HTTPException(404, "sw.js not found")
 
+@app.get("/miner.worker.js")
+def serve_miner_worker():
+    p = os.path.join(PWA_DIR, "miner.worker.js")
+    if os.path.exists(p):
+        return FileResponse(p, media_type="application/javascript")
+    raise HTTPException(404, "miner.worker.js not found")
+
+@app.get("/logo.png")
+def serve_root_logo():
+    p = os.path.join(PWA_DIR, "logo.png")
+    if not os.path.exists(p):
+        p = os.path.join(ASSETS_DIR, "logo.png")
+    if os.path.exists(p):
+        return FileResponse(p, media_type="image/png")
+    raise HTTPException(404, "logo.png not found")
+
 @app.get("/assets/{filename:path}")
 def serve_assets(filename: str):
     p = os.path.join(ASSETS_DIR, filename)
@@ -125,7 +155,8 @@ def chain(from_height: int = 0, limit: int = 100):
 def get_block(height: int):
     if height < 0 or height > blockchain.height:
         raise HTTPException(404, "Blok bulunamadi")
-    return blockchain.chain[height].to_dict()
+    b_dict = blockchain.chain[height].to_dict()
+    return {**b_dict, "block": b_dict}
 
 @app.post("/block")
 def receive_block(block_data: Dict[str, Any]):
@@ -473,20 +504,23 @@ def interop_proof(tx_id: str):
 UNIVA_CHAIN_ID_DEC = 210001
 UNIVA_CHAIN_ID_HEX = hex(UNIVA_CHAIN_ID_DEC) # '0x33451'
 
-@app.post("/rpc")
-@app.post("/")
-async def rpc(request: Request):
-    body = await request.json()
+def _process_rpc_call(body: dict) -> dict:
     method = body.get("method", "")
     params = body.get("params") or []
     req_id = body.get("id", 1)
 
     try:
-        # === 1. METAMASK / EVM WEB3 METODLARI ===
+        # === 1. METAMASK / TRUST WALLET / EVM WEB3 METODLARI ===
         if method == "eth_chainId":
             result = UNIVA_CHAIN_ID_HEX
         elif method == "net_version":
             result = str(UNIVA_CHAIN_ID_DEC)
+        elif method == "web3_clientVersion":
+            result = "UNIVA-Core/v4.0.0"
+        elif method == "eth_syncing":
+            result = False
+        elif method == "eth_accounts":
+            result = []
         elif method == "eth_blockNumber":
             result = hex(blockchain.height)
         elif method == "eth_getBalance":
@@ -495,36 +529,46 @@ async def rpc(request: Request):
             # 18 decimal Wei formatına çevir (1 UNIVA = 10^18 wei)
             wei_val = int(bal * 10**18)
             result = hex(wei_val)
-        elif method == "eth_gasPrice":
+        elif method in ("eth_gasPrice", "eth_maxPriorityFeePerGas"):
             result = "0x3b9aca00" # 1 Gwei
         elif method == "eth_estimateGas":
             result = "0x5208"     # 21000 standart transfer gazı
+        elif method in ("eth_call", "eth_getCode", "eth_getStorageAt"):
+            result = "0x"
         elif method == "eth_getTransactionCount":
             # Adresin onaylanmış nonce sayısını döndür
             addr = str(params[0]) if params else ""
             nonce = blockchain._account_nonce(addr)
             result = hex(nonce)
-        elif method == "eth_getBlockByNumber":
+        elif method in ("eth_getBlockByNumber", "eth_getBlockByHash"):
             tag = params[0] if params else "latest"
-            idx = blockchain.height if tag in ("latest", "pending") else int(tag, 16)
-            idx = max(0, min(idx, blockchain.height))
-            blk = blockchain.chain[idx]
+            if method == "eth_getBlockByNumber":
+                idx = blockchain.height if tag in ("latest", "pending", "safe", "finalized") else (
+                    0 if tag == "earliest" else int(str(tag), 16)
+                )
+                idx = max(0, min(idx, blockchain.height))
+                blk = blockchain.chain[idx]
+            else:
+                target_h = str(tag).lower().replace("0x", "")
+                blk = next((b for b in blockchain.chain if b.hash.lower().replace("0x", "") == target_h), blockchain.last_block)
             result = {
                 "number": hex(blk.index),
                 "hash": blk.hash if blk.hash.startswith("0x") else "0x" + blk.hash,
                 "parentHash": blk.previous_hash if blk.previous_hash.startswith("0x") else "0x" + blk.previous_hash,
-                "nonce": hex(blk.nonce),
+                "nonce": hex(blk.nonce)[2:].zfill(16),
                 "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
                 "logsBloom": "0x" + "0" * 512,
                 "transactionsRoot": "0x" + blk.merkle_root,
                 "stateRoot": "0x" + blk.merkle_root,
-                "miner": blk.miner_address,
+                "receiptsRoot": "0x" + blk.merkle_root,
+                "miner": "0x" + hashlib.sha256(blk.miner_address.encode()).hexdigest()[:40],
                 "difficulty": hex(blk.difficulty),
                 "totalDifficulty": hex(blk.difficulty * (blk.index + 1)),
                 "extraData": "0x554e495641", # 'UNIVA'
                 "size": hex(1000),
                 "gasLimit": "0x1c9c380", # 30,000,000
                 "gasUsed": "0x5208",
+                "baseFeePerGas": "0x3b9aca00",
                 "timestamp": hex(int(blk.timestamp)),
                 "transactions": [tx.get("tx_id") for tx in blk.transactions if tx.get("tx_id")],
                 "uncles": []
@@ -571,6 +615,21 @@ async def rpc(request: Request):
         else:
             raise ValueError(f"Unknown RPC method: {method}")
 
-        return {"jsonrpc": "2.0", "id": req_id, "result": result, "error": None}
+        return {"jsonrpc": "2.0", "id": req_id, "result": result}
     except Exception as exc:
-        return {"jsonrpc": "2.0", "id": req_id, "result": None, "error": {"code": -32602, "message": str(exc)}}
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": str(exc)}}
+
+
+@app.post("/rpc")
+@app.post("/")
+async def rpc(request: Request):
+    try:
+        body = await request.json()
+    except Exception as exc:
+        return {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"Parse error: {exc}"}}
+
+    if isinstance(body, list):
+        return [_process_rpc_call(item) for item in body if isinstance(item, dict)]
+    if isinstance(body, dict):
+        return _process_rpc_call(body)
+    return {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "Invalid Request"}}
