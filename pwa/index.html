@@ -333,6 +333,42 @@
       font-size: 0.8rem; color: var(--text-muted);
     }
 
+    /* LANGUAGE SELECTOR & I18N */
+    .lang-selector-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .lang-select {
+      background: rgba(16, 23, 34, 0.85);
+      border: 1px solid var(--border);
+      color: var(--metallic);
+      padding: 5px 9px;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .lang-select:hover, .lang-select:focus {
+      border-color: var(--blue);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(35, 139, 255, 0.3);
+    }
+    .lang-select option {
+      background: #0d141e;
+      color: #fff;
+    }
+    /* Suppress ugly Google Translate banner iframe */
+    .goog-te-banner-frame.skiptranslate, .goog-te-banner-frame { display: none !important; }
+    body { top: 0px !important; }
+    .skiptranslate > iframe { display: none !important; }
+    #goog-gt-tt, .goog-tooltip, .goog-tooltip:hover { display: none !important; }
+    .goog-text-highlight { background-color: transparent !important; box-shadow: none !important; }
+    #google_translate_element { display: none !important; }
+
     /* TOAST */
     #global-toast {
       position: fixed; bottom: 24px; right: 24px; z-index: 9999;
@@ -382,6 +418,22 @@
     </nav>
 
     <div class="header-actions">
+      <!-- AUTO-LANGUAGE DETECTOR & SELECTOR -->
+      <div class="lang-selector-wrap">
+        <select class="lang-select" id="univa-lang-select" onchange="onUserLanguageChange(this.value)" title="Select Language">
+          <option value="auto">🌐 Auto</option>
+          <option value="tr">🇹🇷 Türkçe</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="ru">🇷🇺 Русский</option>
+          <option value="zh-CN">🇨🇳 中文</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="ja">🇯🇵 日本語</option>
+          <option value="ko">🇰🇷 한국어</option>
+          <option value="ar">🇸🇦 العربية</option>
+        </select>
+      </div>
       <div class="net-indicator" id="header-net-pill">
         <div class="net-dot"></div>
         <span id="header-net-text">Node Syncing...</span>
@@ -395,6 +447,22 @@
 
   <!-- MOBILE DRAWER -->
   <div class="mobile-drawer" id="mobile-drawer">
+    <div style="padding: 10px 16px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Language / Dil</span>
+      <select class="lang-select" onchange="onUserLanguageChange(this.value)" style="width: auto;">
+        <option value="auto">🌐 Auto-Detect</option>
+        <option value="tr">🇹🇷 Türkçe</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="zh-CN">🇨🇳 中文</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="ko">🇰🇷 한국어</option>
+        <option value="ar">🇸🇦 العربية</option>
+      </select>
+    </div>
     <div class="mobile-nav-link" onclick="mobileNav('landing')">Overview <span>→</span></div>
     <div class="mobile-nav-link" onclick="mobileNav('dashboard')">Operations Dashboard <span>→</span></div>
     <div class="mobile-nav-link" onclick="mobileNav('explorer')">Block Explorer <span>→</span></div>
@@ -1954,7 +2022,105 @@ Block Explorer: https://univa-network-l1.vercel.app
     }
 
     // ─── BOOTSTRAP ───
+    // ─── AUTOMATIC MULTI-LANGUAGE TRANSLATION ENGINE ───
+    const SUPPORTED_LANGS = {
+      'tr': 'Turkish',
+      'en': 'English',
+      'ru': 'Russian',
+      'zh-CN': 'Chinese (Simplified)',
+      'es': 'Spanish',
+      'de': 'German',
+      'fr': 'French',
+      'ja': 'Japanese',
+      'ko': 'Korean',
+      'ar': 'Arabic'
+    };
+
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? match[2] : null;
+    }
+
+    function setTranslateCookie(lang) {
+      const hostname = window.location.hostname;
+      const val = '/auto/' + lang;
+      document.cookie = 'googtrans=' + val + '; path=/; SameSite=Lax';
+      if (hostname.includes('.')) {
+        document.cookie = 'googtrans=' + val + '; domain=.' + hostname + '; path=/; SameSite=Lax';
+      }
+    }
+
+    function detectUserLanguage() {
+      const saved = localStorage.getItem('univa_lang');
+      if (saved && saved !== 'auto') {
+        return saved;
+      }
+      // Browser locale detection (e.g. 'tr-TR' -> 'tr', 'ru-RU' -> 'ru')
+      const navLang = (navigator.languages && navigator.languages.length ? navigator.languages[0] : (navigator.language || navigator.userLanguage || 'en')).toLowerCase();
+      
+      if (navLang.startsWith('tr')) return 'tr';
+      if (navLang.startsWith('ru')) return 'ru';
+      if (navLang.startsWith('zh')) return 'zh-CN';
+      if (navLang.startsWith('es')) return 'es';
+      if (navLang.startsWith('de')) return 'de';
+      if (navLang.startsWith('fr')) return 'fr';
+      if (navLang.startsWith('ja')) return 'ja';
+      if (navLang.startsWith('ko')) return 'ko';
+      if (navLang.startsWith('ar')) return 'ar';
+      return 'en';
+    }
+
+    function initLanguageSystem() {
+      const detected = detectUserLanguage();
+      const savedChoice = localStorage.getItem('univa_lang') || 'auto';
+      const selectEl = document.getElementById('univa-lang-select');
+      if (selectEl) {
+        selectEl.value = savedChoice;
+      }
+
+      // If user is from a non-English locale or has chosen a specific language:
+      const activeLang = savedChoice === 'auto' ? detected : savedChoice;
+      if (activeLang && activeLang !== 'en') {
+        const currentCookie = getCookie('googtrans');
+        if (!currentCookie || !currentCookie.includes(activeLang)) {
+          setTranslateCookie(activeLang);
+        }
+      }
+
+      // Load Google Translate script dynamically
+      if (!window.google || !window.google.translate) {
+        window.googleTranslateElementInit = function() {
+          try {
+            new google.translate.TranslateElement({
+              pageLanguage: 'en',
+              autoDisplay: false
+            }, 'google_translate_element');
+          } catch(e) {}
+        };
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        script.async = true;
+        document.head.appendChild(script);
+      }
+    }
+
+    function onUserLanguageChange(lang) {
+      if (lang === 'auto') {
+        localStorage.removeItem('univa_lang');
+        const autoLang = detectUserLanguage();
+        setTranslateCookie(autoLang);
+        showToast('Auto language: ' + (SUPPORTED_LANGS[autoLang] || autoLang));
+      } else {
+        localStorage.setItem('univa_lang', lang);
+        setTranslateCookie(lang);
+        showToast('Language: ' + (SUPPORTED_LANGS[lang] || lang));
+      }
+      setTimeout(() => location.reload(), 300);
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
+      initLanguageSystem();
       initHeroCanvas();
       initTopologyCanvas();
       initWalletSecurity();
@@ -1966,5 +2132,9 @@ Block Explorer: https://univa-network-l1.vercel.app
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
   </script>
+
+  <!-- HIDDEN GOOGLE TRANSLATE ENGINE ELEMENT -->
+  <div id="google_translate_element"></div>
+
 </body>
 </html>
