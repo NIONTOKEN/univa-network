@@ -434,6 +434,10 @@
           <option value="ar">🇸🇦 العربية</option>
         </select>
       </div>
+      <div class="net-indicator" id="header-user-pill" style="display:none;background:rgba(35,139,255,0.12);border-color:rgba(35,139,255,0.35);color:var(--metallic-light);cursor:pointer;" onclick="navigate('wallet')" title="Active Vault Identity">
+        <span>👤</span>
+        <span id="header-user-text">—</span>
+      </div>
       <div class="net-indicator" id="header-net-pill">
         <div class="net-dot"></div>
         <span id="header-net-text">Node Syncing...</span>
@@ -1341,7 +1345,12 @@ Block Explorer: https://univa-network-l1.vercel.app
         Enter your 4-8 digit security PIN to unlock your encrypted sovereign key.
       </p>
       <div class="form-group">
-        <input class="form-input mono" type="password" id="vault-pin-input" placeholder="Enter Security PIN (4-8 Digits)">
+        <label class="form-label">Username / Kullanıcı Adı</label>
+        <input class="form-input" type="text" id="vault-username-input" placeholder="Enter Username (e.g. Kaya)" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('vault-pin-input').focus()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Security PIN / Şifre (4-8 Digits)</label>
+        <input class="form-input mono" type="password" id="vault-pin-input" placeholder="Enter Security PIN (4-8 Digits)" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitVaultPin()">
       </div>
       <div id="vault-import-wrap" style="display:none;" class="form-group">
         <label class="form-label">Optional 64-char Hex Private Key Import</label>
@@ -1618,11 +1627,11 @@ Block Explorer: https://univa-network-l1.vercel.app
 
       if (!stored) {
         title.textContent = 'CREATE SECURE UNIVA VAULT';
-        desc.textContent = 'Set a 4-8 digit security PIN to cryptographically lock and persist your sovereign wallet.';
+        desc.textContent = 'Choose a username and set a 4-8 digit security PIN to cryptographically lock and persist your sovereign wallet.';
         modal.classList.add('active');
       } else {
         title.textContent = 'UNLOCK UNIVA VAULT';
-        desc.textContent = 'Enter your security PIN to unlock your encrypted sovereign key for this session.';
+        desc.textContent = 'Enter your username and security PIN to unlock your encrypted sovereign key for this session.';
         document.getElementById('vault-import-toggle').style.display = 'none';
         modal.classList.add('active');
       }
@@ -1634,9 +1643,16 @@ Block Explorer: https://univa-network-l1.vercel.app
     }
 
     async function submitVaultPin() {
+      const usernameEl = document.getElementById('vault-username-input');
+      const username = usernameEl ? usernameEl.value.trim() : '';
       const pin = document.getElementById('vault-pin-input').value.trim();
+
+      if (!username || username.length < 2) {
+        alert('Please enter a valid username (at least 2 characters) / Lütfen geçerli bir kullanıcı adı girin.');
+        return;
+      }
       if (!pin || pin.length < 4) {
-        alert('PIN must be at least 4 digits.');
+        alert('PIN must be at least 4 digits / Şifre en az 4 haneli olmalıdır.');
         return;
       }
 
@@ -1644,17 +1660,29 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (!stored) {
         const custom = document.getElementById('vault-import-key').value.trim();
         const kp = generateKeypair(custom);
+        kp.username = username;
         const vault = await encryptSecret(JSON.stringify(kp), pin);
         localStorage.setItem('univa_vault_v5', JSON.stringify(vault));
+        localStorage.setItem('univa_vault_username', username);
         activateWallet(kp);
       } else {
         try {
           const vault = JSON.parse(stored);
           const decrypted = await decryptSecret(vault, pin);
           const kp = JSON.parse(decrypted);
+          if (kp.username && kp.username.toLowerCase() !== username.toLowerCase()) {
+            alert('Invalid username or PIN code / Kullanıcı adı veya şifre hatalı!');
+            return;
+          }
+          if (!kp.username) {
+            kp.username = username;
+            const updatedVault = await encryptSecret(JSON.stringify(kp), pin);
+            localStorage.setItem('univa_vault_v5', JSON.stringify(updatedVault));
+          }
+          localStorage.setItem('univa_vault_username', kp.username);
           activateWallet(kp);
         } catch (e) {
-          alert('Invalid PIN code. Please try again.');
+          alert('Invalid username or PIN code / Kullanıcı adı veya şifre hatalı!');
           return;
         }
       }
@@ -1667,11 +1695,19 @@ Block Explorer: https://univa-network-l1.vercel.app
       walletAddr = kp.address;
       walletEvm = kp.evm_address;
       walletPrivKey = kp.private_key;
+      const uname = kp.username || localStorage.getItem('univa_vault_username') || 'Sovereign User';
+
+      const userPill = document.getElementById('header-user-pill');
+      const userTxt = document.getElementById('header-user-text');
+      if (userPill && userTxt) {
+        userTxt.textContent = uname;
+        userPill.style.display = 'flex';
+      }
 
       document.getElementById('w-l1-full').textContent = walletAddr;
       document.getElementById('w-evm-full').textContent = walletEvm;
       document.getElementById('mining-target-addr').textContent = walletAddr;
-      showToast('Vault active: ' + walletAddr.substring(0, 14) + '...');
+      showToast('Welcome ' + uname + ' · Vault active: ' + walletAddr.substring(0, 12) + '...');
       fetchWalletBalance();
       fetchLiveHistory();
     }
@@ -1721,6 +1757,7 @@ Block Explorer: https://univa-network-l1.vercel.app
     function resetWalletPrompt() {
       if (confirm('Reset wallet vault? Ensure you have backed up your private key first!')) {
         localStorage.removeItem('univa_vault_v5');
+        localStorage.removeItem('univa_vault_username');
         location.reload();
       }
     }
