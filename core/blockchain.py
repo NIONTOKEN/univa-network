@@ -237,11 +237,15 @@ class Blockchain:
                 return False
             if round(amount, 8) != amount or round(fee, 8) != fee or not isinstance(nonce, int) or nonce < 0:
                 return False
-            from core.wallet import derive_univa_address, derive_legacy_20char_address, derive_evm_address, validate_address, UnivaWallet
+            from core.wallet import derive_univa_address, derive_legacy_20char_address, derive_evm_address, validate_address, UnivaWallet, REGISTERED_PWA_ORIGINS
             if not validate_address(tx["from"]) or not validate_address(tx["to"]):
                 return False
-            # Gönderen adresi: Yeni L1 adresi, eski 20-karakter adresi veya EVM ayna adresi olabilir
-            valid_origins = (derive_univa_address(tx["public_key"]), derive_legacy_20char_address(tx["public_key"]), derive_evm_address(tx["public_key"]))
+            # Gönderen adresi: Yeni L1 adresi, eski 20-karakter adresi, EVM ayna adresi veya kayıtlı PWA adresi olabilir
+            valid_origins = {
+                derive_univa_address(tx["public_key"]),
+                derive_legacy_20char_address(tx["public_key"]),
+                derive_evm_address(tx["public_key"]),
+            } | REGISTERED_PWA_ORIGINS.get(tx["public_key"], set())
             if tx["from"] not in valid_origins:
                 return False
             message = self._canonical_tx_message(tx)
@@ -258,16 +262,17 @@ class Blockchain:
         except Exception:
             return False
 
-    def create_transaction(self, wallet, to_address: str, amount: float, fee: float = 0.0) -> dict:
+    def create_transaction(self, wallet, to_address: str, amount: float, fee: float = 0.0, from_address: str = None) -> dict:
         """Create a locally signed transfer compatible with verify_transaction()."""
         from core.wallet import validate_address
         if not validate_address(to_address):
             raise ValueError("Invalid recipient address")
+        sender = from_address if (from_address and validate_address(from_address)) else wallet.address
         amount, fee = round(float(amount), 8), round(float(fee), 8)
         if amount <= 0 or fee < 0:
             raise ValueError("Amount must be positive and fee non-negative")
-        tx = {"type": "transfer", "from": wallet.address, "to": to_address,
-              "amount": amount, "fee": fee, "nonce": self._pending_nonce(wallet.address),
+        tx = {"type": "transfer", "from": sender, "to": to_address,
+              "amount": amount, "fee": fee, "nonce": self._pending_nonce(sender),
               "public_key": wallet.public_key}
         message = self._canonical_tx_message(tx)
         tx["signature"] = wallet.sign(message)

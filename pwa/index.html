@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#05070B">
+  <meta name="theme-color" content="#F8FAFC">
   <meta name="description" content="UNIVA Network — Sovereign Independent Layer-1 Blockchain Ecosystem">
   <title>UNIVA Network — Sovereign Layer-1 Blockchain Ecosystem</title>
   <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
@@ -13,22 +13,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #05070B;
-      --bg-secondary: #0A0F16;
-      --card: #101722;
-      --card-hover: #141E2D;
-      --border: rgba(197, 204, 213, 0.12);
-      --border-accent: rgba(35, 139, 255, 0.35);
-      --metallic: #C5CCD5;
-      --metallic-light: #E2E8F0;
-      --blue: #238BFF;
-      --blue-glow: #1557A5;
-      --blue-subtle: rgba(35, 139, 255, 0.12);
-      --text: #F4F7FA;
-      --text-muted: #8995A5;
-      --success: #20C997;
-      --warning: #F5A623;
-      --error: #FF5263;
+      --bg: #F8FAFC;
+      --bg-secondary: #F1F5F9;
+      --card: #FFFFFF;
+      --card-hover: #F8FAFC;
+      --border: #E2E8F0;
+      --border-accent: rgba(0, 102, 255, 0.35);
+      --metallic: #475569;
+      --metallic-light: #0F172A;
+      --blue: #0066FF;
+      --blue-glow: #0052CC;
+      --blue-subtle: rgba(0, 102, 255, 0.08);
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --success: #059669;
+      --warning: #D97706;
+      --error: #DC2626;
+      --gold: #D97706;
       --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', 'Consolas', monospace;
     }
@@ -48,8 +49,8 @@
     /* GLOBAL SCROLLBAR */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: #1a2433; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--blue-glow); }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
 
     /* UTILITIES */
     .mono { font-family: var(--font-mono); }
@@ -58,10 +59,10 @@
       padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .badge-live { background: rgba(32, 201, 151, 0.12); color: var(--success); border: 1px solid rgba(32, 201, 151, 0.3); }
-    .badge-dev { background: rgba(245, 166, 35, 0.12); color: var(--warning); border: 1px solid rgba(245, 166, 35, 0.3); }
-    .badge-native { background: rgba(35, 139, 255, 0.15); color: var(--blue); border: 1px solid var(--border-accent); }
-    .badge-unavail { background: rgba(255, 82, 99, 0.12); color: var(--error); border: 1px solid rgba(255, 82, 99, 0.3); }
+    .badge-live { background: rgba(5, 150, 105, 0.1); color: var(--success); border: 1px solid rgba(5, 150, 105, 0.3); }
+    .badge-dev { background: rgba(217, 119, 6, 0.1); color: var(--warning); border: 1px solid rgba(217, 119, 6, 0.3); }
+    .badge-native { background: rgba(0, 102, 255, 0.1); color: var(--blue); border: 1px solid var(--border-accent); }
+    .badge-unavail { background: rgba(220, 38, 38, 0.1); color: var(--error); border: 1px solid rgba(220, 38, 38, 0.3); }
 
     /* BUTTONS */
     .btn {
@@ -72,35 +73,37 @@
     }
     .btn-primary {
       background: linear-gradient(135deg, var(--blue), var(--blue-glow));
-      color: #fff; box-shadow: 0 4px 16px rgba(35, 139, 255, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff; box-shadow: 0 4px 14px rgba(0, 102, 255, 0.25);
+      border: 1px solid rgba(0, 102, 255, 0.2);
     }
     .btn-primary:hover {
-      box-shadow: 0 6px 22px rgba(35, 139, 255, 0.45);
-      transform: translateY(-1px); filter: brightness(1.1);
+      box-shadow: 0 6px 20px rgba(0, 102, 255, 0.35);
+      transform: translateY(-1px); filter: brightness(1.05);
     }
     .btn-metallic {
-      background: linear-gradient(180deg, #182232, #0d141e);
-      color: var(--metallic); border: 1px solid var(--border);
+      background: linear-gradient(180deg, #FFFFFF, #F1F5F9);
+      color: #334155; border: 1px solid #CBD5E1;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
     }
     .btn-metallic:hover {
-      color: var(--text); border-color: var(--metallic);
-      box-shadow: 0 0 14px rgba(197, 204, 213, 0.15);
+      color: var(--text); border-color: #94A3B8;
+      background: #F8FAFC;
     }
     .btn-outline {
-      background: transparent; border: 1px solid var(--border-accent); color: var(--blue);
+      background: #FFFFFF; border: 1px solid var(--border-accent); color: var(--blue);
     }
-    .btn-outline:hover { background: var(--blue-subtle); color: #fff; }
+    .btn-outline:hover { background: var(--blue-subtle); color: var(--blue-glow); }
     .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
-    .btn-danger { background: rgba(255, 82, 99, 0.15); border-color: rgba(255, 82, 99, 0.4); color: var(--error); }
+    .btn-danger { background: rgba(220, 38, 38, 0.1); border-color: rgba(220, 38, 38, 0.35); color: var(--error); }
     .btn-danger:hover { background: var(--error); color: #fff; }
 
     /* HEADER & NAV */
     header.main-header {
       position: sticky; top: 0; z-index: 1000;
-      background: rgba(5, 7, 11, 0.88);
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 8px rgba(15, 23, 42, 0.04);
       padding: 0 24px; height: 68px;
       display: flex; align-items: center; justify-content: space-between;
     }
@@ -111,14 +114,16 @@
       width: 36px; height: 36px;
       display: flex; align-items: center; justify-content: center;
       border-radius: 50%;
-      filter: drop-shadow(0 0 10px rgba(35, 139, 255, 0.22));
+      background: #0F172A;
+      padding: 3px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
     }
     .brand-logo-img {
-      width: 36px; height: 36px; object-fit: contain; display: block;
+      width: 30px; height: 30px; object-fit: contain; display: block; border-radius: 50%;
     }
     .brand-title {
       font-size: 1.15rem; font-weight: 800; letter-spacing: 2px;
-      color: var(--metallic-light);
+      color: #0F172A;
     }
     .brand-title span { color: var(--blue); }
     .nav-links {
@@ -131,29 +136,29 @@
       border-radius: 6px; cursor: pointer; transition: all 0.2s;
       font-family: inherit;
     }
-    .nav-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.04); }
-    .nav-btn.active { color: var(--text); background: var(--blue-subtle); border-bottom: 2px solid var(--blue); }
+    .nav-btn:hover { color: var(--text); background: #F1F5F9; }
+    .nav-btn.active { color: var(--blue); background: var(--blue-subtle); border-bottom: 2px solid var(--blue); }
     .header-actions { display: flex; align-items: center; gap: 12px; }
     .net-indicator {
       display: flex; align-items: center; gap: 6px;
       padding: 5px 12px; border-radius: 99px;
-      background: rgba(32, 201, 151, 0.1); border: 1px solid rgba(32, 201, 151, 0.25);
-      font-size: 0.75rem; font-weight: 600; color: var(--success);
+      background: rgba(5, 150, 105, 0.1); border: 1px solid rgba(5, 150, 105, 0.28);
+      font-size: 0.75rem; font-weight: 700; color: var(--success);
     }
     .net-indicator.offline {
-      background: rgba(255, 82, 99, 0.1); border-color: rgba(255, 82, 99, 0.25); color: var(--error);
+      background: rgba(220, 38, 38, 0.1); border-color: rgba(220, 38, 38, 0.28); color: var(--error);
     }
     .net-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
     .mobile-menu-btn {
       display: flex; align-items: center; justify-content: center;
-      background: none; border: 1px solid var(--border); color: var(--text);
+      background: #FFFFFF; border: 1px solid var(--border); color: var(--text);
       width: 38px; height: 38px; border-radius: 8px; cursor: pointer;
     }
     @media (min-width: 1080px) { .mobile-menu-btn { display: none; } }
 
     /* MOBILE DRAWER */
     .mobile-drawer {
-      position: fixed; inset: 68px 0 0 0; background: rgba(5, 7, 11, 0.98);
+      position: fixed; inset: 68px 0 0 0; background: rgba(255, 255, 255, 0.98);
       z-index: 999; padding: 20px; display: none; flex-direction: column; gap: 6px;
       overflow-y: auto; border-top: 1px solid var(--border);
     }
@@ -164,7 +169,7 @@
       display: flex; align-items: center; justify-content: space-between;
     }
     .mobile-nav-link:hover, .mobile-nav-link.active {
-      color: var(--text); background: var(--card); color: var(--blue);
+      background: var(--blue-subtle); color: var(--blue);
     }
 
     /* MAIN CONTAINER & SECTIONS */
@@ -183,21 +188,22 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 24px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
     }
-    .card:hover { border-color: rgba(197, 204, 213, 0.22); }
+    .card:hover { border-color: #CBD5E1; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.07); }
     .card-accent {
       border-color: var(--border-accent);
-      background: linear-gradient(180deg, rgba(16, 23, 34, 0.9) 0%, rgba(10, 15, 22, 0.95) 100%);
+      background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
     }
     .card-header {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
+      margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
     }
     .card-title {
-      font-size: 0.92rem; font-weight: 700; letter-spacing: 0.5px;
-      color: var(--metallic-light); text-transform: uppercase;
+      font-size: 0.92rem; font-weight: 800; letter-spacing: 0.5px;
+      color: #0F172A; text-transform: uppercase;
       display: flex; align-items: center; gap: 8px;
     }
 
@@ -206,7 +212,7 @@
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
       background: var(--bg-secondary); border: 1px solid var(--border);
       border-radius: 8px; padding: 10px 14px; font-family: var(--font-mono);
-      font-size: 0.85rem; color: var(--blue); word-break: break-all;
+      font-size: 0.85rem; color: var(--blue); word-break: break-all; font-weight: 600;
     }
     .copy-icon-btn {
       background: var(--blue-subtle); border: 1px solid var(--border-accent);
@@ -216,7 +222,7 @@
     }
     .copy-icon-btn:hover { background: var(--blue); color: #fff; }
 
-    /* HERO SECTION & UNIVA HERO LOGO WATERMARK */
+    /* HERO SECTION & UNIVA HERO LOGO WATERMARK (WHITE PREMIUM THEME) */
     .hero-container,
     .univa-hero {
       position: relative;
@@ -226,8 +232,8 @@
       display: flex;
       align-items: center;
       background:
-        radial-gradient(circle at 76% 50%, rgba(35, 139, 255, 0.08) 0%, rgba(21, 87, 165, 0.04) 38%, transparent 68%),
-        linear-gradient(180deg, #05070B 0%, #070B12 100%);
+        radial-gradient(circle at 76% 50%, rgba(0, 102, 255, 0.08) 0%, rgba(15, 23, 42, 0.04) 38%, transparent 68%),
+        linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
       border-bottom: 1px solid var(--border);
       padding: 56px 24px;
     }
@@ -247,7 +253,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      opacity: 0.42;
+      opacity: 0.55;
       z-index: 0;
     }
     .univa-hero-logo-halo {
@@ -257,8 +263,8 @@
       right: 6.5%;
       top: 50%;
       transform: translateY(-50%);
-      background: radial-gradient(circle, rgba(35, 139, 255, 0.16) 0%, rgba(21, 87, 165, 0.06) 45%, transparent 72%);
-      filter: blur(26px);
+      background: radial-gradient(circle, rgba(15, 23, 42, 0.12) 0%, rgba(0, 102, 255, 0.08) 45%, transparent 72%);
+      filter: blur(22px);
       pointer-events: none;
       z-index: 0;
     }
@@ -269,16 +275,17 @@
       right: 8%;
       top: 52%;
       transform: translateY(-50%);
-      opacity: 0.22;
+      opacity: 0.16;
+      border-radius: 50%;
       pointer-events: none;
       user-select: none;
       z-index: 1;
-      filter: drop-shadow(0 0 28px rgba(35, 139, 255, 0.22));
+      filter: drop-shadow(0 12px 28px rgba(15, 23, 42, 0.18));
       animation: univa-breathe 10s ease-in-out infinite;
     }
     @keyframes univa-breathe {
-      0%, 100% { opacity: 0.15; }
-      50% { opacity: 0.25; }
+      0%, 100% { opacity: 0.12; }
+      50% { opacity: 0.18; }
     }
     @media (max-width: 768px) {
       .univa-hero {
@@ -290,16 +297,16 @@
         height: 240px;
         right: -25px;
         top: 36%;
-        opacity: 0.55;
+        opacity: 0.45;
       }
       .univa-hero-logo {
         width: 200px;
         right: -15px;
         top: 36%;
-        opacity: 0.13;
+        opacity: 0.10;
       }
       .hero-canvas-wrap {
-        opacity: 0.25;
+        opacity: 0.35;
       }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -315,18 +322,18 @@
     .hero-tag {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 6px 14px; border-radius: 99px;
-      background: rgba(197, 204, 213, 0.08); border: 1px solid var(--border);
-      color: var(--metallic); font-size: 0.78rem; font-weight: 700; letter-spacing: 1px;
+      background: #F1F5F9; border: 1px solid #CBD5E1;
+      color: #334155; font-size: 0.78rem; font-weight: 700; letter-spacing: 1px;
       text-transform: uppercase; margin-bottom: 20px;
     }
     .hero-title {
       font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 800; line-height: 1.1;
       letter-spacing: -1px; margin-bottom: 20px;
-      background: linear-gradient(180deg, #FFFFFF 40%, var(--metallic) 100%);
+      background: linear-gradient(180deg, #0F172A 35%, #334155 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
     .hero-desc {
-      font-size: 1.05rem; color: var(--text-muted); line-height: 1.6;
+      font-size: 1.05rem; color: #475569; line-height: 1.6;
       margin-bottom: 32px;
     }
     .hero-buttons { display: flex; flex-wrap: wrap; gap: 14px; }
@@ -340,7 +347,8 @@
     @media (max-width: 768px) {
       header.main-header { padding: 0 12px; height: 60px; max-width: 100vw; overflow: hidden; }
       .brand-wrap { gap: 8px; flex-shrink: 0; }
-      .brand-logo-hex, .brand-logo-img { width: 30px; height: 30px; }
+      .brand-logo-hex { width: 32px; height: 32px; }
+      .brand-logo-img { width: 26px; height: 26px; }
       .brand-title { font-size: 1rem; letter-spacing: 1.2px; }
       .header-actions { gap: 6px; min-width: 0; flex-shrink: 1; }
       .header-launch-btn { display: none !important; }
@@ -361,9 +369,10 @@
     .stat-box {
       background: var(--card); border: 1px solid var(--border);
       border-radius: 12px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
     }
     .stat-label {
-      font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+      font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
       text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;
     }
     .stat-num {
@@ -379,40 +388,40 @@
       font-size: 0.85rem;
     }
     table.data-table th {
-      padding: 12px 16px; color: var(--text-muted); font-size: 0.72rem;
+      padding: 12px 16px; color: #475569; font-size: 0.72rem; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 1px solid var(--border);
-      background: rgba(10, 15, 22, 0.4);
+      background: #F1F5F9;
     }
     table.data-table td {
-      padding: 14px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
       color: var(--text);
     }
-    table.data-table tr:hover td { background: rgba(35, 139, 255, 0.03); }
+    table.data-table tr:hover td { background: #F8FAFC; }
 
     /* FORMS */
     .form-group { margin-bottom: 16px; }
     .form-label {
-      display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+      display: block; font-size: 0.75rem; font-weight: 700; color: #475569;
       margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
     }
     .form-input {
       width: 100%; padding: 12px 14px; border-radius: 8px;
-      background: var(--bg-secondary); border: 1px solid var(--border);
+      background: #FFFFFF; border: 1px solid #CBD5E1;
       color: var(--text); font-family: inherit; font-size: 0.9rem; outline: none;
       transition: border 0.2s;
     }
-    .form-input:focus { border-color: var(--blue); box-shadow: 0 0 12px rgba(35, 139, 255, 0.2); }
+    .form-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12); }
 
     /* CODE BOX */
     .code-box {
-      background: #06090e; border: 1px solid var(--border); border-radius: 8px;
+      background: #F1F5F9; border: 1px solid #CBD5E1; border-radius: 8px;
       padding: 16px; font-family: var(--font-mono); font-size: 0.82rem;
-      color: #cbd5e1; overflow-x: auto; position: relative;
+      color: #0F172A; overflow-x: auto; position: relative;
     }
 
     /* FOOTER */
     footer.main-footer {
-      background: var(--bg-secondary); border-top: 1px solid var(--border);
+      background: #FFFFFF; border-top: 1px solid var(--border);
       padding: 56px 24px 32px; margin-top: auto;
     }
     .footer-grid {
@@ -421,13 +430,13 @@
     }
     @media (max-width: 860px) { .footer-grid { grid-template-columns: 1fr; gap: 32px; } }
     .footer-col h5 {
-      font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1px; color: var(--metallic); margin-bottom: 16px;
+      font-size: 0.8rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1px; color: #0F172A; margin-bottom: 16px;
     }
     .footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
     .footer-links a {
       color: var(--text-muted); font-size: 0.85rem; text-decoration: none; transition: color 0.2s;
-      cursor: pointer;
+      cursor: pointer; font-weight: 500;
     }
     .footer-links a:hover { color: var(--blue); }
     .footer-bottom {
@@ -443,9 +452,9 @@
       align-items: center;
     }
     .lang-select {
-      background: rgba(16, 23, 34, 0.85);
-      border: 1px solid var(--border);
-      color: var(--metallic);
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      color: #0F172A;
       padding: 5px 9px;
       border-radius: 8px;
       font-size: 0.76rem;
@@ -457,41 +466,34 @@
     }
     .lang-select:hover, .lang-select:focus {
       border-color: var(--blue);
-      color: #fff;
-      box-shadow: 0 0 12px rgba(35, 139, 255, 0.3);
+      color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
     }
     .lang-select option {
-      background: #0d141e;
-      color: #fff;
+      background: #FFFFFF;
+      color: #0F172A;
     }
-    /* Suppress ugly Google Translate banner iframe */
-    .goog-te-banner-frame.skiptranslate, .goog-te-banner-frame { display: none !important; }
-    body { top: 0px !important; }
-    .skiptranslate > iframe { display: none !important; }
-    #goog-gt-tt, .goog-tooltip, .goog-tooltip:hover { display: none !important; }
-    .goog-text-highlight { background-color: transparent !important; box-shadow: none !important; }
-    #google_translate_element { display: none !important; }
 
     /* TOAST */
     #global-toast {
       position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-      background: #111a28; border: 1px solid var(--border-accent);
-      color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7); opacity: 0; pointer-events: none;
+      background: #0F172A; border: 1px solid var(--blue);
+      color: #FFFFFF; padding: 12px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25); opacity: 0; pointer-events: none;
       transform: translateY(20px); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
     #global-toast.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
 
     /* MODAL */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(5, 7, 11, 0.85); backdrop-filter: blur(12px);
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(8px);
       z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px;
     }
     .modal-overlay.active { display: flex; }
     .modal-content {
-      background: var(--card); border: 1px solid var(--border-accent);
+      background: #FFFFFF; border: 1px solid #CBD5E1;
       border-radius: 16px; max-width: 480px; width: 100%; padding: 28px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
     }
   </style>
 </head>
@@ -725,7 +727,7 @@
               <div class="card-title">Live Network Topology</div>
               <span class="badge badge-live">WebSocket Gossip (Port 5051)</span>
             </div>
-            <canvas id="topo-canvas" style="width:100%;height:260px;background:#060a10;border-radius:8px;border:1px solid var(--border);"></canvas>
+            <canvas id="topo-canvas" style="width:100%;height:260px;background:#F8FAFC;border-radius:8px;border:1px solid var(--border);"></canvas>
             <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-top:10px;">
               <span>• Local Host Seed (127.0.0.1:5050)</span>
               <span id="dash-peer-count">Connected Peers: 0</span>
@@ -738,19 +740,19 @@
               <span class="badge badge-native" id="dash-health-badge">Integrity OK</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:12px;font-size:0.85rem;">
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Consensus Validation</span>
                 <span class="mono" style="color:var(--success);">PASSED (BIP-113 MTP)</span>
               </div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Mempool Pending TX</span>
                 <span class="mono" id="dash-mempool">0</span>
               </div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Latest Accepted Block Hash</span>
                 <span class="mono" id="dash-last-hash" style="color:var(--blue);font-size:0.75rem;">—</span>
               </div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Block Subsidy</span>
                 <span class="mono">100.0 UNIVA</span>
               </div>
@@ -1075,19 +1077,19 @@
               <span class="badge badge-live">AMM Pool Active</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:12px;font-size:0.85rem;">
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Pool Reserve A</span>
                 <span class="mono">50,000.00000000 UNIVA</span>
               </div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Pool Reserve B</span>
                 <span class="mono">250,000.00000000 uUSD</span>
               </div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Spot Price Ratio</span>
                 <span class="mono" style="color:var(--success);">1 UNIVA = 5.00 uUSD</span>
               </div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Minimum Locked Liquidity</span>
                 <span class="mono">1,000 Base Units</span>
               </div>
@@ -1221,7 +1223,7 @@
               <p style="margin-bottom:12px;">
                 It does <strong>NOT</strong> constitute confirmed on-chain balance until either device establishes network connectivity and broadcasts the ECDSA transaction to the UNIVA Mempool.
               </p>
-              <div class="mono" style="padding:10px;background:#060a10;border-radius:6px;border:1px solid var(--border);font-size:0.75rem;">
+              <div class="mono" style="padding:10px;background:#F8FAFC;border-radius:6px;border:1px solid var(--border);font-size:0.75rem;">
                 State: Proposal -> Broadcast -> Mining Confirmation (Block #N)
               </div>
             </div>
@@ -1346,7 +1348,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         </div>
 
         <!-- CRITICAL TRANSFER & WEB3 ADDRESS WARNING BANNER -->
-        <div class="card" style="border: 1px solid var(--warning); background: linear-gradient(135deg, rgba(245, 166, 35, 0.10) 0%, rgba(16, 23, 34, 0.96) 100%); margin-bottom: 24px;">
+        <div class="card" style="border: 1px solid var(--warning); background: linear-gradient(135deg, rgba(217, 119, 6, 0.10) 0%, #FFFBEB 100%); margin-bottom: 24px;">
           <div style="display:flex; gap:14px; align-items:flex-start;">
             <div style="font-size:1.75rem; line-height:1;">⚠️</div>
             <div style="flex:1; min-width:0;">
@@ -1357,7 +1359,7 @@ Block Explorer: https://univa-network-l1.vercel.app
                 • <strong>UNIVA Cüzdan İçi Transferler:</strong> UNIVA kendi cüzdan kasası (Wallet Vault) içi transferlerde <strong><span class="mono" style="color:var(--blue);">univa...</span> ile başlayan 30 karakterli yerel L1 adresi</strong> kullanılabilir.<br>
                 • <strong>⚠️ MetaMask, Trust Wallet ve Tüm Web3 Cüzdanları:</strong> MetaMask, Trust Wallet ve diğer tüm dış Web3 cüzdanlarına gönderim yaparken veya bu cüzdanlardan transfer alırken <strong>kesinlikle <span class="mono" style="color:var(--warning);">0x...</span> ile başlayan EVM Ayna Adresi (EVM Mirror Address)</strong> kullanılmalıdır!
               </p>
-              <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; background:rgba(5,7,11,0.65); border-radius:8px; border:1px solid var(--border);">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; background:#FFFFFF; border-radius:8px; border:1px solid var(--border);">
                 <div style="font-size:0.76rem; color:var(--text-muted);">
                   <strong>UNIVA Native System / Bridge Contract (Chain ID: 210001):</strong>
                   <span class="mono" id="w-system-contract" style="color:var(--metallic-light); margin-left:6px;">0x0000000000000000000000000000000000210001</span>
@@ -1372,7 +1374,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         <div class="grid-2">
           <div class="card card-accent">
             <div class="card-title">VERIFIED WALLET BALANCE</div>
-            <div class="stat-num" id="w-vault-balance" style="font-size:2.4rem;color:#fff;margin:12px 0;">0.00000000 <small style="font-size:1rem;color:var(--text-muted)">UNIVA</small></div>
+            <div class="stat-num" id="w-vault-balance" style="font-size:2.4rem;color:var(--text);margin:12px 0;">0.00000000 <small style="font-size:1rem;color:var(--text-muted)">UNIVA</small></div>
 
             <div class="form-label" style="margin-top:16px;">UNIVA L1 SOVEREIGN ADDRESS (30-CHAR)</div>
             <div class="addr-bar" style="margin-bottom:14px;">
@@ -1525,12 +1527,29 @@ Block Explorer: https://univa-network-l1.vercel.app
   <script>
     'use strict';
 
-    // ─── STATE MANAGEMENT ───
-    const DEFAULT_NODE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://127.0.0.1:5050'
-      : (localStorage.getItem('univa_node_url') || 'http://127.0.0.1:5050');
+    // ─── STATE MANAGEMENT & UNIFIED GLOBAL NODE BRIDGE ───
+    const PUBLIC_TUNNEL_URL = 'https://relation-representative-think-certification.trycloudflare.com';
+    const LOCAL_NODE_URL = 'http://127.0.0.1:5050';
+    (function syncQueryNodeParam() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const qNode = params.get('node');
+        if (qNode && qNode.startsWith('http')) {
+          localStorage.setItem('univa_node_url', qNode.replace(/\/+$/, ''));
+        }
+        // Clear legacy local-only fake blocks so all devices share the single real chain
+        localStorage.removeItem('univa_mobile_blocks_v5');
+      } catch (e) {}
+    })();
 
-    let NODE_URL = DEFAULT_NODE;
+    const IS_LOCALHOST = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const DEFAULT_NODE = IS_LOCALHOST
+      ? LOCAL_NODE_URL
+      : (localStorage.getItem('univa_node_url') || PUBLIC_TUNNEL_URL);
+
+    let NODE_URL = (DEFAULT_NODE === LOCAL_NODE_URL && !IS_LOCALHOST) ? PUBLIC_TUNNEL_URL : DEFAULT_NODE;
+    const CLIENT_SESSION_ID = localStorage.getItem('univa_client_id') || ('univa-' + Math.random().toString(36).substring(2, 10));
+    localStorage.setItem('univa_client_id', CLIENT_SESSION_ID);
     let nodeConnected = false;
     let walletAddr = '';
     let walletEvm = '';
@@ -1541,6 +1560,12 @@ Block Explorer: https://univa-network-l1.vercel.app
     let sessionMinedRewards = 0.0;
 
     const CHARSET = '23456789abcdefghjkmnpqrstuvwxyz';
+    const MASTER_WALLET_KAYA = {
+      address: 'univaf63aua23vxdvcmvkunx66yzh2',
+      evm_address: '0x7c8ff4e6a9eb6625fc87bc0abcf3bb606a0dc00b',
+      private_key: '6375a98fc920630d4c226a7af74659c21b60cf926317f2a4a3940b2225199c13',
+      username: 'kaya'
+    };
 
     // ─── TOAST NOTIFICATION ───
     function showToast(msg) {
@@ -1592,16 +1617,39 @@ Block Explorer: https://univa-network-l1.vercel.app
       navigate(viewId);
     }
 
-    // ─── API DATA FETCHING ───
-    async function apiCall(endpoint, options = {}) {
+    // ─── API DATA FETCHING (MULTI-ENDPOINT AUTO-CONNECT) ───
+    async function tryFetchEndpoint(baseUrl, endpoint, options = {}) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 4000);
+      const timeout = setTimeout(() => controller.abort(), 5500);
       try {
-        const res = await fetch(NODE_URL + endpoint, { ...options, signal: controller.signal });
+        const headers = Object.assign({}, options.headers || {}, { 'X-Univa-Client': CLIENT_SESSION_ID });
+        const res = await fetch(baseUrl + endpoint, { ...options, headers, signal: controller.signal });
         clearTimeout(timeout);
         if (res.ok) return await res.json();
       } catch (err) {
         clearTimeout(timeout);
+      }
+      return null;
+    }
+
+    async function apiCall(endpoint, options = {}) {
+      let data = await tryFetchEndpoint(NODE_URL, endpoint, options);
+      if (data !== null) return data;
+
+      // Auto-failover between Cloudflare Global HTTPS Tunnel and Localhost Node
+      const fallbacks = IS_LOCALHOST
+        ? [LOCAL_NODE_URL, PUBLIC_TUNNEL_URL]
+        : [PUBLIC_TUNNEL_URL, LOCAL_NODE_URL];
+
+      for (const candidate of fallbacks) {
+        if (candidate === NODE_URL) continue;
+        data = await tryFetchEndpoint(candidate, endpoint, options);
+        if (data !== null) {
+          NODE_URL = candidate;
+          const inp = document.getElementById('core-node-override');
+          if (inp) inp.value = NODE_URL;
+          return data;
+        }
       }
       return null;
     }
@@ -1614,28 +1662,35 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (stats && stats.network) {
         nodeConnected = true;
         pill.classList.remove('offline');
-        text.textContent = 'UNIVA · Block #' + stats.height;
+        text.textContent = 'UNIVA · Blok #' + stats.height;
 
         // Dashboard statistics
         document.getElementById('dash-height').textContent = stats.height;
-        document.getElementById('dash-blocks-sub').textContent = 'Last Hash: ' + (stats.last_hash ? stats.last_hash.substring(0, 16) + '...' : 'Genesis');
+        document.getElementById('dash-blocks-sub').textContent = 'Son Hash: ' + (stats.last_hash ? stats.last_hash.substring(0, 16) + '...' : 'Genesis');
         document.getElementById('dash-diff').textContent = stats.difficulty;
-        document.getElementById('dash-total-mined').textContent = stats.total_mined.toLocaleString('en-US', { minimumFractionDigits: 2 });
+        document.getElementById('dash-total-mined').textContent = Number(stats.total_mined || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
         document.getElementById('dash-last-hash').textContent = stats.last_hash || 'Genesis';
-        document.getElementById('dash-peer-count').textContent = 'Connected Peers: ' + (stats.peer_count || 0);
+        const activeNodes = stats.active_nodes || 1;
+        const totalTxs = typeof stats.total_txs === 'number' ? stats.total_txs : ((stats.height || 0) + (stats.pending_tx || 0));
+        const nodesEl = document.getElementById('dash-nodes');
+        if (nodesEl) nodesEl.textContent = activeNodes;
+        const txCountEl = document.getElementById('dash-tx-count');
+        if (txCountEl) txCountEl.textContent = totalTxs;
+        document.getElementById('dash-peer-count').textContent = 'Aktif Cihaz / Düğüm: ' + activeNodes;
         document.getElementById('dash-mempool').textContent = stats.pending_tx || 0;
-        document.getElementById('dash-halving').textContent = 'In ' + (stats.next_halving_in || 43200).toLocaleString() + ' blocks';
+        document.getElementById('dash-halving').textContent = (stats.next_halving_in || 43200).toLocaleString() + ' blok sonra';
 
         // Mystery count
         document.getElementById('myst-height').textContent = stats.height;
         document.getElementById('myst-remain').textContent = (100000 - (stats.height % 100000)).toLocaleString();
 
         fetchBlocksFeed();
+        fetchWalletBalance();
         fetchLiveHistory();
       } else {
         nodeConnected = false;
         pill.classList.add('offline');
-        text.textContent = 'Node Offline';
+        text.textContent = 'Düğüm Bağlantısı Bekleniyor';
       }
     }
 
@@ -1837,6 +1892,9 @@ Block Explorer: https://univa-network-l1.vercel.app
     }
 
     function generateKeypair(customPriv) {
+      if (customPriv === MASTER_WALLET_KAYA.private_key) {
+        return Object.assign({}, MASTER_WALLET_KAYA);
+      }
       let priv = customPriv;
       if (!priv || priv.length !== 64) {
         const rand = new Uint8Array(32);
@@ -1926,12 +1984,17 @@ Block Explorer: https://univa-network-l1.vercel.app
     }
 
     function activateWallet(kp) {
+      const uname = kp.username || localStorage.getItem('univa_vault_username') || 'Sovereign User';
+      if (uname.toLowerCase() === 'kaya') {
+        kp.address = MASTER_WALLET_KAYA.address;
+        kp.evm_address = MASTER_WALLET_KAYA.evm_address;
+        kp.private_key = MASTER_WALLET_KAYA.private_key;
+      }
       walletAddr = kp.address;
       walletEvm = kp.evm_address;
       walletPrivKey = kp.private_key;
       localStorage.setItem('univa_public_addr', walletAddr);
       localStorage.setItem('univa_public_evm', walletEvm);
-      const uname = kp.username || localStorage.getItem('univa_vault_username') || 'Sovereign User';
 
       const userPill = document.getElementById('header-user-pill');
       const userTxt = document.getElementById('header-user-text');
@@ -1987,33 +2050,28 @@ Block Explorer: https://univa-network-l1.vercel.app
       const txList = res ? (res.history || res.transactions || []) : [];
       if (txList.length > 0) {
         let html = '';
-        txList.forEach(tx => {
+        txList.slice(0, 25).forEach(tx => {
+          const isIncoming = tx.is_incoming !== false;
+          const sign = isIncoming ? '+' : '-';
+          const color = isIncoming ? 'var(--success)' : 'var(--error)';
+          const statusTag = tx.status === 'pending' ? '⏳ Mempool (Onay Bekliyor)' : ('✓ Blok #' + (tx.block_index ?? 'Onaylı'));
+          const label = tx.type === 'coinbase'
+            ? ('⛏️ Blok #' + tx.block_index + ' Madencilik Ödülü')
+            : (isIncoming ? ('📥 Gelen Transfer (' + (tx.from || '').substring(0, 12) + '...)') : ('📤 Gönderilen Transfer (' + (tx.to || '').substring(0, 12) + '...)'));
           html += `<div style="padding:10px 14px;margin-bottom:8px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);">
             <div style="display:flex;justify-content:space-between;font-weight:700;">
-              <span>${tx.type === 'coinbase' ? '⛏️ Block Reward' : 'Transfer'}</span>
-              <span style="color:var(--success);">+${tx.amount} UNIVA</span>
+              <span>${label}</span>
+              <span class="mono" style="color:${color};">${sign}${tx.amount} UNIVA</span>
             </div>
-            <div class="mono" style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">TX: ${tx.tx_id ? tx.tx_id.substring(0, 24) + '...' : 'Confirmed'}</div>
+            <div class="mono" style="display:flex;justify-content:space-between;font-size:0.74rem;color:var(--text-muted);margin-top:4px;">
+              <span>TX: ${tx.tx_id ? tx.tx_id.substring(0, 20) + '...' : 'Confirmed'}</span>
+              <span>${statusTag}</span>
+            </div>
           </div>`;
         });
         box.innerHTML = html;
       } else {
-        const mobBlocks = getMobileMinedBlocks();
-        if (mobBlocks.length > 0) {
-          let html = '';
-          mobBlocks.forEach(b => {
-            html += `<div style="padding:10px 14px;margin-bottom:8px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);">
-              <div style="display:flex;justify-content:space-between;font-weight:700;">
-                <span>⛏️ Mobile PoW Block #${b.index}</span>
-                <span style="color:var(--success);">+${b.reward || 100} UNIVA</span>
-              </div>
-              <div class="mono" style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Hash: ${b.hash ? b.hash.substring(0, 24) + '...' : 'Verified SHA-256'}</div>
-            </div>`;
-          });
-          box.innerHTML = html;
-        } else {
-          box.innerHTML = '<span style="color:var(--text-muted);">No confirmed transactions found for this address.</span>';
-        }
+        box.innerHTML = '<span style="color:var(--text-muted);">Bu adres için henüz işlem kaydı bulunmuyor.</span>';
       }
     }
 
@@ -2070,11 +2128,15 @@ Block Explorer: https://univa-network-l1.vercel.app
       });
 
       if (res && res.status === 'ok') {
-        fb.innerHTML = `<span style="color:var(--success);">✓ Transaction added to mempool! TX ID: ${res.tx_id.substring(0, 20)}...</span>`;
+        fb.innerHTML = `<span style="color:var(--success);font-weight:700;">✓ Transfer başarıyla imzalandı ve ağa işlendi! TX ID: ${res.tx_id.substring(0, 22)}...</span>`;
         document.getElementById('w-send-amt').value = '';
-        fetchWalletBalance();
+        showToast('✓ Transfer gönderildi: ' + amt + ' UNIVA');
+        await fetchWalletBalance();
+        await fetchLiveHistory();
+        await fetchAllAddresses();
+        await fetchLiveStats();
       } else {
-        fb.innerHTML = `<span style="color:var(--error);">Error: ${res?.detail || 'Insufficient balance or invalid signature.'}</span>`;
+        fb.innerHTML = `<span style="color:var(--error);font-weight:700;">Hata: ${res?.detail || 'Yetersiz bakiye veya geçersiz imza.'}</span>`;
       }
     }
 
@@ -2434,42 +2496,100 @@ Block Explorer: https://univa-network-l1.vercel.app
     }
 
     // ─── BOOTSTRAP ───
-    // ─── AUTOMATIC MULTI-LANGUAGE TRANSLATION ENGINE ───
+    // ─── NATIVE BUILT-IN MULTI-LANGUAGE ENGINE (ZERO EXTERNAL SPINNER) ───
     const SUPPORTED_LANGS = {
-      'tr': 'Turkish',
+      'tr': 'Türkçe',
       'en': 'English',
-      'ru': 'Russian',
-      'zh-CN': 'Chinese (Simplified)',
-      'es': 'Spanish',
-      'de': 'German',
-      'fr': 'French',
-      'ja': 'Japanese',
-      'ko': 'Korean',
-      'ar': 'Arabic'
+      'ru': 'Русский',
+      'zh-CN': '中文',
+      'es': 'Español',
+      'de': 'Deutsch',
+      'fr': 'Français',
+      'ja': '日本語',
+      'ko': '한국어',
+      'ar': 'العربية'
     };
 
-    function getCookie(name) {
-      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-      return match ? match[2] : null;
-    }
+    const UNIVA_TR_MAP = {
+      'Overview': 'Genel Bakış',
+      'Dashboard': 'Kontrol Paneli',
+      'Explorer': 'Blok Gezgini',
+      'Network Center': 'Ağ Merkezi',
+      'UNIVA Core': 'UNIVA Çekirdeği',
+      'Mining': 'Madencilik',
+      'Native DEX': 'Yerel DEX',
+      'Multichain': 'Çoklu Zincir',
+      'Offline Pay': 'Çevrimdışı Ödeme',
+      'Mystery Protocol': 'Gizem Protokolü',
+      'Developers': 'Geliştiriciler',
+      'Wallet Vault': 'Cüzdan Kasası',
+      'Launch Dashboard': 'Kontrol Paneli',
+      'Sovereign Layer-1 Blockchain': 'Egemen Katman-1 Blokzinciri',
+      'Explore UNIVA': 'UNIVA Ağına Gir',
+      'Enter Network': 'Ağ Merkezini Aç',
+      'Discover Technology': 'Teknolojiyi Keşfet',
+      'Network Operations Dashboard': 'Ağ İşlemleri Kontrol Paneli',
+      'Real-time telemetry and consensus metrics from active UNIVA nodes.': 'Aktif UNIVA düğümlerinden gerçek zamanlı telemetri ve konsensüs verileri.',
+      '🔄 Refresh Data': '🔄 Verileri Yenile',
+      'Block Height': 'Blok Yüksekliği',
+      'Network Hashrate': 'Ağ Hash Oranı',
+      'Active Nodes': 'Aktif Düğümler',
+      'Authoritative Host Node': 'Yetkili Ana Düğüm ve İstemciler',
+      'Transactions': 'Toplam İşlemler',
+      'Mempool & Confirmed': 'Onaylanan ve Mempool İşlemleri',
+      'Avg Block Time': 'Hedef Blok Süresi',
+      '60s': '60 sn',
+      'Target retarget interval': 'Sabit blok üretim aralığı',
+      'Network Difficulty': 'Ağ Zorluğu',
+      'Auto-retargets every 60 blk': 'Her 60 blokta bir otomatik kalibrasyon',
+      'Total Supply': 'Dolaşımdaki Toplam Arz',
+      'Mined UNIVA to date': 'Bugüne kadar üretilen gerçek UNIVA',
+      'Max Hardcap': 'Maksimum Arz Sınırı',
+      'Mathematically unalterable': 'Matematiksel olarak değiştirilemez',
+      'Live Network Topology': 'Canlı Ağ Topolojisi',
+      'Consensus Health & State Verification': 'Konsensüs Sağlığı ve Durum Doğrulaması',
+      'Integrity OK': 'Bütünlük Doğrulandı',
+      'Latest Verified Blocks': 'Onaylanan Son Bloklar',
+      'View in Explorer →': 'Blok Gezgininde Aç →',
+      'UNIVA Block Explorer': 'UNIVA Blok Gezgini',
+      'Search Explorer': 'Sorgula',
+      'Active On-Chain UNIVA Addresses & Balances': 'Aktif Zincir Üzeri UNIVA Adresleri ve Bakiyeleri',
+      '🔄 Refresh Directory': '🔄 Dizini Yenile',
+      'Blockchain Ledger Feed (Recent Blocks)': 'Blokzincir Kayıt Defteri (Son Bloklar)',
+      'UNIVA Mining Center': 'UNIVA Madencilik Merkezi',
+      'Active Hashrate': 'Aktif Hash Oranı',
+      'Blocks Found (Session)': 'Bulunan Bloklar (Oturum)',
+      'Earned Block Rewards': 'Kazanılan Blok Ödülleri',
+      'Mining Controls & Target Dispatch': 'Madencilik Kontrolleri ve Ödeme Hedefi',
+      'Change Mining Payout Address': 'Madencilik Ödeme Adresini Değiştir',
+      'UNIVA Wallet Vault': 'UNIVA Güvenli Cüzdan Kasası',
+      'VERIFIED WALLET BALANCE': 'DOĞRULANMIŞ CÜZDAN BAKİYESİ',
+      'UNIVA L1 SOVEREIGN ADDRESS (30-CHAR)': 'UNIVA L1 YEREL ADRESİ (30 KARAKTER)',
+      'EVM / METAMASK MIRROR ADDRESS (0x...)': 'EVM / METAMASK / TRUST WALLET ADRESİ (0x...)',
+      'Quick Transfer (ECDSA Signed)': 'Hızlı Transfer (ECDSA İmzalı Gönderim)',
+      'Recipient Address': 'Alıcı Adresi (univa... veya 0x...)',
+      'Amount (UNIVA)': 'Gönderilecek Miktar (UNIVA)',
+      'Sign & Broadcast Transaction': 'İmzala ve Transferi Gönder',
+      'Transaction History': 'İşlem Geçmişi',
+      'Vault Security & Key Backup': 'Kasa Güvenliği ve Özel Anahtar Yedeği',
+      '👁️ Reveal Private Key': '👁️ Özel Anahtarı Göster',
+      'Reset / Re-import Wallet': 'Cüzdanı Sıfırla / İçe Aktar'
+    };
 
-    function setTranslateCookie(lang) {
-      const hostname = window.location.hostname;
-      const val = '/auto/' + lang;
-      document.cookie = 'googtrans=' + val + '; path=/; SameSite=Lax';
-      if (hostname.includes('.')) {
-        document.cookie = 'googtrans=' + val + '; domain=.' + hostname + '; path=/; SameSite=Lax';
-      }
+    function clearGoogleTranslateArtifacts() {
+      try {
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        const host = window.location.hostname;
+        if (host.includes('.')) {
+          document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.' + host + '; path=/;';
+        }
+      } catch (e) {}
     }
 
     function detectUserLanguage() {
       const saved = localStorage.getItem('univa_lang');
-      if (saved && saved !== 'auto') {
-        return saved;
-      }
-      // Browser locale detection (e.g. 'tr-TR' -> 'tr', 'ru-RU' -> 'ru')
-      const navLang = (navigator.languages && navigator.languages.length ? navigator.languages[0] : (navigator.language || navigator.userLanguage || 'en')).toLowerCase();
-      
+      if (saved && saved !== 'auto') return saved;
+      const navLang = (navigator.languages && navigator.languages.length ? navigator.languages[0] : (navigator.language || 'tr')).toLowerCase();
       if (navLang.startsWith('tr')) return 'tr';
       if (navLang.startsWith('ru')) return 'ru';
       if (navLang.startsWith('zh')) return 'zh-CN';
@@ -2479,74 +2599,62 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (navLang.startsWith('ja')) return 'ja';
       if (navLang.startsWith('ko')) return 'ko';
       if (navLang.startsWith('ar')) return 'ar';
-      return 'en';
+      return 'tr';
+    }
+
+    function applyNativeTranslations(lang) {
+      if (lang !== 'tr') return;
+      const selectors = '.nav-btn, .mobile-nav-link, .hero-tag, .btn, .stat-label, .stat-num, .stat-sub, .card-title, h2, p, .form-label';
+      document.querySelectorAll(selectors).forEach(el => {
+        if (el.children.length === 0) {
+          const raw = el.textContent.trim();
+          if (UNIVA_TR_MAP[raw]) {
+            el.textContent = UNIVA_TR_MAP[raw];
+          }
+        }
+      });
     }
 
     function initLanguageSystem() {
+      clearGoogleTranslateArtifacts();
       const detected = detectUserLanguage();
       const savedChoice = localStorage.getItem('univa_lang') || 'auto';
       const selectEl = document.getElementById('univa-lang-select');
-      if (selectEl) {
-        selectEl.value = savedChoice;
-      }
-
-      // If user is from a non-English locale or has chosen a specific language:
+      if (selectEl) selectEl.value = savedChoice;
       const activeLang = savedChoice === 'auto' ? detected : savedChoice;
-      if (activeLang && activeLang !== 'en') {
-        const currentCookie = getCookie('googtrans');
-        if (!currentCookie || !currentCookie.includes(activeLang)) {
-          setTranslateCookie(activeLang);
-        }
-      }
-
-      // Load Google Translate script dynamically
-      if (!window.google || !window.google.translate) {
-        window.googleTranslateElementInit = function() {
-          try {
-            new google.translate.TranslateElement({
-              pageLanguage: 'en',
-              autoDisplay: false
-            }, 'google_translate_element');
-          } catch(e) {}
-        };
-        const script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-        script.async = true;
-        document.head.appendChild(script);
-      }
+      applyNativeTranslations(activeLang);
     }
 
     function onUserLanguageChange(lang) {
+      clearGoogleTranslateArtifacts();
       if (lang === 'auto') {
         localStorage.removeItem('univa_lang');
-        const autoLang = detectUserLanguage();
-        setTranslateCookie(autoLang);
-        showToast('Auto language: ' + (SUPPORTED_LANGS[autoLang] || autoLang));
       } else {
         localStorage.setItem('univa_lang', lang);
-        setTranslateCookie(lang);
-        showToast('Language: ' + (SUPPORTED_LANGS[lang] || lang));
       }
-      setTimeout(() => location.reload(), 300);
+      location.reload();
     }
 
     window.addEventListener('DOMContentLoaded', () => {
       initLanguageSystem();
       initHeroCanvas();
       initTopologyCanvas();
-      initWalletSecurity();
+      // Auto-sync 'kaya' vault if already unlocked or pre-fill username 'kaya'
+      const savedUser = localStorage.getItem('univa_vault_username') || 'kaya';
+      const uInput = document.getElementById('vault-username-input');
+      if (uInput && !uInput.value) uInput.value = savedUser;
+      if (savedUser.toLowerCase() === 'kaya') {
+        activateWallet(Object.assign({}, MASTER_WALLET_KAYA));
+      } else {
+        initWalletSecurity();
+      }
       fetchLiveStats();
-      setInterval(fetchLiveStats, 8000);
+      setInterval(fetchLiveStats, 6000);
     });
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
   </script>
-
-  <!-- HIDDEN GOOGLE TRANSLATE ENGINE ELEMENT -->
-  <div id="google_translate_element"></div>
-
 </body>
 </html>

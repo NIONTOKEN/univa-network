@@ -26,7 +26,19 @@ def api_call(method, payload=None):
         print(f"[BOT API ERROR] {method}: {e}", file=sys.stderr)
         return None
 
+def get_webapp_url():
+    base = WEBAPP_URL
+    try:
+        with open("public_url.txt", "r", encoding="utf-8") as f:
+            pub = f.read().strip()
+            if pub.startswith("https://"):
+                return f"{base}?node={pub}"
+    except Exception:
+        pass
+    return base
+
 def send_welcome(chat_id, first_name):
+    app_url = get_webapp_url()
     welcome_text = (
         f"👋 **Merhaba {first_name}!**\n\n"
         "🌐 **UNIVA Network Resmi Cüzdan ve Madencilik Botuna Hoş Geldiniz.**\n\n"
@@ -41,11 +53,11 @@ def send_welcome(chat_id, first_name):
             [
                 {
                     "text": "🚀 UNIVA WebApp Cüzdanını Aç",
-                    "web_app": {"url": WEBAPP_URL}
+                    "web_app": {"url": app_url}
                 }
             ],
             [
-                {"text": "🌐 Web Cüzdan", "url": WEBAPP_URL},
+                {"text": "🌐 Web Cüzdan", "url": app_url},
                 {"text": "📖 GitHub Kaynak", "url": "https://github.com/NIONTOKEN/univa-network"}
             ]
         ]
@@ -60,10 +72,12 @@ def send_welcome(chat_id, first_name):
 
 def main():
     print(f"[UNIVA TELEGRAM BOT] Baslatiliyor... Token: {BOT_TOKEN[:10]}...")
-    me = api_call("getMe")
-    if not me or not me.get("ok"):
-        print("[HATA] Bot token dogrulanamadi!")
-        return
+    me = None
+    while not me or not me.get("ok"):
+        me = api_call("getMe")
+        if not me or not me.get("ok"):
+            print("[UYARI] Telegram API baglantisi bekleniyor, 5 sn sonra tekrar denenecek...")
+            time.sleep(5)
 
     bot_info = me["result"]
     print(f"[UNIVA TELEGRAM BOT] Aktif: @{bot_info.get('username')} ({bot_info.get('first_name')})")
@@ -73,7 +87,7 @@ def main():
         "menu_button": {
             "type": "web_app",
             "text": "🚀 UNIVA Cüzdan",
-            "web_app": {"url": WEBAPP_URL}
+            "web_app": {"url": get_webapp_url()}
         }
     })
 

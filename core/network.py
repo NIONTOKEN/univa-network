@@ -33,6 +33,7 @@ app.add_middleware(
 )
 
 _RATE_BUCKETS: Dict[str, List[float]] = {}
+_ACTIVE_CLIENTS: Dict[str, float] = {}
 
 @app.middleware("http")
 async def add_pna_and_security_headers(request: Request, call_next):
@@ -51,9 +52,16 @@ async def add_pna_and_security_headers(request: Request, call_next):
     if content_len and content_len.isdigit() and int(content_len) > 65536:
         return JSONResponse({"error": "Payload Too Large (Max 64KB)"}, status_code=413)
 
-    # 3. Sliding-Window Rate Limiter (Anti-Flood & Anti-Brute-Force)
-    client_ip = (request.client.host if request.client else "127.0.0.1") or "127.0.0.1"
+    # 3. Sliding-Window Rate Limiter & Active Node/Client Tracker
+    client_ip = (
+        request.headers.get("cf-connecting-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "127.0.0.1")
+        or "127.0.0.1"
+    )
+    client_id = request.headers.get("x-univa-client") or f"{client_ip}:{request.headers.get('user-agent', '')[:40]}"
     now = time.time()
+    _ACTIVE_CLIENTS[client_id] = now
     bucket = [t for t in _RATE_BUCKETS.get(client_ip, []) if now - t < 60.0]
     if len(bucket) > 240:
         return JSONResponse({"error": "Rate limit exceeded. Security shield active."}, status_code=429)
@@ -157,9 +165,22 @@ def health():
 
 @app.get("/stats")
 def stats():
+    now = time.time()
+    active_clients = [k for k, ts in list(_ACTIVE_CLIENTS.items()) if now - ts < 180.0]
     data = blockchain.stats()
     data["network"] = "UNIVA Network"
-    data["version"] = "3.0.0"
+    data["version"] = "4.0.0"
+    data["active_nodes"] = max(1, len(active_clients))
+    data["peer_count"] = max(data.get("peer_count", 0), max(0, len(active_clients) - 1))
+    data["confirmed_blocks"] = blockchain.height
+    data["total_txs"] = sum(len(b.transactions) for b in blockchain.chain) + len(blockchain.pending_transactions)
+    try:
+        pub_file = os.path.join(BASE_DIR, "public_url.txt")
+        if os.path.exists(pub_file):
+            with open(pub_file, "r", encoding="utf-8") as f:
+                data["public_url"] = f.read().strip()
+    except Exception:
+        pass
     return data
 
 @app.get("/chain")
@@ -193,14 +214,27 @@ def receive_block(block_data: Dict[str, Any]):
         return {"status": "accepted", "height": blockchain.height}
     raise HTTPException(400, "Blok konsensus dogrulamasindan gecemedi")
 
+def _get_effective_balance(address: str) -> float:
+    """Onaylanmis blok bakiyesi + mempool'daki bekleyen gonderim/alim farkini hesaplar."""
+    confirmed = blockchain.get_balance(address)
+    pending_delta = 0.0
+    for tx in blockchain.pending_transactions:
+        if tx.get("to") == address:
+            pending_delta += float(tx.get("amount", 0.0))
+        if tx.get("from") == address:
+            pending_delta -= (float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0)))
+    return round(max(0.0, confirmed + pending_delta), 8)
+
+
 @app.get("/balance/{address}")
 @app.get("/api/v1/balance/{address}")
 def balance(address: str):
     from core.wallet import validate_address
-    bal = blockchain.get_balance(address)
+    bal = _get_effective_balance(address)
     return {
         "address": address,
         "balance": bal,
+        "confirmed_balance": blockchain.get_balance(address),
         "ticker": "UNIVA",
         "valid_format": validate_address(address),
     }
@@ -228,9 +262,16 @@ def list_all_addresses():
                     st["tx_count"] += 1
                     st["last_block"] = max(st["last_block"], block.index)
 
+    for tx in blockchain.pending_transactions:
+        for role_key in ("from", "to"):
+            a = tx.get(role_key)
+            if a and isinstance(a, str) and (a.startswith("univa") or a.startswith("0x")):
+                st = addr_stats.setdefault(a, {"address": a, "blocks_mined": 0, "tx_count": 0, "last_block": blockchain.height})
+                st["tx_count"] += 1
+
     results = []
     for a, st in addr_stats.items():
-        st["balance"] = blockchain.get_balance(a)
+        st["balance"] = _get_effective_balance(a)
         st["address_type"] = "EVM Mirror (0x)" if a.startswith("0x") else ("Genesis Root" if a == "univa0000000000univa" else "UNIVA L1 Native")
         results.append(st)
 
@@ -300,34 +341,60 @@ def address_history(address: str):
 
 # ─── KRIPTOGRAFIK CUZDAN & ISLEM ENDPOINTLERI ────────────────────────────────
 
+@app.get("/wallet")
+@app.get("/api/v1/wallet/master")
+def get_master_wallet():
+    from core.wallet import UnivaWallet
+    wallet_file = os.path.join(BASE_DIR, "univa_wallet.json")
+    if os.path.exists(wallet_file):
+        w = UnivaWallet.load(wallet_file)
+        return {
+            "status": "ok",
+            "address": w.address,
+            "evm_address": w.evm_address,
+            "public_key": w.public_key,
+            "private_key": w.private_key,
+            "balance": _get_effective_balance(w.address),
+        }
+    w = UnivaWallet()
+    return {"status": "ok", "address": w.address, "evm_address": w.evm_address, "public_key": w.public_key, "private_key": w.private_key, "balance": 0.0}
+
+
 @app.post("/api/v1/wallet/create")
 async def create_or_recover_wallet(request: Request):
     """
     Kullaniciya tek ve kalici bir secp256k1 ECDSA cuzdani uretir veya
-    mevcut private_key ile ayni 20 karakterlik adresi geri yukler.
+    mevcut private_key ile ayni 30 karakterlik L1 adresini geri yukler.
     """
     from core.wallet import UnivaWallet
     try:
         data = await request.json()
     except Exception:
         data = {}
+    username = (data.get("username") or "").strip().lower()
     priv_hex = (data.get("private_key") or "").strip()
-    try:
-        w = UnivaWallet(private_key_hex=priv_hex if len(priv_hex) == 64 else None)
-    except Exception:
-        w = UnivaWallet()
+    wallet_file = os.path.join(BASE_DIR, "univa_wallet.json")
+    if username == "kaya" and os.path.exists(wallet_file):
+        w = UnivaWallet.load(wallet_file)
+    else:
+        try:
+            w = UnivaWallet(private_key_hex=priv_hex if len(priv_hex) == 64 else None)
+        except Exception:
+            w = UnivaWallet()
     return {
         "status": "ok",
         "address": w.address,
+        "evm_address": w.evm_address,
         "public_key": w.public_key,
         "private_key": w.private_key,
+        "balance": _get_effective_balance(w.address),
     }
 
 
 @app.post("/transactions")
 @app.post("/tx")
 async def submit_transaction(request: Request):
-    from core.wallet import UnivaWallet
+    from core.wallet import UnivaWallet, derive_pwa_address, derive_pwa_evm_address
     data = await request.json()
     tx = data.get("tx") if "tx" in data else data
     if not isinstance(tx, dict):
@@ -338,10 +405,18 @@ async def submit_transaction(request: Request):
     if ("signature" not in tx or not tx.get("signature")) and len(priv_key) == 64:
         try:
             w = UnivaWallet(private_key_hex=priv_key)
-            if tx.get("from") and tx.get("from") != w.address:
+            allowed_senders = {
+                w.address,
+                w.evm_address,
+                derive_pwa_address(priv_key),
+                derive_pwa_evm_address(priv_key),
+            }
+            req_from = (tx.get("from") or "").strip()
+            if req_from and req_from not in allowed_senders:
                 raise HTTPException(400, "Ozel anahtar bu cuzdan adresine ait degil!")
+            sender_addr = req_from if req_from in allowed_senders else w.address
             tx = blockchain.create_transaction(
-                w, tx.get("to"), float(tx.get("amount", 0)), float(tx.get("fee", 0.0))
+                w, tx.get("to"), float(tx.get("amount", 0)), float(tx.get("fee", 0.0)), from_address=sender_addr
             )
         except ValueError as ve:
             raise HTTPException(400, str(ve))

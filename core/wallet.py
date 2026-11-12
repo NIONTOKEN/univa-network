@@ -75,6 +75,28 @@ def derive_evm_address(public_key_hex: str) -> str:
     return "0x" + digest[-40:]
 
 
+REGISTERED_PWA_ORIGINS = {}
+
+
+def derive_pwa_address(private_key_hex: str) -> str:
+    """Tarayıcı istemci anahtar türetimiyle tam uyumlu 30 karakterli UNIVA L1 adresi."""
+    if not private_key_hex or len(private_key_hex) < 60:
+        return ""
+    chars = []
+    for i in range(25):
+        pos = (i * 2) % 58
+        sub = int(private_key_hex[pos:pos + 2], 16)
+        chars.append(CHARSET[sub % 31])
+    return f"{PREFIX}{''.join(chars)}"
+
+
+def derive_pwa_evm_address(private_key_hex: str) -> str:
+    """Tarayıcı istemci anahtar türetimiyle uyumlu 0x... EVM ayna adresi."""
+    if not private_key_hex or len(private_key_hex) < 40:
+        return ""
+    return "0x" + private_key_hex[:40]
+
+
 def validate_address(address: str) -> bool:
     """
     Geçerli UNIVA adresi doğrulaması:
@@ -121,6 +143,13 @@ class UnivaWallet:
         else:
             raise RuntimeError("Install ecdsa or cryptography: pip install -r requirements.txt")
         self._address = derive_univa_address(self.public_key)
+        try:
+            REGISTERED_PWA_ORIGINS[self.public_key] = {
+                derive_pwa_address(self.private_key),
+                derive_pwa_evm_address(self.private_key),
+            }
+        except Exception:
+            pass
 
     @property
     def private_key(self) -> str:
