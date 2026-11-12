@@ -884,13 +884,14 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">Live Network Topology</div>
-              <span class="badge badge-live">WebSocket Gossip (Port 5051)</span>
+              <span class="badge badge-live">Ülke & Düğüm Haritası (Port 5050/5051)</span>
             </div>
-            <canvas id="topo-canvas" style="width:100%;height:260px;background:linear-gradient(180deg, #F5F6F8 0%, #E8ECF2 100%);border-radius:10px;border:1px solid #C5CCD5;"></canvas>
+            <canvas id="topo-canvas" style="width:100%;height:215px;background:linear-gradient(180deg, #F5F6F8 0%, #E8ECF2 100%);border-radius:10px;border:1px solid #C5CCD5;"></canvas>
             <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-top:10px;">
-              <span>• Local Host Seed (127.0.0.1:5050)</span>
-              <span id="dash-peer-count">Connected Peers: 0</span>
+              <span>• Ana Düğüm: 🇹🇷 Türkiye (127.0.0.1:5050)</span>
+              <span id="dash-peer-count" style="font-weight:700;color:var(--text);">Aktif Düğüm: 1</span>
             </div>
+            <div id="topo-country-nodes-list" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto;"></div>
           </div>
 
           <div class="card">
@@ -1839,6 +1840,11 @@ Block Explorer: https://univa-network-l1.vercel.app
         document.getElementById('dash-mempool').textContent = stats.pending_tx || 0;
         document.getElementById('dash-halving').textContent = (stats.next_halving_in || 43200).toLocaleString() + ' blok sonra';
 
+        const connectedNodes = Array.isArray(stats.connected_nodes) && stats.connected_nodes.length
+          ? stats.connected_nodes
+          : [{ id: 'master-seed-01', ip: '127.0.0.1:5050', flag: '🇹🇷', country: '🇹🇷 Türkiye (TR)', device: 'Master Genesis Seed (Ana Bilgisayar Düğümü)', status: 'PRIMARY ONLINE' }];
+        renderConnectedNodesTopology(connectedNodes);
+
         // Mystery count
         document.getElementById('myst-height').textContent = stats.height;
         document.getElementById('myst-remain').textContent = (100000 - (stats.height % 100000)).toLocaleString();
@@ -2645,20 +2651,58 @@ Block Explorer: https://univa-network-l1.vercel.app
       draw();
     }
 
-    // ─── DASHBOARD TOPOLOGY CANVAS (LIGHT METALLIC EDITION) ───
+    // ─── DASHBOARD TOPOLOGY CANVAS & COUNTRY NODE TRACKER ───
+    let latestConnectedNodes = [
+      { id: 'master-seed-01', ip: '127.0.0.1:5050', flag: '🇹🇷', country: '🇹🇷 Türkiye (TR)', device: 'Master Genesis Seed (Ana Bilgisayar Düğümü)', status: 'PRIMARY ONLINE' }
+    ];
+
+    function renderConnectedNodesTopology(nodesList) {
+      latestConnectedNodes = nodesList;
+      initTopologyCanvas();
+
+      const listEl = document.getElementById('topo-country-nodes-list');
+      if (listEl) {
+        listEl.innerHTML = nodesList.map((n, idx) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 11px;background:#FFFFFF;border:1px solid #DDE1E7;border-radius:8px;font-size:0.76rem;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:1rem;">${n.flag || '🇹🇷'}</span>
+              <div>
+                <div style="font-weight:800;color:#20242B;">${escapeHtml(n.country || '🇹🇷 Türkiye (TR)')} · <span style="color:#5A6270;">${escapeHtml(n.device || 'Düğüm')}</span></div>
+                <div class="mono" style="font-size:0.69rem;color:#737B87;">Endpoint: ${escapeHtml(n.ip || '127.0.0.1')}</div>
+              </div>
+            </div>
+            <span class="badge badge-live" style="font-size:0.65rem;">${idx === 0 ? 'ANA DÜĞÜM' : 'AKTİF'}</span>
+          </div>
+        `).join('');
+      }
+
+      const peersTbody = document.getElementById('network-peers-tbody');
+      if (peersTbody) {
+        peersTbody.innerHTML = nodesList.map((n, idx) => `
+          <tr>
+            <td class="mono">${escapeHtml(n.ip || '127.0.0.1:5050')}</td>
+            <td><strong>${escapeHtml(n.country || '🇹🇷 Türkiye (TR)')}</strong> — ${escapeHtml(n.device || 'Düğüm')}</td>
+            <td class="mono">UNIVA/4.0.0</td>
+            <td><span class="badge badge-live">${idx === 0 ? 'PRIMARY ONLINE' : 'ACTIVE NODE'}</span></td>
+            <td class="mono">${idx === 0 ? '< 1ms' : '18ms'}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
     function initTopologyCanvas() {
       const canvas = document.getElementById('topo-canvas');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      const w = canvas.width = canvas.offsetWidth;
-      const h = canvas.height = canvas.offsetHeight;
+      const w = canvas.width = canvas.offsetWidth || 480;
+      const h = canvas.height = canvas.offsetHeight || 215;
       const cx = w / 2, cy = h / 2;
 
       ctx.clearRect(0, 0, w, h);
 
       // Subtle concentric metric rings
-      [50, 92].forEach(r => {
-        ctx.strokeStyle = 'rgba(115, 123, 135, 0.24)';
+      [44, 82].forEach(r => {
+        ctx.strokeStyle = 'rgba(115, 123, 135, 0.25)';
         ctx.lineWidth = 1;
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
@@ -2667,39 +2711,55 @@ Block Explorer: https://univa-network-l1.vercel.app
       });
       ctx.setLineDash([]);
 
-      // Satellite Nodes
+      // Draw active connected satellite nodes with country labels
+      const satellites = latestConnectedNodes.slice(1);
       const angles = [0, 60, 120, 180, 240, 300];
       angles.forEach((deg, idx) => {
         const rad = (deg * Math.PI) / 180;
-        const x = cx + Math.cos(rad) * 90;
-        const y = cy + Math.sin(rad) * 90;
+        const x = cx + Math.cos(rad) * 82;
+        const y = cy + Math.sin(rad) * 82;
+        const satNode = satellites[idx];
+        const isActive = Boolean(satNode);
 
         // Connection line
-        ctx.strokeStyle = 'rgba(58, 65, 78, 0.45)';
-        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = isActive ? 'rgba(22, 163, 74, 0.65)' : 'rgba(90, 98, 112, 0.28)';
+        ctx.lineWidth = isActive ? 2.2 : 1.3;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(x, y);
         ctx.stroke();
 
-        // Node
-        ctx.fillStyle = idx < 2 ? '#16A34A' : '#5A6270';
+        // Node circle
+        ctx.fillStyle = isActive ? '#16A34A' : '#9AA3B2';
         ctx.beginPath();
-        ctx.arc(x, y, 7.5, 0, Math.PI * 2);
+        ctx.arc(x, y, isActive ? 8.5 : 6, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 2;
         ctx.stroke();
+
+        // Country label on active satellite node
+        if (satNode) {
+          ctx.fillStyle = '#20242B';
+          ctx.font = '700 10px Plus Jakarta Sans, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText((satNode.country_code || 'TR') + ' · ' + (satNode.device.includes('Mobil') ? 'Mobil' : 'Düğüm'), x, y - 13);
+        }
       });
 
-      // Central UNIVA Genesis Node
+      // Central UNIVA Genesis Node (TR)
       ctx.fillStyle = '#20242B';
       ctx.beginPath();
       ctx.arc(cx, cy, 15, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#C5CCD5';
-      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = '#16A34A';
+      ctx.lineWidth = 3;
       ctx.stroke();
+
+      ctx.fillStyle = '#20242B';
+      ctx.font = '800 11px Plus Jakarta Sans, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🇹🇷 TR · Ana Düğüm', cx, cy + 28);
     }
 
     // ─── BOOTSTRAP ───

@@ -33,7 +33,55 @@ app.add_middleware(
 )
 
 _RATE_BUCKETS: Dict[str, List[float]] = {}
-_ACTIVE_CLIENTS: Dict[str, float] = {}
+_ACTIVE_CLIENTS: Dict[str, Dict[str, Any]] = {}
+
+_COUNTRY_MAP = {
+    "TR": ("🇹🇷", "Türkiye"),
+    "US": ("🇺🇸", "ABD"),
+    "DE": ("🇩🇪", "Almanya"),
+    "GB": ("🇬🇧", "İngiltere"),
+    "NL": ("🇳🇱", "Hollanda"),
+    "FR": ("🇫🇷", "Fransa"),
+    "RU": ("🇷🇺", "Rusya"),
+    "AZ": ("🇦🇿", "Azerbaycan"),
+    "CN": ("🇨🇳", "Çin"),
+    "JP": ("🇯🇵", "Japonya"),
+    "KR": ("🇰🇷", "Güney Kore"),
+    "AE": ("🇦🇪", "BAE"),
+}
+
+def _resolve_country(request: Request) -> tuple:
+    cc = (
+        request.headers.get("cf-ipcountry")
+        or request.headers.get("x-univa-country")
+        or ""
+    ).strip().upper()
+    if not cc or cc in ("XX", "T1"):
+        lang = (request.headers.get("accept-language") or "").lower()
+        if "tr" in lang or not lang:
+            cc = "TR"
+        elif "de" in lang:
+            cc = "DE"
+        elif "ru" in lang:
+            cc = "RU"
+        else:
+            cc = "TR"
+    flag, name = _COUNTRY_MAP.get(cc, ("🌐", cc))
+    return cc, flag, f"{flag} {name} ({cc})"
+
+def _resolve_device(request: Request, client_ip: str) -> str:
+    ua = (request.headers.get("user-agent") or "").lower()
+    if request.url.path == "/rpc":
+        return "Web3 / Trust Wallet RPC"
+    if "android" in ua:
+        return "Mobil Düğüm (Android)"
+    if "iphone" in ua or "ipad" in ua:
+        return "Mobil Düğüm (iOS)"
+    if "telegram" in ua:
+        return "Telegram Mini-App Düğümü"
+    if client_ip in ("127.0.0.1", "::1", "localhost"):
+        return "Yetkili Ana Düğüm (PC)"
+    return "Masaüstü Web Düğümü (PC)"
 
 @app.middleware("http")
 async def add_pna_and_security_headers(request: Request, call_next):
@@ -52,16 +100,31 @@ async def add_pna_and_security_headers(request: Request, call_next):
     if content_len and content_len.isdigit() and int(content_len) > 65536:
         return JSONResponse({"error": "Payload Too Large (Max 64KB)"}, status_code=413)
 
-    # 3. Sliding-Window Rate Limiter & Active Node/Client Tracker
+    # 3. Sliding-Window Rate Limiter & Active Node/Client Geo-Tracker
     client_ip = (
         request.headers.get("cf-connecting-ip")
         or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
         or (request.client.host if request.client else "127.0.0.1")
         or "127.0.0.1"
     )
-    client_id = request.headers.get("x-univa-client") or f"{client_ip}:{request.headers.get('user-agent', '')[:40]}"
+    ua_raw = request.headers.get("user-agent", "")
+    # Ignore one-off synthetic python-urllib health checks so only real browser/mobile/RPC nodes are listed
+    is_real_client = ("mozilla" in ua_raw.lower()) or bool(request.headers.get("x-univa-client")) or (request.url.path == "/rpc")
     now = time.time()
-    _ACTIVE_CLIENTS[client_id] = now
+    if is_real_client:
+        client_id = request.headers.get("x-univa-client") or f"{client_ip}:{ua_raw[:36]}"
+        cc, flag, country_label = _resolve_country(request)
+        device_label = _resolve_device(request, client_ip)
+        masked_ip = client_ip if client_ip in ("127.0.0.1", "::1") else (".".join(client_ip.split(".")[:2]) + ".*.*" if "." in client_ip else client_ip[:12] + "...")
+        _ACTIVE_CLIENTS[client_id] = {
+            "id": client_id[:16],
+            "ip": masked_ip,
+            "country_code": cc,
+            "flag": flag,
+            "country": country_label,
+            "device": device_label,
+            "last_seen": now,
+        }
     bucket = [t for t in _RATE_BUCKETS.get(client_ip, []) if now - t < 60.0]
     if len(bucket) > 240:
         return JSONResponse({"error": "Rate limit exceeded. Security shield active."}, status_code=429)
@@ -166,12 +229,39 @@ def health():
 @app.get("/stats")
 def stats():
     now = time.time()
-    active_clients = [k for k, ts in list(_ACTIVE_CLIENTS.items()) if now - ts < 180.0]
+    active_entries = [
+        info for _, info in list(_ACTIVE_CLIENTS.items())
+        if isinstance(info, dict) and now - info.get("last_seen", 0) < 300.0
+    ]
+    nodes_list = [
+        {
+            "id": "master-seed-01",
+            "ip": "127.0.0.1:5050",
+            "country_code": "TR",
+            "flag": "🇹🇷",
+            "country": "🇹🇷 Türkiye (TR)",
+            "device": "Master Genesis Seed (Ana Bilgisayar Düğümü)",
+            "status": "PRIMARY ONLINE",
+        }
+    ]
+    for entry in active_entries:
+        if entry.get("ip") in ("127.0.0.1", "::1") and "Ana Düğüm" in entry.get("device", ""):
+            continue
+        nodes_list.append({
+            "id": entry.get("id", "node"),
+            "ip": entry.get("ip", "—"),
+            "country_code": entry.get("country_code", "TR"),
+            "flag": entry.get("flag", "🇹🇷"),
+            "country": entry.get("country", "🇹🇷 Türkiye (TR)"),
+            "device": entry.get("device", "Uzak Düğüm"),
+            "status": "ACTIVE PEER",
+        })
     data = blockchain.stats()
     data["network"] = "UNIVA Network"
     data["version"] = "4.0.0"
-    data["active_nodes"] = max(1, len(active_clients))
-    data["peer_count"] = max(data.get("peer_count", 0), max(0, len(active_clients) - 1))
+    data["active_nodes"] = len(nodes_list)
+    data["peer_count"] = max(data.get("peer_count", 0), max(0, len(nodes_list) - 1))
+    data["connected_nodes"] = nodes_list
     data["confirmed_blocks"] = blockchain.height
     data["total_txs"] = sum(len(b.transactions) for b in blockchain.chain) + len(blockchain.pending_transactions)
     try:
