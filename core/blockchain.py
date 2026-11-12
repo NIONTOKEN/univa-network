@@ -17,6 +17,7 @@ import shutil
 import hashlib
 import json
 import time
+import threading
 from typing import List, Optional
 
 NETWORK_NAME       = "UNIVA Network"
@@ -140,6 +141,7 @@ class Block:
 
 class Blockchain:
     def __init__(self, auto_load_path: str = CHAIN_FILE_PATH):
+        self._lock                = threading.RLock()
         self.chain: List[Block]   = []
         self.pending_transactions = []
         self.difficulty           = INITIAL_DIFF
@@ -273,50 +275,51 @@ class Blockchain:
         return tx
 
     def mine_pending_transactions(self, miner_address: str, stop_event=None, on_progress=None) -> Optional[Block]:
-        from core.wallet import validate_address
-        if not validate_address(miner_address):
-            raise ValueError("Invalid miner address")
-        index = self.height + 1
-        subsidy = self.get_current_reward(index)
-        mtp = self.get_median_time_past(11)
-        block_ts = max(time.time(), mtp + 1.0)
-        # Re-check mempool against confirmed state, one transaction at a time.
-        accepted, fees = [], 0.0
-        original_pending = list(self.pending_transactions)
-        self.pending_transactions = []
-        for tx in original_pending:
-            if self.verify_transaction(tx, include_pending=True):
-                self.pending_transactions.append(tx)
-                accepted.append(tx)
-                fees = round(fees + float(tx["fee"]), 8)
-        self.pending_transactions = accepted
-        if subsidy <= 0 and fees <= 0:
-            self.pending_transactions = original_pending
-            return None
-        coinbase_tx = {"type": "coinbase", "from": "network_mint", "to": miner_address,
-                       "amount": round(subsidy + fees, 8), "subsidy": subsidy, "fees": fees,
-                       "message": f"UNIVA Block #{index} Mining Reward", "timestamp": block_ts}
-        txs = [coinbase_tx] + list(accepted)
-        new_block = Block(index=index, transactions=txs, previous_hash=self.last_block.hash,
-                          timestamp=block_ts, difficulty=self.difficulty,
-                          miner_address=miner_address, reward=subsidy)
-        if not new_block.mine(self.difficulty, stop_event):
-            return None
-        self.chain.append(new_block)
-        self.pending_transactions = []
-        self.total_mined = round(self.total_mined + subsidy, 8)
-        self._adjust_difficulty()
-        self.save()
-        try:
-            from core.database import insert_block, insert_transactions
-            bd = new_block.to_dict()
-            insert_block(bd)
-            insert_transactions(bd)
-        except Exception:
-            pass  # the validated JSON chain remains authoritative
-        if on_progress:
-            on_progress(new_block)
-        return new_block
+        with self._lock:
+            from core.wallet import validate_address
+            if not validate_address(miner_address):
+                raise ValueError("Invalid miner address")
+            index = self.height + 1
+            subsidy = self.get_current_reward(index)
+            mtp = self.get_median_time_past(11)
+            block_ts = max(time.time(), mtp + 1.0)
+            # Re-check mempool against confirmed state, one transaction at a time.
+            accepted, fees = [], 0.0
+            original_pending = list(self.pending_transactions)
+            self.pending_transactions = []
+            for tx in original_pending:
+                if self.verify_transaction(tx, include_pending=True):
+                    self.pending_transactions.append(tx)
+                    accepted.append(tx)
+                    fees = round(fees + float(tx["fee"]), 8)
+            self.pending_transactions = accepted
+            if subsidy <= 0 and fees <= 0:
+                self.pending_transactions = original_pending
+                return None
+            coinbase_tx = {"type": "coinbase", "from": "network_mint", "to": miner_address,
+                           "amount": round(subsidy + fees, 8), "subsidy": subsidy, "fees": fees,
+                           "message": f"UNIVA Block #{index} Mining Reward", "timestamp": block_ts}
+            txs = [coinbase_tx] + list(accepted)
+            new_block = Block(index=index, transactions=txs, previous_hash=self.last_block.hash,
+                              timestamp=block_ts, difficulty=self.difficulty,
+                              miner_address=miner_address, reward=subsidy)
+            if not new_block.mine(self.difficulty, stop_event):
+                return None
+            self.chain.append(new_block)
+            self.pending_transactions = []
+            self.total_mined = round(self.total_mined + subsidy, 8)
+            self._adjust_difficulty()
+            self.save()
+            try:
+                from core.database import insert_block, insert_transactions
+                bd = new_block.to_dict()
+                insert_block(bd)
+                insert_transactions(bd)
+            except Exception:
+                pass  # the validated JSON chain remains authoritative
+            if on_progress:
+                on_progress(new_block)
+            return new_block
 
     def accept_block(self, block_data: dict) -> bool:
         """Validate and append exactly the next block. Used by the P2P testnet."""
@@ -546,7 +549,7 @@ class Blockchain:
                 if not self.is_chain_valid():
                     self.chain, self.total_mined, self.pending_transactions = old_chain, old_total, old_pending
                     continue
-                self.difficulty = loaded_chain[-1].difficulty
+                self.difficulty = int(data.get("difficulty", loaded_chain[-1].difficulty))
                 self.total_mined = round(sum(float(b.reward) for b in loaded_chain[1:]), 8)
                 self.pending_transactions = []
                 print(f"[UNIVA] Zincir yüklendi: {target_path} | yükseklik={len(loaded_chain)-1}")
