@@ -1,6 +1,7 @@
 /**
  * UNIVA Network - Browser Mining Web Worker
  * Pure JS SHA-256 Proof-of-Work (Standard ASCII - Zero Dependencies)
+ * Enforces 60-second Target Block Time while continuously hashing
  */
 
 'use strict';
@@ -87,44 +88,59 @@ self.onmessage = function(e) {
   if (msg.type === 'START') {
     isRunning = true;
     const task = msg.data;
-    const targetPrefix = '0'.repeat(task.difficulty);
+    const targetPrefix = '0'.repeat(task.difficulty || 4);
+    const minFoundTimeMs = task.minFoundTimeMs || (Date.now() + 60000);
     let nonce = task.startNonce || 0;
     let hashes = 0;
     let lastReport = Date.now();
+    let bestSolution = null;
 
     function step() {
       if (!isRunning) return;
-      const batchSize = 1000;
+      const batchSize = 800;
       for (let i = 0; i < batchSize; i++) {
         task.nonce = nonce;
         const h = makeBlockHash(task);
         hashes++;
-        if (h.startsWith(targetPrefix)) {
-          isRunning = false;
-          self.postMessage({
-            type: 'FOUND',
+        if (h.startsWith(targetPrefix) && !bestSolution) {
+          bestSolution = {
             nonce: nonce,
             hash: h,
-            blockData: task
-          });
-          return;
+            blockData: Object.assign({}, task)
+          };
         }
         nonce++;
       }
 
       const now = Date.now();
+      const remainingSec = Math.max(0, Math.ceil((minFoundTimeMs - now) / 1000));
+
+      if (bestSolution && now >= minFoundTimeMs) {
+        isRunning = false;
+        self.postMessage({
+          type: 'FOUND',
+          nonce: bestSolution.nonce,
+          hash: bestSolution.hash,
+          blockData: bestSolution.blockData
+        });
+        return;
+      }
+
       if (now - lastReport >= 1000) {
         const hashrate = Math.round((hashes * 1000) / (now - lastReport));
         self.postMessage({
           type: 'PROGRESS',
           hashrate: hashrate,
-          nonce: nonce
+          nonce: nonce,
+          blockIndex: task.index,
+          remainingSec: remainingSec,
+          solutionReady: !!bestSolution
         });
         hashes = 0;
         lastReport = now;
       }
 
-      setTimeout(step, 0);
+      setTimeout(step, 5);
     }
 
     step();

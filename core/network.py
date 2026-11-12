@@ -325,9 +325,22 @@ async def submit_transaction(request: Request):
 @app.post("/api/v1/faucet/{miner_address}")
 def mine_block(miner_address: str):
     from core.wallet import validate_address
+    from core.blockchain import TARGET_BLOCK_TIME
     if not validate_address(miner_address):
-        raise HTTPException(400, f"Gecersiz 20 karakter UNIVA adresi: {miner_address}")
-    
+        raise HTTPException(400, f"Gecersiz UNIVA adresi: {miner_address}")
+
+    # 60 saniye hedef blok suresi korumasi (Mainnet Arz Disiplini)
+    if blockchain.height >= 1:
+        elapsed = time.time() - blockchain.last_block.timestamp
+        if elapsed < TARGET_BLOCK_TIME:
+            remaining = round(TARGET_BLOCK_TIME - elapsed, 1)
+            return {
+                "status": "cooldown",
+                "wait_seconds": remaining,
+                "height": blockchain.height,
+                "message": f"Hedef blok suresi {TARGET_BLOCK_TIME}s. Sonraki blok icin {remaining}s kaldi.",
+            }
+
     block = blockchain.mine_pending_transactions(miner_address)
     if block is None:
         raise HTTPException(409, "Maksimum arza ulasildi veya madencilik basarisiz")
