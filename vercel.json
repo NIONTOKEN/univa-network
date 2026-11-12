@@ -8,20 +8,56 @@
   ],
   "routes": [
     {
+      "src": "/logo.png",
+      "dest": "/pwa/logo.png",
+      "headers": {
+        "Cache-Control": "public, max-age=3600",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
+      "src": "/miner.worker.js",
+      "dest": "/pwa/miner.worker.js",
+      "headers": {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
       "src": "/assets/(.*)",
-      "dest": "/pwa/assets/$1"
+      "dest": "/pwa/assets/$1",
+      "headers": {
+        "X-Content-Type-Options": "nosniff"
+      }
     },
     {
       "src": "/manifest.json",
-      "dest": "/pwa/manifest.json"
+      "dest": "/pwa/manifest.json",
+      "headers": {
+        "Content-Type": "application/manifest+json; charset=utf-8",
+        "X-Content-Type-Options": "nosniff"
+      }
     },
     {
       "src": "/sw.js",
-      "dest": "/pwa/sw.js"
+      "dest": "/pwa/sw.js",
+      "headers": {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Content-Type-Options": "nosniff"
+      }
     },
     {
       "src": "/(.*)",
-      "dest": "/pwa/index.html"
+      "dest": "/pwa/index.html",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-XSS-Protection": "1; mode=block",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+      }
     }
   ]
 }

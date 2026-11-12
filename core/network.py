@@ -32,8 +32,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_RATE_BUCKETS: Dict[str, List[float]] = {}
+
 @app.middleware("http")
-async def add_pna_headers(request: Request, call_next):
+async def add_pna_and_security_headers(request: Request, call_next):
+    # 1. Chrome Private Network Access (PNA) preflight
     if request.method == "OPTIONS" and "access-control-request-private-network" in request.headers:
         response = PlainTextResponse("OK", status_code=200)
         response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
@@ -42,8 +45,28 @@ async def add_pna_headers(request: Request, call_next):
         response.headers["Access-Control-Allow-Private-Network"] = "true"
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
+
+    # 2. Payload Size Protection (Anti-DoS / Memory Exhaustion)
+    content_len = request.headers.get("content-length")
+    if content_len and content_len.isdigit() and int(content_len) > 65536:
+        return JSONResponse({"error": "Payload Too Large (Max 64KB)"}, status_code=413)
+
+    # 3. Sliding-Window Rate Limiter (Anti-Flood & Anti-Brute-Force)
+    client_ip = (request.client.host if request.client else "127.0.0.1") or "127.0.0.1"
+    now = time.time()
+    bucket = [t for t in _RATE_BUCKETS.get(client_ip, []) if now - t < 60.0]
+    if len(bucket) > 240:
+        return JSONResponse({"error": "Rate limit exceeded. Security shield active."}, status_code=429)
+    bucket.append(now)
+    _RATE_BUCKETS[client_ip] = bucket
+
     response = await call_next(request)
     response.headers["Access-Control-Allow-Private-Network"] = "true"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
 # Native AMM instance for testnet quotes and balance checking
@@ -171,13 +194,52 @@ def receive_block(block_data: Dict[str, Any]):
     raise HTTPException(400, "Blok konsensus dogrulamasindan gecemedi")
 
 @app.get("/balance/{address}")
+@app.get("/api/v1/balance/{address}")
 def balance(address: str):
+    from core.wallet import validate_address
     bal = blockchain.get_balance(address)
     return {
         "address": address,
         "balance": bal,
         "ticker": "UNIVA",
-        "valid_format": len(address) == 20 and address.startswith("univa") and address.endswith("univa"),
+        "valid_format": validate_address(address),
+    }
+
+@app.get("/addresses")
+@app.get("/api/v1/addresses")
+def list_all_addresses():
+    """
+    Blokzincir uzerindeki tum UNIVA ve EVM adreslerini, bakiyelerini,
+    kazdiklari blok sayilarini ve islem sayilarini dondurur.
+    """
+    addr_stats: Dict[str, Dict[str, Any]] = {}
+    for block in blockchain.chain:
+        miner = block.miner_address
+        if miner:
+            st = addr_stats.setdefault(miner, {"address": miner, "blocks_mined": 0, "tx_count": 0, "last_block": 0})
+            if block.index > 0:
+                st["blocks_mined"] += 1
+            st["last_block"] = max(st["last_block"], block.index)
+        for tx in block.transactions:
+            for role_key in ("from", "to"):
+                a = tx.get(role_key)
+                if a and isinstance(a, str) and (a.startswith("univa") or a.startswith("0x")):
+                    st = addr_stats.setdefault(a, {"address": a, "blocks_mined": 0, "tx_count": 0, "last_block": 0})
+                    st["tx_count"] += 1
+                    st["last_block"] = max(st["last_block"], block.index)
+
+    results = []
+    for a, st in addr_stats.items():
+        st["balance"] = blockchain.get_balance(a)
+        st["address_type"] = "EVM Mirror (0x)" if a.startswith("0x") else ("Genesis Root" if a == "univa0000000000univa" else "UNIVA L1 Native")
+        results.append(st)
+
+    results.sort(key=lambda x: (x["balance"], x["blocks_mined"], x["tx_count"]), reverse=True)
+    return {
+        "total_addresses": len(results),
+        "native_system_contract": "0x0000000000000000000000000000000000210001",
+        "genesis_root_address": "univa0000000000univa",
+        "addresses": results,
     }
 
 @app.get("/api/v1/history/{address}")
