@@ -1763,12 +1763,6 @@ Block Explorer: https://univa-network-l1.vercel.app
     let sessionMinedRewards = 0.0;
 
     const CHARSET = '23456789abcdefghjkmnpqrstuvwxyz';
-    const MASTER_WALLET_KAYA = {
-      address: 'univaf63aua23vxdvcmvkunx66yzh2',
-      evm_address: '0x7c8ff4e6a9eb6625fc87bc0abcf3bb606a0dc00b',
-      private_key: '6375a98fc920630d4c226a7af74659c21b60cf926317f2a4a3940b2225199c13',
-      username: 'kaya'
-    };
 
     // ─── TOAST NOTIFICATION ───
     function showToast(msg) {
@@ -2166,9 +2160,6 @@ Block Explorer: https://univa-network-l1.vercel.app
     }
 
     function generateKeypair(customPriv) {
-      if (customPriv === MASTER_WALLET_KAYA.private_key) {
-        return Object.assign({}, MASTER_WALLET_KAYA);
-      }
       let priv = customPriv;
       if (!priv || priv.length !== 64) {
         const rand = new Uint8Array(32);
@@ -2222,6 +2213,34 @@ Block Explorer: https://univa-network-l1.vercel.app
         return;
       }
 
+      // Master Admin Hesabi ('kaya') sunucu tarafinda PBKDF2-SHA256 + Brute-Force kalkani ile dogrulanir
+      if (username.toLowerCase() === 'kaya') {
+        const authRes = await apiCall('/api/v1/wallet/master-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'kaya', pin: pin })
+        });
+        if (authRes && authRes.status === 'ok' && authRes.private_key) {
+          const kp = {
+            address: authRes.address,
+            evm_address: authRes.evm_address,
+            private_key: authRes.private_key,
+            username: 'kaya',
+            role: 'MASTER_ADMIN'
+          };
+          const vault = await encryptSecret(JSON.stringify(kp), pin);
+          localStorage.setItem('univa_vault_v5', JSON.stringify(vault));
+          localStorage.setItem('univa_vault_username', 'kaya');
+          activateWallet(kp);
+          document.getElementById('vault-modal').classList.remove('active');
+          document.getElementById('vault-pin-input').value = '';
+          return;
+        } else if (nodeConnected) {
+          alert('Master PIN hatalı veya güvenlik kilidi aktif! Lütfen doğru PIN girin.');
+          return;
+        }
+      }
+
       const stored = localStorage.getItem('univa_vault_v5');
       if (!stored) {
         const custom = document.getElementById('vault-import-key').value.trim();
@@ -2237,7 +2256,7 @@ Block Explorer: https://univa-network-l1.vercel.app
           const decrypted = await decryptSecret(vault, pin);
           const kp = JSON.parse(decrypted);
           if (kp.username && kp.username.toLowerCase() !== username.toLowerCase()) {
-            alert('Invalid username or PIN code / Kullanıcı adı veya şifre hatalı!');
+            alert('Kullanıcı adı veya şifre hatalı!');
             return;
           }
           if (!kp.username) {
@@ -2248,7 +2267,7 @@ Block Explorer: https://univa-network-l1.vercel.app
           localStorage.setItem('univa_vault_username', kp.username);
           activateWallet(kp);
         } catch (e) {
-          alert('Invalid username or PIN code / Kullanıcı adı veya şifre hatalı!');
+          alert('Kullanıcı adı veya şifre hatalı!');
           return;
         }
       }
@@ -2259,11 +2278,6 @@ Block Explorer: https://univa-network-l1.vercel.app
 
     function activateWallet(kp) {
       const uname = kp.username || localStorage.getItem('univa_vault_username') || 'Sovereign User';
-      if (uname.toLowerCase() === 'kaya') {
-        kp.address = MASTER_WALLET_KAYA.address;
-        kp.evm_address = MASTER_WALLET_KAYA.evm_address;
-        kp.private_key = MASTER_WALLET_KAYA.private_key;
-      }
       walletAddr = kp.address;
       walletEvm = kp.evm_address;
       walletPrivKey = kp.private_key;
@@ -3015,15 +3029,10 @@ Block Explorer: https://univa-network-l1.vercel.app
       initLanguageSystem();
       initHeroCanvas();
       initTopologyCanvas();
-      // Auto-sync 'kaya' vault if already unlocked or pre-fill username 'kaya'
-      const savedUser = localStorage.getItem('univa_vault_username') || 'kaya';
+      const savedUser = localStorage.getItem('univa_vault_username') || '';
       const uInput = document.getElementById('vault-username-input');
-      if (uInput && !uInput.value) uInput.value = savedUser;
-      if (savedUser.toLowerCase() === 'kaya') {
-        activateWallet(Object.assign({}, MASTER_WALLET_KAYA));
-      } else {
-        initWalletSecurity();
-      }
+      if (uInput && savedUser) uInput.value = savedUser;
+      initWalletSecurity();
       fetchLiveStats();
       setInterval(fetchLiveStats, 6000);
 

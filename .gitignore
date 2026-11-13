@@ -11,6 +11,7 @@ univa_chain.db
 univa_chain.db-shm
 univa_chain.db-wal
 univa_wallet.json
+univa_master_auth.json
 clean_chain.json
 cloudflared.exe
 *.txt

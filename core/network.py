@@ -34,6 +34,8 @@ app.add_middleware(
 
 _RATE_BUCKETS: Dict[str, List[float]] = {}
 _ACTIVE_CLIENTS: Dict[str, Dict[str, Any]] = {}
+_MASTER_FAIL_BUCKETS: Dict[str, List[float]] = {}
+MASTER_AUTH_FILE = os.path.join(BASE_DIR, "univa_master_auth.json")
 
 _COUNTRY_MAP = {
     "TR": ("🇹🇷", "Türkiye"),
@@ -495,6 +497,7 @@ def address_history(address: str):
 @app.get("/wallet")
 @app.get("/api/v1/wallet/master")
 def get_master_wallet():
+    """Sadece herkese acik master adres ve bakiye bilgisini dondurur (Ozel anahtar ASLA paylasilmaz)."""
     from core.wallet import UnivaWallet
     wallet_file = os.path.join(BASE_DIR, "univa_wallet.json")
     if os.path.exists(wallet_file):
@@ -504,11 +507,76 @@ def get_master_wallet():
             "address": w.address,
             "evm_address": w.evm_address,
             "public_key": w.public_key,
-            "private_key": w.private_key,
             "balance": _get_effective_balance(w.address),
         }
-    w = UnivaWallet()
-    return {"status": "ok", "address": w.address, "evm_address": w.evm_address, "public_key": w.public_key, "private_key": w.private_key, "balance": 0.0}
+    return {"status": "ok", "address": "", "evm_address": "", "public_key": "", "balance": 0.0}
+
+
+@app.post("/api/v1/wallet/master-auth")
+async def master_wallet_auth(request: Request):
+    """
+    6.000+ UNIVA barindiran Master Hesap (univaf63aua23vxdvcmvkunx66yzh2) icin
+    PBKDF2-HMAC-SHA256 (200.000 iterasyon) + Brute-Force korumali tam yetkili erisim.
+    """
+    import hmac
+    import secrets
+    from core.wallet import UnivaWallet
+
+    client_ip = (
+        request.headers.get("cf-connecting-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "127.0.0.1")
+        or "127.0.0.1"
+    )
+    now = time.time()
+    fails = [t for t in _MASTER_FAIL_BUCKETS.get(client_ip, []) if now - t < 900.0]
+    _MASTER_FAIL_BUCKETS[client_ip] = fails
+    if len(fails) >= 5:
+        raise HTTPException(429, "Cok fazla hatali giris denemesi. Guvenlik kalkani aktif (15 dk kilit).")
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    username = (data.get("username") or "").strip().lower()
+    pin = (data.get("pin") or "").strip()
+
+    if username != "kaya" or len(pin) < 4:
+        fails.append(now)
+        _MASTER_FAIL_BUCKETS[client_ip] = fails
+        raise HTTPException(401, "Gecersiz kullanici adi veya PIN")
+
+    wallet_file = os.path.join(BASE_DIR, "univa_wallet.json")
+    if not os.path.exists(wallet_file):
+        raise HTTPException(404, "Master cuzdan dosyasi bulunamadi")
+
+    if not os.path.exists(MASTER_AUTH_FILE):
+        salt_hex = secrets.token_hex(16)
+        dk_hex = hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), bytes.fromhex(salt_hex), 200_000).hex()
+        with open(MASTER_AUTH_FILE, "w", encoding="utf-8") as f:
+            json.dump({"username": "kaya", "salt": salt_hex, "hash": dk_hex, "created_at": now}, f, indent=2)
+    else:
+        with open(MASTER_AUTH_FILE, "r", encoding="utf-8") as f:
+            auth_rec = json.load(f)
+        salt_hex = auth_rec.get("salt", "")
+        expected_hash = auth_rec.get("hash", "")
+        cand_hash = hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), bytes.fromhex(salt_hex), 200_000).hex()
+        if not hmac.compare_digest(cand_hash, expected_hash):
+            fails.append(now)
+            _MASTER_FAIL_BUCKETS[client_ip] = fails
+            raise HTTPException(401, "Master PIN hatali! Erisim reddedildi.")
+
+    _MASTER_FAIL_BUCKETS[client_ip] = []
+    w = UnivaWallet.load(wallet_file)
+    return {
+        "status": "ok",
+        "role": "MASTER_ADMIN",
+        "address": w.address,
+        "evm_address": w.evm_address,
+        "public_key": w.public_key,
+        "private_key": w.private_key,
+        "balance": _get_effective_balance(w.address),
+    }
 
 
 @app.post("/api/v1/wallet/create")
@@ -522,16 +590,11 @@ async def create_or_recover_wallet(request: Request):
         data = await request.json()
     except Exception:
         data = {}
-    username = (data.get("username") or "").strip().lower()
     priv_hex = (data.get("private_key") or "").strip()
-    wallet_file = os.path.join(BASE_DIR, "univa_wallet.json")
-    if username == "kaya" and os.path.exists(wallet_file):
-        w = UnivaWallet.load(wallet_file)
-    else:
-        try:
-            w = UnivaWallet(private_key_hex=priv_hex if len(priv_hex) == 64 else None)
-        except Exception:
-            w = UnivaWallet()
+    try:
+        w = UnivaWallet(private_key_hex=priv_hex if len(priv_hex) == 64 else None)
+    except Exception:
+        w = UnivaWallet()
     return {
         "status": "ok",
         "address": w.address,
