@@ -3269,13 +3269,17 @@ Block Explorer: https://univa-network-l1.vercel.app
         const lbl = btn.querySelector('.nav-label');
         if (lbl && navSet[view]) lbl.textContent = navSet[view];
       });
-      if (target !== 'tr') return;
       const selectors = '.mobile-nav-link, .hero-tag, .btn, .stat-label, .stat-num, .stat-sub, .card-title, h2, p, .form-label, .badge';
       document.querySelectorAll(selectors).forEach(el => {
         if (el.children.length === 0) {
-          const raw = el.textContent.trim();
-          if (UNIVA_TR_MAP[raw]) {
-            el.textContent = UNIVA_TR_MAP[raw];
+          if (typeof el.dataset.univaOrig === 'undefined') {
+            el.dataset.univaOrig = el.textContent;
+          }
+          const orig = el.dataset.univaOrig.trim();
+          if (target === 'tr') {
+            if (UNIVA_TR_MAP[orig]) el.textContent = UNIVA_TR_MAP[orig];
+          } else {
+            el.textContent = el.dataset.univaOrig;
           }
         }
       });
@@ -3285,8 +3289,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       clearGoogleTranslateArtifacts();
       const detected = detectUserLanguage();
       const savedChoice = localStorage.getItem('univa_lang') || 'auto';
-      const selectEl = document.getElementById('univa-lang-select');
-      if (selectEl) selectEl.value = savedChoice;
+      document.querySelectorAll('.lang-select').forEach(sel => { sel.value = savedChoice; });
       const activeLang = savedChoice === 'auto' ? detected : savedChoice;
       applyNativeTranslations(activeLang);
     }
@@ -3298,7 +3301,9 @@ Block Explorer: https://univa-network-l1.vercel.app
       } else {
         localStorage.setItem('univa_lang', lang);
       }
-      location.reload();
+      document.querySelectorAll('.lang-select').forEach(sel => { sel.value = lang; });
+      const activeLang = lang === 'auto' ? detectUserLanguage() : lang;
+      applyNativeTranslations(activeLang);
     }
 
     window.addEventListener('DOMContentLoaded', () => {
