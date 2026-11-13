@@ -674,7 +674,7 @@ async def submit_transaction(request: Request):
 @app.post("/mine/{miner_address}")
 @app.get("/api/v1/faucet/{miner_address}")
 @app.post("/api/v1/faucet/{miner_address}")
-def mine_block(miner_address: str):
+def mine_block(miner_address: str, request: Request, device: str = ""):
     from core.wallet import validate_address
     from core.blockchain import TARGET_BLOCK_TIME
     if not validate_address(miner_address):
@@ -692,7 +692,12 @@ def mine_block(miner_address: str):
                 "message": f"Hedef blok suresi {TARGET_BLOCK_TIME}s. Sonraki blok icin {remaining}s kaldi.",
             }
 
-    block = blockchain.mine_pending_transactions(miner_address)
+    ua = (request.headers.get("user-agent") or "").lower()
+    is_mobile = (device.lower() == "mobile") or any(k in ua for k in ("android", "iphone", "ipad", "mobile"))
+    reward_override = 10.0 if is_mobile else None
+    miner_tier = "Mobil Light Miner (10 UNIVA)" if is_mobile else "PC Full CPU Miner (100 UNIVA)"
+
+    block = blockchain.mine_pending_transactions(miner_address, reward_override=reward_override)
     if block is None:
         raise HTTPException(409, "Maksimum arza ulasildi veya madencilik basarisiz")
     

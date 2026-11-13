@@ -279,13 +279,17 @@ class Blockchain:
         tx["tx_id"] = hashlib.sha256(message.encode("utf-8")).hexdigest()
         return tx
 
-    def mine_pending_transactions(self, miner_address: str, stop_event=None, on_progress=None) -> Optional[Block]:
+    def mine_pending_transactions(self, miner_address: str, stop_event=None, on_progress=None, reward_override: Optional[float] = None) -> Optional[Block]:
         with self._lock:
             from core.wallet import validate_address
             if not validate_address(miner_address):
                 raise ValueError("Invalid miner address")
             index = self.height + 1
-            subsidy = self.get_current_reward(index)
+            base_subsidy = self.get_current_reward(index)
+            if reward_override is not None:
+                subsidy = round(max(0.0, min(float(reward_override), base_subsidy)), 8)
+            else:
+                subsidy = base_subsidy
             mtp = self.get_median_time_past(11)
             block_ts = max(time.time(), mtp + 1.0)
             # Re-check mempool against confirmed state, one transaction at a time.
@@ -456,10 +460,12 @@ class Blockchain:
                         return False
                     self.pending_transactions.append(tx)
                     fees = round(fees + float(tx["fee"]), 8)
-                expected_coinbase = round(subsidy + fees, 8)
+                expected_coinbase = round(float(cur.reward) + fees, 8)
+                if cur.reward < 0 or cur.reward > subsidy + 1e-8:
+                    return False
                 if abs(float(coinbase.get("amount", -1)) - expected_coinbase) > 1e-8:
                     return False
-                if abs(float(coinbase.get("subsidy", subsidy)) - subsidy) > 1e-8:
+                if abs(float(coinbase.get("subsidy", cur.reward)) - cur.reward) > 1e-8:
                     return False
                 total_subsidy = round(total_subsidy + subsidy, 8)
                 if total_subsidy > MAX_SUPPLY + 1e-8:

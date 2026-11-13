@@ -141,10 +141,26 @@
       font-size: 1.18rem; font-weight: 800; letter-spacing: 2px;
       color: #20242B;
     }
+    .nav-carousel-wrap {
+      display: none; align-items: center; gap: 4px; flex: 1 1 auto; min-width: 0;
+    }
+    @media (min-width: 1080px) { .nav-carousel-wrap { display: flex; } }
+    .nav-scroll-btn {
+      width: 26px; height: 42px; flex-shrink: 0;
+      border-radius: 8px; border: 1px solid #C5CCD5;
+      background: linear-gradient(180deg, #FFFFFF 0%, #EEF1F5 100%);
+      color: #20242B; font-size: 0.78rem; font-weight: 800;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 3px rgba(32, 36, 43, 0.06);
+      transition: all 0.18s ease;
+    }
+    .nav-scroll-btn:hover {
+      background: #20242B; color: #FFFFFF; border-color: #20242B;
+    }
     .nav-links {
-      display: none; align-items: center; justify-content: center; gap: 4px;
+      display: flex; align-items: center; justify-content: flex-start; gap: 4px;
       flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none;
-      padding: 4px 6px;
+      scroll-behavior: smooth; padding: 4px 4px;
     }
     .nav-links::-webkit-scrollbar { display: none; }
     @media (min-width: 1080px) { .nav-links { display: flex; } }
@@ -608,8 +624,10 @@
       <div class="brand-title">UNIVA</div>
     </div>
 
-    <!-- MAIN NAV LINKS (DESKTOP - PREMIUM WHITE EDITION WITH 3D METALLIC ICONS) -->
-    <nav class="nav-links">
+    <!-- MAIN NAV LINKS (DESKTOP - WITH LEFT/RIGHT SCROLL ARROWS) -->
+    <div class="nav-carousel-wrap">
+      <button class="nav-scroll-btn" type="button" onclick="scrollTopNav(-240)" title="Sola Kaydır">◀</button>
+      <nav class="nav-links" id="desktop-nav-links">
       <button class="nav-btn active" data-view="landing" onclick="navigate('landing')">
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span>
         <span class="nav-label">Genel Bakış</span>
@@ -659,6 +677,8 @@
         <span class="nav-label">Cüzdan Kasası</span>
       </button>
     </nav>
+      <button class="nav-scroll-btn" type="button" onclick="scrollTopNav(240)" title="Sağa Kaydır">▶</button>
+    </div>
 
     <div class="header-actions">
       <!-- AUTO-LANGUAGE DETECTOR & SELECTOR -->
@@ -1198,7 +1218,7 @@
           <div class="stat-box">
             <div class="stat-label">Earned Block Rewards</div>
             <div class="stat-num" style="color:var(--success);"><span id="mining-reward-val">0.00</span> <small style="font-size:0.8rem">UNIVA</small></div>
-            <div class="stat-sub">100.0 UNIVA / Block</div>
+            <div class="stat-sub" id="mining-tier-sub">PC CPU: 100.0 UNIVA · Mobil: 10.0 UNIVA / Blok</div>
           </div>
         </div>
 
@@ -2530,7 +2550,8 @@ Block Explorer: https://univa-network-l1.vercel.app
         const targetAddr = await ensureMinerAddress();
         let minedBlockInfo = null;
         if (nodeConnected) {
-          const res = await apiCall('/mine/' + targetAddr, { method: 'POST' });
+          const devType = /android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 'mobile' : 'pc';
+          const res = await apiCall('/mine/' + targetAddr + '?device=' + devType, { method: 'POST' });
           if (res && res.status === 'cooldown') {
             const waitMs = Math.max(2000, Math.ceil((res.wait_seconds || 10) * 1000));
             if (isMining) dispatchMiningBlock(waitMs);
@@ -2599,7 +2620,8 @@ Block Explorer: https://univa-network-l1.vercel.app
           await fetchLiveHistory();
           continue;
         }
-        const res = await apiCall('/mine/' + targetAddr, { method: 'POST' });
+        const devType = /android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 'mobile' : 'pc';
+          const res = await apiCall('/mine/' + targetAddr + '?device=' + devType, { method: 'POST' });
         if (res && res.status === 'cooldown') {
           await new Promise(r => setTimeout(r, Math.max(2000, (res.wait_seconds || 10) * 1000)));
           continue;
@@ -2900,6 +2922,26 @@ Block Explorer: https://univa-network-l1.vercel.app
       'ar': 'العربية'
     };
 
+    function scrollTopNav(delta) {
+      const el = document.getElementById('desktop-nav-links');
+      if (el) el.scrollBy({ left: delta, behavior: 'smooth' });
+    }
+
+    const NAV_LABELS_BY_LANG = {
+      tr: {
+        landing: 'Genel Bakış', dashboard: 'Kontrol Paneli', explorer: 'Kaşif',
+        network: 'Ağ Merkezi', core: 'Çekirdek', mining: 'Madencilik',
+        dex: 'Native DEX', multichain: 'Çoklu Zincir', offline: 'Çevrimdışı',
+        mystery: 'Gizem', dev: 'Geliştirici', wallet: 'Cüzdan Kasası'
+      },
+      en: {
+        landing: 'Overview', dashboard: 'Dashboard', explorer: 'Explorer',
+        network: 'Network Center', core: 'UNIVA Core', mining: 'Mining',
+        dex: 'Native DEX', multichain: 'Multichain', offline: 'Offline Pay',
+        mystery: 'Mystery', dev: 'Developers', wallet: 'Wallet Vault'
+      }
+    };
+
     const UNIVA_TR_MAP = {
       'Overview': 'Genel Bakış',
       'Dashboard': 'Kontrol Paneli',
@@ -2963,7 +3005,24 @@ Block Explorer: https://univa-network-l1.vercel.app
       'Transaction History': 'İşlem Geçmişi',
       'Vault Security & Key Backup': 'Kasa Güvenliği ve Özel Anahtar Yedeği',
       '👁️ Reveal Private Key': '👁️ Özel Anahtarı Göster',
-      'Reset / Re-import Wallet': 'Cüzdanı Sıfırla / İçe Aktar'
+      'Reset / Re-import Wallet': 'Cüzdanı Sıfırla / İçe Aktar',
+      'Mining Center': 'Madencilik Merkezi',
+      'Proof-of-Work SHA-256 mining operations powered by Web Worker threads and node mining.': 'Web Worker işlem parçacıkları ve ana düğüm ile çalışan gerçek SHA-256 Proof-of-Work madenciliği.',
+      'Hardware Multi-Thread Worker': 'Donanım Çoklu İşlem Parçacığı',
+      'Valid blocks appended to chain': 'Zincire eklenen onaylı bloklar',
+      'Mining stopped.': 'Madencilik durduruldu.',
+      '⛏️ START SHA-256 MINING': '⛏️ SHA-256 MADENCİLİĞİ BAŞLAT',
+      '🛑 STOP MINING': '🛑 MADENCİLİĞİ DURDUR',
+      'Standby': 'Beklemede',
+      'Network Center': 'Ağ Merkezi',
+      'UNIVA Core Node Daemon': 'UNIVA Çekirdek Düğüm Yazılımı',
+      'UNIVA Native DEX (AMM)': 'UNIVA Yerel DEX (AMM)',
+      'UNIVA Multichain Hub': 'UNIVA Çoklu Zincir Merkezi',
+      'UNIVA Offline Pay Protocol': 'UNIVA Çevrimdışı Ödeme Protokolü',
+      'UNIVA Mystery Protocol': 'UNIVA Gizem Protokolü',
+      'UNIVA Developer Portal': 'UNIVA Geliştirici Portalı',
+      'ONE NETWORK.': 'TEK BİR AĞ.',
+      'INFINITE POSSIBILITIES.': 'SINIRSIZ OLANAKLAR.'
     };
 
     function clearGoogleTranslateArtifacts() {
@@ -2993,8 +3052,15 @@ Block Explorer: https://univa-network-l1.vercel.app
     }
 
     function applyNativeTranslations(lang) {
-      if (lang !== 'tr') return;
-      const selectors = '.nav-btn, .mobile-nav-link, .hero-tag, .btn, .stat-label, .stat-num, .stat-sub, .card-title, h2, p, .form-label';
+      const target = (lang === 'en') ? 'en' : 'tr';
+      const navSet = NAV_LABELS_BY_LANG[target] || NAV_LABELS_BY_LANG.tr;
+      document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
+        const view = btn.getAttribute('data-view');
+        const lbl = btn.querySelector('.nav-label');
+        if (lbl && navSet[view]) lbl.textContent = navSet[view];
+      });
+      if (target !== 'tr') return;
+      const selectors = '.mobile-nav-link, .hero-tag, .btn, .stat-label, .stat-num, .stat-sub, .card-title, h2, p, .form-label, .badge';
       document.querySelectorAll(selectors).forEach(el => {
         if (el.children.length === 0) {
           const raw = el.textContent.trim();
