@@ -1648,13 +1648,22 @@ Block Explorer: https://univa-network-l1.vercel.app
             <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:16px;">
               Your private key is protected on this device with PBKDF2/AES-GCM encryption. Never share your key with anyone.
             </div>
+            <div id="w-mnemonic-display" style="display:none;margin-bottom:14px;padding:14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <span style="font-size:0.78rem;font-weight:700;color:var(--text-primary);letter-spacing:0.04em;">🔑 12 KELİMELİK KURTARMA İFADESİ (SEED PHRASE)</span>
+                <button class="copy-icon-btn" onclick="copyVaultMnemonic()">Kopyala</button>
+              </div>
+              <div id="w-mnemonic-grid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;"></div>
+              <div id="w-mnemonic-legacy" style="display:none;font-size:0.8rem;color:var(--text-muted);">Bu cüzdan 12 kelime sistemi öncesinde oluşturulmuş (eski sürüm). Yedekleme için aşağıdaki 64 haneli Özel Anahtarınızı kullanabilirsiniz.</div>
+            </div>
             <div id="w-priv-display" class="addr-bar" style="display:none;margin-bottom:14px;color:var(--gold);">
               <span id="w-priv-text">—</span>
               <button class="copy-icon-btn" onclick="copyElemText('w-priv-text', 'Private Key Copied')">Copy</button>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
-              <button class="btn btn-danger btn-sm" onclick="revealVaultKey()">👁️ Reveal Private Key</button>
-              <button class="btn btn-metallic btn-sm" onclick="resetWalletPrompt()">Reset / Re-import Wallet</button>
+              <button class="btn btn-primary btn-sm" onclick="revealVaultMnemonic()">🔑 12 Kelimeyi Göster</button>
+              <button class="btn btn-danger btn-sm" onclick="revealVaultKey()">👁️ Özel Anahtarı Göster</button>
+              <button class="btn btn-metallic btn-sm" onclick="resetWalletPrompt()">🔄 Sıfırla / 12 Kelime ile Kurtar</button>
             </div>
           </div>
         </div>
@@ -1733,13 +1742,37 @@ Block Explorer: https://univa-network-l1.vercel.app
         <input class="form-input mono" type="password" id="vault-pin-input" placeholder="Enter Security PIN (4-8 Digits)" autocomplete="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" onkeydown="if(event.key==='Enter')submitVaultPin()">
       </div>
       <div id="vault-import-wrap" style="display:none;" class="form-group">
-        <label class="form-label">Optional 64-char Hex Private Key Import</label>
-        <input class="form-input mono" id="vault-import-key" placeholder="Leave empty for fresh entropy generation">
+        <label class="form-label">12 Kelimelik Kurtarma İfadesi veya 64 Haneli Özel Anahtar</label>
+        <textarea class="form-input mono" id="vault-import-key" rows="3" placeholder="12 kelimenizi aralarında boşluk bırakarak yazın (veya 64 haneli hex anahtar girin)" style="resize:vertical;line-height:1.5;"></textarea>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">
+          Aynı 12 kelimeyi hangi cihazda girerseniz girin aynı UNIVA ve 0x EVM cüzdanınız kalıcı olarak açılır.
+        </div>
       </div>
-      <div style="display:flex;justify-content:space-between;gap:10px;margin-top:18px;">
-        <button class="btn btn-primary" onclick="submitVaultPin()" style="flex:1;">Confirm & Unlock</button>
-        <button class="btn btn-metallic" id="vault-import-toggle" onclick="toggleImportMode()">Import Key</button>
+      <div style="display:flex;justify-content:space-between;gap:10px;margin-top:18px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="submitVaultPin()" style="flex:1;min-width:160px;">Onayla ve Giriş Yap</button>
+        <button class="btn btn-metallic" id="vault-import-toggle" onclick="toggleImportMode()">🔑 12 Kelime ile Kurtar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 12-WORD BACKUP CONFIRMATION MODAL -->
+  <div class="modal-overlay" id="seed-backup-modal">
+    <div class="modal-content" style="max-width:520px;">
+      <div class="card-header">
+        <div class="card-title">🔑 12 KELİMELİK CÜZDAN GÜVENLİK ANAHTARI</div>
+      </div>
+      <p style="font-size:0.84rem;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">
+        Bu 12 kelime cüzdanınızın <strong>kalıcı kurtarma anahtarıdır</strong>. Telefonunuz sıfırlansa, tarayıcı geçmişi silinse veya başka bir cihaza geçseniz bile bu 12 kelime ile bakiyenize ve adresinize her zaman ulaşabilirsiniz. Kimseyle paylaşmayın!
+      </p>
+      <div id="seed-backup-grid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px;"></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button class="btn btn-metallic btn-sm" onclick="copyNewSeedPhrase()" style="flex:1;">📋 12 Kelimeyi Kopyala</button>
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.82rem;color:var(--text-primary);cursor:pointer;margin-bottom:16px;">
+        <input type="checkbox" id="seed-backup-confirm-chk" onchange="document.getElementById('seed-backup-done-btn').disabled = !this.checked" style="margin-top:3px;">
+        <span>12 kelimemi güvenli bir yere kaydettim. Bu kelimeler olmadan cüzdanımı kurtaramayacağımı biliyorum.</span>
+      </label>
+      <button class="btn btn-primary" id="seed-backup-done-btn" onclick="closeSeedBackupModal()" disabled style="width:100%;">Cüzdana Devam Et</button>
     </div>
   </div>
 
@@ -1777,6 +1810,7 @@ Block Explorer: https://univa-network-l1.vercel.app
     let walletAddr = '';
     let walletEvm = '';
     let walletPrivKey = '';
+    let walletMnemonic = '';
     let isMining = false;
     let miningWorker = null;
     let sessionMinedBlocks = 0;
@@ -2179,6 +2213,121 @@ Block Explorer: https://univa-network-l1.vercel.app
       return new TextDecoder().decode(dec);
     }
 
+    const UNIVA_WORDLIST = [
+      "abandon","ability","able","about","above","absent","absorb","abstract",
+      "absurd","abuse","access","accident","account","accuse","achieve","acid",
+      "acoustic","acquire","across","act","action","actor","actual","adapt",
+      "add","addict","address","adjust","admit","adult","advance","advice",
+      "aerobic","affair","afford","afraid","again","age","agent","agree",
+      "ahead","aim","air","airport","aisle","alarm","album","alcohol",
+      "alert","alien","all","alley","allow","almost","alone","alpha",
+      "already","also","alter","always","amateur","amazing","among","amount",
+      "amused","analyst","anchor","ancient","anger","angle","angry","animal",
+      "ankle","announce","annual","another","answer","antenna","antique","anxiety",
+      "any","apart","apology","appear","apple","approve","april","arch",
+      "arctic","area","arena","argue","arm","armed","armor","army",
+      "around","arrange","arrest","arrive","arrow","art","artefact","artist",
+      "artwork","ask","aspect","assault","asset","assist","assume","asthma",
+      "athlete","atom","attack","attend","attitude","attract","auction","audit",
+      "august","aunt","author","auto","autumn","average","avocado","avoid",
+      "awake","aware","away","awesome","awful","awkward","axis","baby",
+      "bachelor","bacon","badge","bag","balance","balcony","ball","bamboo",
+      "banana","banner","bar","barely","bargain","barrel","base","basic",
+      "basket","battle","beach","bean","beauty","because","become","beef",
+      "before","begin","behave","behind","believe","below","belt","bench",
+      "benefit","best","betray","better","between","beyond","bicycle","bid",
+      "bike","bind","biology","bird","birth","bitter","black","blade",
+      "blame","blanket","blast","bleak","bless","blind","blood","blossom",
+      "blouse","blue","blur","blush","board","boat","body","boil",
+      "bomb","bone","bonus","book","boost","border","boring","borrow",
+      "boss","bottom","bounce","box","boy","bracket","brain","brand",
+      "brass","brave","bread","breeze","brick","bridge","brief","bright",
+      "bring","brisk","broccoli","broken","bronze","broom","brother","brown",
+      "brush","bubble","buddy","budget","buffalo","build","bulb","bulk",
+      "bullet","bundle","bunker","burden","burger","burst","bus","business",
+      "busy","butter","buyer","buzz","cabbage","cabin","cable","cactus",
+      "cage","cake","call","calm","camera","camp","can","canal",
+      "cancel","candy","cannon","canoe","canvas","canyon","capable","capital",
+      "captain","car","carbon","card","cargo","carpet","carry","cart"
+    ];
+
+    async function generateMnemonic12() {
+      const entropy = new Uint8Array(11);
+      crypto.getRandomValues(entropy);
+      const hashBuf = await crypto.subtle.digest('SHA-256', entropy);
+      const checksumByte = new Uint8Array(hashBuf)[0];
+      const bytes = new Uint8Array(12);
+      bytes.set(entropy, 0);
+      bytes[11] = checksumByte;
+      return Array.from(bytes).map(b => UNIVA_WORDLIST[b]).join(' ');
+    }
+
+    async function validateMnemonic12(phrase) {
+      const words = phrase.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      if (words.length !== 12) return { valid: false, reason: 'Kurtarma ifadesi tam 12 kelimeden oluşmalıdır.' };
+      const indices = words.map(w => UNIVA_WORDLIST.indexOf(w));
+      if (indices.some(idx => idx === -1)) {
+        const bad = words.filter((_, i) => indices[i] === -1);
+        return { valid: false, reason: 'Geçersiz veya hatalı yazılmış kelime: ' + bad.join(', ') };
+      }
+      const entropy = new Uint8Array(indices.slice(0, 11));
+      const hashBuf = await crypto.subtle.digest('SHA-256', entropy);
+      const expectedChecksum = new Uint8Array(hashBuf)[0];
+      if (indices[11] !== expectedChecksum) {
+        return { valid: false, reason: '12 kelimelik kontrol toplamı (checksum) uyuşmuyor. Kelime sırasını kontrol edin.' };
+      }
+      return { valid: true, normalized: words.join(' ') };
+    }
+
+    async function deriveKeypairFromMnemonic(phrase) {
+      const norm = phrase.trim().toLowerCase().replace(/\s+/g, ' ');
+      const enc = new TextEncoder();
+      const keyMat = await crypto.subtle.importKey('raw', enc.encode(norm), { name: 'PBKDF2' }, false, ['deriveBits']);
+      const bits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt: enc.encode('UNIVA-L1-SOVEREIGN-MNEMONIC-V1'), iterations: 100000, hash: 'SHA-256' },
+        keyMat, 256
+      );
+      const privHex = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const kp = generateKeypair(privHex);
+      kp.mnemonic = norm;
+      return kp;
+    }
+
+    function renderSeedGrid(containerId, phrase) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      const words = phrase.trim().split(/\s+/);
+      el.innerHTML = words.map((w, i) => `
+        <div style="display:flex;align-items:center;gap:6px;padding:7px 9px;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;font-size:0.82rem;">
+          <span style="color:var(--text-muted);font-size:0.72rem;min-width:18px;">${i + 1}.</span>
+          <span class="mono" style="font-weight:700;color:var(--text-primary);">${w}</span>
+        </div>
+      `).join('');
+    }
+
+    let pendingSeedPhraseBackup = '';
+    function openSeedBackupModal(phrase) {
+      pendingSeedPhraseBackup = phrase;
+      renderSeedGrid('seed-backup-grid', phrase);
+      const chk = document.getElementById('seed-backup-confirm-chk');
+      const btn = document.getElementById('seed-backup-done-btn');
+      if (chk) chk.checked = false;
+      if (btn) btn.disabled = true;
+      document.getElementById('seed-backup-modal').classList.add('active');
+    }
+
+    function copyNewSeedPhrase() {
+      if (!pendingSeedPhraseBackup) return;
+      navigator.clipboard.writeText(pendingSeedPhraseBackup).then(() => {
+        showToast('12 kelimelik kurtarma anahtarı kopyalandı!');
+      });
+    }
+
+    function closeSeedBackupModal() {
+      pendingSeedPhraseBackup = '';
+      document.getElementById('seed-backup-modal').classList.remove('active');
+    }
+
     function generateKeypair(customPriv) {
       let priv = customPriv;
       if (!priv || priv.length !== 64) {
@@ -2201,15 +2350,17 @@ Block Explorer: https://univa-network-l1.vercel.app
       const modal = document.getElementById('vault-modal');
       const title = document.getElementById('vault-modal-title');
       const desc = document.getElementById('vault-modal-desc');
+      const toggleBtn = document.getElementById('vault-import-toggle');
 
       if (!stored) {
-        title.textContent = 'CREATE SECURE UNIVA VAULT';
-        desc.textContent = 'Choose a username and set a 4-8 digit security PIN to cryptographically lock and persist your sovereign wallet.';
+        title.textContent = 'UNIVA GÜVENLİ CÜZDAN OLUŞTUR';
+        desc.textContent = 'Yeni bir 12 kelimelik cüzdan oluşturun veya mevcut 12 kelimenizle hesabınızı kalıcı olarak kurtarın.';
+        if (toggleBtn) toggleBtn.style.display = 'inline-flex';
         modal.classList.add('active');
       } else {
-        title.textContent = 'UNLOCK UNIVA VAULT';
-        desc.textContent = 'Enter your username and security PIN to unlock your encrypted sovereign key for this session.';
-        document.getElementById('vault-import-toggle').style.display = 'none';
+        title.textContent = 'UNIVA CÜZDAN KİLİDİNİ AÇ';
+        desc.textContent = 'Kullanıcı adınızı ve şifrenizi girin veya 12 kelimenizle başka bir cüzdanı kurtarın.';
+        if (toggleBtn) toggleBtn.style.display = 'inline-flex';
         modal.classList.add('active');
       }
     }
@@ -2223,18 +2374,21 @@ Block Explorer: https://univa-network-l1.vercel.app
       const usernameEl = document.getElementById('vault-username-input');
       const username = usernameEl ? usernameEl.value.trim() : '';
       const pin = document.getElementById('vault-pin-input').value.trim();
+      const importWrap = document.getElementById('vault-import-wrap');
+      const customInput = document.getElementById('vault-import-key').value.trim();
+      const isRecoveryMode = importWrap && importWrap.style.display !== 'none' && customInput.length > 0;
 
       if (!username || username.length < 2) {
-        alert('Please enter a valid username (at least 2 characters) / Lütfen geçerli bir kullanıcı adı girin.');
+        alert('Lütfen geçerli bir kullanıcı adı girin (en az 2 karakter).');
         return;
       }
       if (!pin || pin.length < 4) {
-        alert('PIN must be at least 4 digits / Şifre en az 4 haneli olmalıdır.');
+        alert('Şifre en az 4 haneli olmalıdır.');
         return;
       }
 
       // Master Admin Hesabi ('kaya') sunucu tarafinda PBKDF2-SHA256 + Brute-Force kalkani ile dogrulanir
-      if (username.toLowerCase() === 'kaya') {
+      if (!isRecoveryMode && username.toLowerCase() === 'kaya') {
         const authRes = await apiCall('/api/v1/wallet/master-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2262,14 +2416,39 @@ Block Explorer: https://univa-network-l1.vercel.app
       }
 
       const stored = localStorage.getItem('univa_vault_v5');
-      if (!stored) {
-        const custom = document.getElementById('vault-import-key').value.trim();
-        const kp = generateKeypair(custom);
+      if (!stored || isRecoveryMode) {
+        let kp = null;
+        let showBackupModal = false;
+
+        if (customInput) {
+          if (/^[0-9a-fA-F]{64}$/.test(customInput)) {
+            kp = generateKeypair(customInput.toLowerCase());
+          } else {
+            const check = await validateMnemonic12(customInput);
+            if (!check.valid) {
+              alert(check.reason);
+              return;
+            }
+            kp = await deriveKeypairFromMnemonic(check.normalized);
+          }
+        } else {
+          const phrase = await generateMnemonic12();
+          kp = await deriveKeypairFromMnemonic(phrase);
+          showBackupModal = true;
+        }
+
         kp.username = username;
         const vault = await encryptSecret(JSON.stringify(kp), pin);
         localStorage.setItem('univa_vault_v5', JSON.stringify(vault));
         localStorage.setItem('univa_vault_username', username);
         activateWallet(kp);
+        document.getElementById('vault-modal').classList.remove('active');
+        document.getElementById('vault-pin-input').value = '';
+        document.getElementById('vault-import-key').value = '';
+        if (showBackupModal && kp.mnemonic) {
+          openSeedBackupModal(kp.mnemonic);
+        }
+        return;
       } else {
         try {
           const vault = JSON.parse(stored);
@@ -2301,6 +2480,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       walletAddr = kp.address;
       walletEvm = kp.evm_address;
       walletPrivKey = kp.private_key;
+      walletMnemonic = kp.mnemonic || '';
       localStorage.setItem('univa_public_addr', walletAddr);
       localStorage.setItem('univa_public_evm', walletEvm);
 
@@ -2314,9 +2494,39 @@ Block Explorer: https://univa-network-l1.vercel.app
       document.getElementById('w-l1-full').textContent = walletAddr;
       document.getElementById('w-evm-full').textContent = walletEvm;
       document.getElementById('mining-target-addr').textContent = walletAddr;
-      showToast('Welcome ' + uname + ' · Vault active: ' + walletAddr.substring(0, 12) + '...');
+      showToast('Hoş geldin ' + uname + ' · Kasa aktif: ' + walletAddr.substring(0, 12) + '...');
       fetchWalletBalance();
       fetchLiveHistory();
+    }
+
+    function revealVaultMnemonic() {
+      const box = document.getElementById('w-mnemonic-display');
+      const grid = document.getElementById('w-mnemonic-grid');
+      const legacy = document.getElementById('w-mnemonic-legacy');
+      if (!box) return;
+      if (box.style.display === 'none') {
+        if (walletMnemonic) {
+          renderSeedGrid('w-mnemonic-grid', walletMnemonic);
+          grid.style.display = 'grid';
+          legacy.style.display = 'none';
+        } else {
+          grid.style.display = 'none';
+          legacy.style.display = 'block';
+        }
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
+    function copyVaultMnemonic() {
+      if (!walletMnemonic) {
+        showToast('Bu cüzdanda 12 kelime kaydı bulunmuyor (özel anahtarınızı kopyalayabilirsiniz).');
+        return;
+      }
+      navigator.clipboard.writeText(walletMnemonic).then(() => {
+        showToast('12 kelimelik kurtarma ifadesi kopyalandı!');
+      });
     }
 
     function getMobileMinedBlocks() {
@@ -2396,7 +2606,7 @@ Block Explorer: https://univa-network-l1.vercel.app
     }
 
     function resetWalletPrompt() {
-      if (confirm('Reset wallet vault? Ensure you have backed up your private key first!')) {
+      if (confirm('Cüzdanı sıfırlayıp 12 kelimelik başka bir cüzdan açmak istiyor musunuz? Mevcut 12 kelimenizi veya özel anahtarınızı yedeklediğinizden emin olun!')) {
         localStorage.removeItem('univa_vault_v5');
         localStorage.removeItem('univa_vault_username');
         location.reload();
