@@ -373,6 +373,67 @@ def list_all_addresses():
         "addresses": results,
     }
 
+@app.get("/api/v1/tx/{tx_id}")
+def get_transaction_by_id(tx_id: str):
+    clean_id = tx_id.strip().lower()
+    clean_no_0x = clean_id[2:] if clean_id.startswith("0x") else clean_id
+    for block in reversed(blockchain.chain):
+        for tx in block.transactions:
+            tid = str(tx.get("tx_id") or "").lower()
+            tid_no_0x = tid[2:] if tid.startswith("0x") else tid
+            if tid_no_0x and (tid_no_0x == clean_no_0x or tid == clean_id):
+                return {
+                    "status": "confirmed",
+                    "block_index": block.index,
+                    "block_hash": block.hash,
+                    "timestamp": block.timestamp,
+                    "tx": tx,
+                }
+    for tx in blockchain.pending_transactions:
+        tid = str(tx.get("tx_id") or "").lower()
+        tid_no_0x = tid[2:] if tid.startswith("0x") else tid
+        if tid_no_0x and (tid_no_0x == clean_no_0x or tid == clean_id):
+            return {
+                "status": "pending",
+                "block_index": None,
+                "block_hash": None,
+                "timestamp": tx.get("timestamp", time.time()),
+                "tx": tx,
+            }
+    raise HTTPException(404, "Islem bulunamadi")
+
+@app.get("/api/v1/transactions")
+def list_recent_transactions(limit: int = 25):
+    txs = []
+    for tx in reversed(blockchain.pending_transactions):
+        txs.append({
+            "tx_id": tx.get("tx_id", "pending"),
+            "block_index": None,
+            "timestamp": tx.get("timestamp", time.time()),
+            "type": tx.get("type", "transfer"),
+            "from": tx.get("from"),
+            "to": tx.get("to"),
+            "amount": tx.get("amount", 0.0),
+            "fee": tx.get("fee", 0.0),
+            "status": "pending",
+        })
+    for block in reversed(blockchain.chain):
+        for tx in reversed(block.transactions):
+            txs.append({
+                "tx_id": tx.get("tx_id") or f"coinbase_blk_{block.index}",
+                "block_index": block.index,
+                "timestamp": block.timestamp,
+                "type": tx.get("type", "transfer"),
+                "from": tx.get("from"),
+                "to": tx.get("to"),
+                "amount": tx.get("amount", 0.0),
+                "fee": tx.get("fee", 0.0),
+                "status": "confirmed",
+            })
+            if len(txs) >= limit:
+                return {"total": len(txs), "transactions": txs[:limit]}
+    return {"total": len(txs), "transactions": txs[:limit]}
+
 @app.get("/api/v1/history/{address}")
 def address_history(address: str):
     """
@@ -771,10 +832,87 @@ def _process_rpc_call(body: dict) -> dict:
             result = hex(wei_val)
         elif method in ("eth_gasPrice", "eth_maxPriorityFeePerGas"):
             result = "0x3b9aca00" # 1 Gwei
+        elif method == "eth_feeHistory":
+            block_count = 4
+            try:
+                if params and isinstance(params[0], str):
+                    block_count = max(1, min(20, int(params[0], 16)))
+                elif params and isinstance(params[0], int):
+                    block_count = max(1, min(20, params[0]))
+            except Exception:
+                block_count = 4
+            oldest = max(0, blockchain.height - block_count + 1)
+            result = {
+                "oldestBlock": hex(oldest),
+                "baseFeePerGas": ["0x3b9aca00"] * (block_count + 1),
+                "gasUsedRatio": [0.1] * block_count,
+                "reward": [["0x3b9aca00"] for _ in range(block_count)],
+            }
         elif method == "eth_estimateGas":
             result = "0x5208"     # 21000 standart transfer gazı
         elif method in ("eth_call", "eth_getCode", "eth_getStorageAt"):
             result = "0x"
+        elif method == "eth_getTransactionReceipt":
+            tx_h = str(params[0]).lower().replace("0x", "") if params else ""
+            found_blk = None
+            found_tx = None
+            for blk in reversed(blockchain.chain):
+                for t in blk.transactions:
+                    tid = str(t.get("tx_id") or "").lower().replace("0x", "")
+                    if tid and tid == tx_h:
+                        found_blk = blk
+                        found_tx = t
+                        break
+                if found_blk:
+                    break
+            if found_blk:
+                result = {
+                    "transactionHash": "0x" + tx_h,
+                    "transactionIndex": "0x0",
+                    "blockHash": found_blk.hash if found_blk.hash.startswith("0x") else "0x" + found_blk.hash,
+                    "blockNumber": hex(found_blk.index),
+                    "from": str(found_tx.get("from", "0x0000000000000000000000000000000000000000")),
+                    "to": str(found_tx.get("to", "0x0000000000000000000000000000000000000000")),
+                    "cumulativeGasUsed": "0x5208",
+                    "gasUsed": "0x5208",
+                    "contractAddress": None,
+                    "logs": [],
+                    "logsBloom": "0x" + "0" * 512,
+                    "status": "0x1",
+                    "effectiveGasPrice": "0x3b9aca00",
+                    "type": "0x2",
+                }
+            else:
+                result = None
+        elif method == "eth_getTransactionByHash":
+            tx_h = str(params[0]).lower().replace("0x", "") if params else ""
+            found_blk = None
+            found_tx = None
+            for blk in reversed(blockchain.chain):
+                for t in blk.transactions:
+                    tid = str(t.get("tx_id") or "").lower().replace("0x", "")
+                    if tid and tid == tx_h:
+                        found_blk = blk
+                        found_tx = t
+                        break
+                if found_blk:
+                    break
+            if found_blk:
+                result = {
+                    "hash": "0x" + tx_h,
+                    "nonce": hex(int(found_tx.get("nonce", 0))),
+                    "blockHash": found_blk.hash if found_blk.hash.startswith("0x") else "0x" + found_blk.hash,
+                    "blockNumber": hex(found_blk.index),
+                    "transactionIndex": "0x0",
+                    "from": str(found_tx.get("from", "0x0000000000000000000000000000000000000000")),
+                    "to": str(found_tx.get("to", "0x0000000000000000000000000000000000000000")),
+                    "value": hex(int(float(found_tx.get("amount", 0.0)) * 10**18)),
+                    "gas": "0x5208",
+                    "gasPrice": "0x3b9aca00",
+                    "input": "0x",
+                }
+            else:
+                result = None
         elif method == "eth_getTransactionCount":
             # Adresin onaylanmış nonce sayısını döndür
             addr = str(params[0]) if params else ""

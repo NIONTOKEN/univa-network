@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr" translate="no">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#FFFFFF">
+  <meta name="google" content="notranslate">
   <meta name="description" content="UNIVA Network — Sovereign Independent Layer-1 Blockchain Ecosystem">
   <title>UNIVA Network — Sovereign Layer-1 Blockchain Ecosystem</title>
   <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -141,18 +142,20 @@
       color: #20242B;
     }
     .nav-links {
-      display: none; align-items: center; gap: 5px; flex-wrap: nowrap; overflow-x: auto;
-      padding: 4px 2px;
+      display: none; align-items: center; justify-content: center; gap: 4px;
+      flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none;
+      padding: 4px 6px;
     }
+    .nav-links::-webkit-scrollbar { display: none; }
     @media (min-width: 1080px) { .nav-links { display: flex; } }
     .nav-btn {
       background: #FFFFFF;
       border: 1px solid #E4E7EC;
       color: #5A6270;
-      font-size: 0.71rem;
+      font-size: 0.66rem;
       font-weight: 700;
-      padding: 6px 9px;
-      border-radius: 10px;
+      padding: 5px 7px;
+      border-radius: 9px;
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       font-family: inherit;
@@ -160,8 +163,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      min-width: 66px;
+      gap: 3px;
+      flex: 0 0 auto;
       white-space: nowrap;
       box-shadow: 0 1px 2px rgba(32, 36, 43, 0.03);
     }
@@ -601,7 +604,7 @@
   <!-- HEADER -->
   <header class="main-header">
     <div class="brand-wrap" onclick="navigate('landing')">
-      <div class="brand-logo-hex"><img src="logo.png" alt="UNIVA" class="brand-logo-img"></div>
+      <div class="brand-logo-hex"><img src="/logo.png" alt="UNIVA" class="brand-logo-img"></div>
       <div class="brand-title">UNIVA</div>
     </div>
 
@@ -625,7 +628,7 @@
       </button>
       <button class="nav-btn" data-view="core" onclick="navigate('core')">
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg></span>
-        <span class="nav-label">UNIVA Çekirdeği</span>
+        <span class="nav-label">Çekirdek</span>
       </button>
       <button class="nav-btn" data-view="mining" onclick="navigate('mining')">
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><path d="M14.5 4.5l5 5M3 21l9-9M13 6l5 5"/><path d="M7 3c4 0 8 2 11 5l3 3c-3 3-7 5-11 5"/></svg></span>
@@ -637,19 +640,19 @@
       </button>
       <button class="nav-btn" data-view="multichain" onclick="navigate('multichain')">
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
-        <span class="nav-label">Çoklu</span>
+        <span class="nav-label">Çoklu Zincir</span>
       </button>
       <button class="nav-btn" data-view="offline" onclick="navigate('offline')">
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg></span>
-        <span class="nav-label">Devrim Ödemesi</span>
+        <span class="nav-label">Çevrimdışı</span>
       </button>
       <button class="nav-btn" data-view="mystery" onclick="navigate('mystery')">
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg></span>
-        <span class="nav-label">Gizem Protokolü</span>
+        <span class="nav-label">Gizem</span>
       </button>
       <button class="nav-btn" data-view="dev" onclick="navigate('dev')">
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-        <span class="nav-label">pedler</span>
+        <span class="nav-label">Geliştirici</span>
       </button>
       <button class="nav-btn" data-view="wallet" onclick="navigate('wallet')">
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
@@ -729,7 +732,7 @@
       <div class="hero-container univa-hero">
         <canvas id="hero-network-canvas" class="hero-canvas-wrap" aria-hidden="true"></canvas>
         <div class="univa-hero-logo-halo" aria-hidden="true"></div>
-        <img src="logo.png" alt="UNIVA" class="univa-hero-logo" id="univa-hero-logo-mark" decoding="async" />
+        <img src="/logo.png" alt="UNIVA" class="univa-hero-logo" id="univa-hero-logo-mark" decoding="async" />
         <div class="univa-hero-inner">
           <div class="hero-content">
             <div class="hero-tag">Sovereign Layer-1 Blockchain</div>
@@ -747,6 +750,20 @@
       </div>
 
       <div class="content-wrap">
+        <!-- GOOGLE-STYLE UNIVA EXPLORER SEARCH BAR ON HOME PAGE -->
+        <div class="card" style="margin-top:-12px;margin-bottom:28px;padding:22px 26px;border-radius:18px;border:1px solid #C5CCD5;box-shadow:0 8px 28px rgba(32,36,43,0.06);">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+            <div style="font-size:0.86rem;font-weight:800;color:#20242B;display:flex;align-items:center;gap:8px;">
+              <span>🔍</span> UNIVA Blok Gezgini — Anlık Zincir Üzeri Arama
+            </div>
+            <span class="badge badge-native">Blok · İşlem (0x...) · Adres (univa... / 0x...)</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input class="form-input mono" id="home-explorer-query" style="flex:1;min-width:220px;border-radius:99px;padding:13px 20px;font-size:0.92rem;border:1px solid #C5CCD5;background:#F9FAFB;" placeholder="Blok numarası (ör. 62), İşlem Hash (0x...) veya Cüzdan Adresi (univa... / 0x...) yazın..." onkeydown="if(event.key==='Enter')executeHomeExplorerSearch()">
+            <button class="btn btn-primary" onclick="executeHomeExplorerSearch()" style="border-radius:99px;padding:13px 26px;">Gezginde Ara</button>
+          </div>
+        </div>
+
         <!-- ARCHITECTURE PILLARS -->
         <div class="grid-3" style="margin-top:20px;">
           <div class="card card-accent">
@@ -990,6 +1007,31 @@
               </thead>
               <tbody id="explorer-addresses-tbody">
                 <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">Loading active on-chain addresses...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- RECENT ON-CHAIN TRANSACTIONS FEED -->
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-header">
+            <div class="card-title">Son Zincir İçi İşlemler (Transferler & Blok Ödülleri)</div>
+            <button class="btn btn-metallic btn-sm" onclick="fetchRecentTransactions()">🔄 İşlemleri Yenile</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>İşlem ID (TX Hash)</th>
+                  <th>Tür</th>
+                  <th>Gönderen</th>
+                  <th>Alıcı</th>
+                  <th>Miktar</th>
+                  <th>Blok</th>
+                </tr>
+              </thead>
+              <tbody id="explorer-txs-tbody">
+                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">Son işlemler yükleniyor...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1516,8 +1558,9 @@ Block Explorer: https://univa-network-l1.vercel.app
                 ÖNEMLİ TRANSFER VE CÜZDAN UYARISI / CRITICAL TRANSFER NOTICE
               </div>
               <p style="font-size:0.84rem; color:var(--text); line-height:1.6; margin-bottom:8px;">
-                • <strong>UNIVA Cüzdan İçi Transferler:</strong> UNIVA kendi cüzdan kasası (Wallet Vault) içi transferlerde <strong><span class="mono" style="color:var(--blue);">univa...</span> ile başlayan 30 karakterli yerel L1 adresi</strong> kullanılabilir.<br>
-                • <strong>⚠️ MetaMask, Trust Wallet ve Tüm Web3 Cüzdanları:</strong> MetaMask, Trust Wallet ve diğer tüm dış Web3 cüzdanlarına gönderim yaparken veya bu cüzdanlardan transfer alırken <strong>kesinlikle <span class="mono" style="color:var(--warning);">0x...</span> ile başlayan EVM Ayna Adresi (EVM Mirror Address)</strong> kullanılmalıdır!
+                • <strong>UNIVA Cüzdan İçi Transferler:</strong> UNIVA kendi cüzdan kasası (Wallet Vault) içindeki transferlerde <strong><span class="mono" style="color:var(--blue);">univa...</span> ile başlayan 30 karakterli yerel L1 adresi</strong> kullanılır.<br>
+                • <strong>⚠️ MetaMask, Trust Wallet, OKX Wallet ve Tüm Web3 Cüzdanları:</strong> Dış Web3 cüzdanlarına gönderim yaparken veya bu cüzdanlardan transfer alırken <strong>mutlaka <span class="mono" style="color:var(--warning);">0x...</span> ile başlayan EVM Adresi</strong> kullanılmalıdır!<br>
+                • <strong>⛽ Gaz (Ağ) Ücreti Nereye Gider?:</strong> Ağ üzerindeki her transferden kesilen küçük gaz ücreti aracıya gitmez; doğrudan o bloğu doğrulayıp üreten <strong>madencinin blok ödülüne</strong> eklenir.
               </p>
               <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; background:#FFFFFF; border-radius:8px; border:1px solid var(--border);">
                 <div style="font-size:0.76rem; color:var(--text-muted);">
@@ -1605,7 +1648,7 @@ Block Explorer: https://univa-network-l1.vercel.app
     <div class="footer-grid">
       <div class="footer-col">
         <div class="brand-wrap" style="margin-bottom:14px;">
-          <div class="brand-logo-hex"><img src="logo.png" alt="UNIVA" class="brand-logo-img"></div>
+          <div class="brand-logo-hex"><img src="/logo.png" alt="UNIVA" class="brand-logo-img"></div>
           <div class="brand-title">UNIVA</div>
         </div>
         <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;">
@@ -1688,7 +1731,7 @@ Block Explorer: https://univa-network-l1.vercel.app
     'use strict';
 
     // ─── STATE MANAGEMENT & UNIFIED GLOBAL NODE BRIDGE ───
-    const PUBLIC_TUNNEL_URL = 'https://relation-representative-think-certification.trycloudflare.com';
+    const PUBLIC_TUNNEL_URL = 'https://funky-decades-andrea-comes.trycloudflare.com';
     const LOCAL_NODE_URL = 'http://127.0.0.1:5050';
     (function syncQueryNodeParam() {
       try {
@@ -1893,6 +1936,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (tbodyDash) tbodyDash.innerHTML = dashRows;
       if (tbodyExp) tbodyExp.innerHTML = expRows;
       fetchAllAddresses();
+      fetchRecentTransactions();
     }
 
     async function inspectBlock(idx) {
@@ -1970,6 +2014,46 @@ Block Explorer: https://univa-network-l1.vercel.app
       tbody.innerHTML = rows;
     }
 
+    async function executeHomeExplorerSearch() {
+      const val = document.getElementById('home-explorer-query').value.trim();
+      if (!val) return;
+      navigate('explorer');
+      document.getElementById('explorer-query').value = val;
+      await executeExplorerSearch();
+    }
+
+    async function fetchRecentTransactions() {
+      const tbody = document.getElementById('explorer-txs-tbody');
+      if (!tbody) return;
+      const data = await apiCall('/api/v1/transactions?limit=20');
+      const list = (data && data.transactions) ? data.transactions : [];
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">Henüz işlem kaydı bulunamadı.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(tx => {
+        const shortTx = escapeHtml(String(tx.tx_id || '').substring(0, 18) + '...');
+        const fullTx = escapeHtml(String(tx.tx_id || ''));
+        const typeBadge = tx.type === 'coinbase'
+          ? '<span class="badge badge-native">Blok Ödülü</span>'
+          : '<span class="badge badge-live">Transfer</span>';
+        const blkText = tx.block_index !== null && tx.block_index !== undefined ? ('#' + tx.block_index) : 'Mempool';
+        return `<tr>
+          <td><a class="mono" style="color:var(--blue);cursor:pointer;font-weight:700;" onclick="inspectTxInExplorer('${fullTx}')">${shortTx}</a></td>
+          <td>${typeBadge}</td>
+          <td class="mono" style="font-size:0.75rem;">${escapeHtml(String(tx.from || '').substring(0, 16))}...</td>
+          <td class="mono" style="font-size:0.75rem;">${escapeHtml(String(tx.to || '').substring(0, 16))}...</td>
+          <td class="mono" style="color:var(--success);font-weight:700;">${Number(tx.amount || 0).toFixed(4)} UNIVA</td>
+          <td class="mono">${blkText}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function inspectTxInExplorer(txId) {
+      document.getElementById('explorer-query').value = txId;
+      await executeExplorerSearch();
+    }
+
     async function executeExplorerSearch() {
       const q = document.getElementById('explorer-query').value.trim();
       const panel = document.getElementById('explorer-inspect-panel');
@@ -1978,6 +2062,31 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (!isNaN(q)) {
         await inspectBlock(q);
         return;
+      }
+
+      // Check 64/66-char TX Hash first
+      if ((q.startsWith('0x') && q.length >= 64) || (!q.startsWith('univa') && q.length === 64)) {
+        const res = await apiCall('/api/v1/tx/' + encodeURIComponent(q));
+        if (res && res.tx) {
+          const tx = res.tx;
+          panel.style.display = 'block';
+          panel.innerHTML = `<div class="card card-accent">
+            <div class="card-header">
+              <div class="card-title">UNIVA İşlem (TX) Doğrulama Detayı</div>
+              <button class="btn btn-metallic btn-sm" onclick="this.closest('.card-accent').parentElement.style.display='none'">✕ Kapat</button>
+            </div>
+            <div style="font-size:0.88rem;line-height:1.8;">
+              <div><strong>Durum:</strong> <span class="badge ${res.status === 'confirmed' ? 'badge-live' : 'badge-dev'}">${res.status === 'confirmed' ? 'ONAYLANDI (Blok #' + res.block_index + ')' : 'MEMPOOL (Bekliyor)'}</span></div>
+              <div><strong>TX Hash:</strong> <span class="mono" style="color:var(--blue);word-break:break-all;">${escapeHtml(tx.tx_id || q)}</span></div>
+              <div><strong>Gönderen:</strong> <span class="mono">${escapeHtml(tx.from || '—')}</span></div>
+              <div><strong>Alıcı:</strong> <span class="mono">${escapeHtml(tx.to || '—')}</span></div>
+              <div><strong>Miktar:</strong> <span class="mono" style="color:var(--success);font-weight:800;">${tx.amount} UNIVA</span></div>
+              <div><strong>Ağ / Gaz Ücreti (Madenciye):</strong> <span class="mono">${tx.fee || 0} UNIVA</span></div>
+            </div>
+          </div>`;
+          panel.scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
       }
 
       if (q.startsWith('univa') || q.startsWith('0x')) {
@@ -2344,7 +2453,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         if (window.Worker) {
           try {
             if (!miningWorker) {
-              miningWorker = new Worker('miner.worker.js');
+              miningWorker = new Worker('/miner.worker.js');
               miningWorker.onmessage = handleWorkerMiningEvent;
               miningWorker.onerror = function() {
                 miningWorker = null;
@@ -2917,10 +3026,27 @@ Block Explorer: https://univa-network-l1.vercel.app
       }
       fetchLiveStats();
       setInterval(fetchLiveStats, 6000);
+
+      // Deep-link router for Trust Wallet / OKX Wallet Explorer URLs (/tx/..., /address/..., /block/...)
+      try {
+        const p = window.location.pathname || '/';
+        const m = p.match(/^\/(tx|address|block)\/([^\/]+)/i);
+        if (m && m[2]) {
+          const queryVal = decodeURIComponent(m[2]);
+          navigate('explorer');
+          setTimeout(() => {
+            const inp = document.getElementById('explorer-query');
+            if (inp) {
+              inp.value = queryVal;
+              executeExplorerSearch();
+            }
+          }, 500);
+        }
+      } catch (e) {}
     });
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
   </script>
 </body>
