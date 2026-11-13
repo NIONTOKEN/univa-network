@@ -327,6 +327,7 @@ def balance(address: str):
         "address": address,
         "balance": bal,
         "confirmed_balance": blockchain.get_balance(address),
+        "nonce": blockchain._pending_nonce(address),
         "ticker": "UNIVA",
         "valid_format": validate_address(address),
     }
@@ -605,6 +606,52 @@ async def create_or_recover_wallet(request: Request):
     }
 
 
+PUBKEY_BINDINGS_FILE = os.path.join(BASE_DIR, "univa_pubkey_bindings.json")
+
+def _load_pubkey_bindings():
+    from core.wallet import REGISTERED_PWA_ORIGINS
+    if os.path.exists(PUBKEY_BINDINGS_FILE):
+        try:
+            with open(PUBKEY_BINDINGS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                for pk, addrs in data.items():
+                    if isinstance(addrs, list):
+                        REGISTERED_PWA_ORIGINS.setdefault(pk, set()).update(addrs)
+        except Exception:
+            pass
+
+def _save_pubkey_binding(pub_key: str, *addrs: str):
+    from core.wallet import REGISTERED_PWA_ORIGINS
+    s = REGISTERED_PWA_ORIGINS.setdefault(pub_key, set())
+    for a in addrs:
+        if a:
+            s.add(a)
+    try:
+        serializable = {k: sorted(v) for k, v in REGISTERED_PWA_ORIGINS.items()}
+        with open(PUBKEY_BINDINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(serializable, f, indent=2)
+    except Exception:
+        pass
+
+_load_pubkey_bindings()
+
+@app.post("/api/v1/wallet/bind-pubkey")
+async def bind_pubkey_origin(request: Request):
+    from core.wallet import UnivaWallet, validate_address
+    data = await request.json()
+    pub_key = (data.get("public_key") or "").strip().lower()
+    addr = (data.get("address") or "").strip()
+    evm = (data.get("evm_address") or "").strip()
+    sig = (data.get("signature") or "").strip().lower()
+    if len(pub_key) != 128 or not validate_address(addr):
+        raise HTTPException(400, "Gecersiz public_key veya adres")
+    msg = f"UNIVA_BIND|{pub_key}|{addr}|{evm}"
+    if not UnivaWallet.verify_signature(pub_key, msg, sig):
+        raise HTTPException(403, "ECDSA imza dogrulamasi basarisiz")
+    _save_pubkey_binding(pub_key, addr, evm)
+    return {"status": "ok", "bound": True, "address": addr}
+
 @app.post("/transactions")
 @app.post("/tx")
 async def submit_transaction(request: Request):
@@ -629,6 +676,7 @@ async def submit_transaction(request: Request):
             if req_from and req_from not in allowed_senders:
                 raise HTTPException(400, "Ozel anahtar bu cuzdan adresine ait degil!")
             sender_addr = req_from if req_from in allowed_senders else w.address
+            _save_pubkey_binding(w.public_key, sender_addr, derive_pwa_address(priv_key), derive_pwa_evm_address(priv_key))
             tx = blockchain.create_transaction(
                 w, tx.get("to"), float(tx.get("amount", 0)), float(tx.get("fee", 0.0)), from_address=sender_addr
             )
@@ -646,7 +694,8 @@ async def submit_transaction(request: Request):
             try:
                 w = UnivaWallet.load(wallet_file)
                 if tx.get("from") == w.address:
-                    tx = blockchain.create_transaction(
+                    _save_pubkey_binding(w.public_key, sender_addr, derive_pwa_address(priv_key), derive_pwa_evm_address(priv_key))
+            tx = blockchain.create_transaction(
                         w, tx.get("to"), float(tx.get("amount", 0)), float(tx.get("fee", 0.0))
                     )
             except Exception:

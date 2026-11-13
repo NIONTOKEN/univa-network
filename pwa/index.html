@@ -1407,48 +1407,81 @@
     </section>
 
     <!-- 9. OFFLINE PAY -->
+    <!-- 9. OFFLINE PAY PROTOCOL -->
     <section class="view-section" id="view-offline">
       <div class="content-wrap">
         <div class="card-header" style="margin-bottom:24px;">
           <div>
-            <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Offline Pay Protocol</h2>
-            <p style="font-size:0.85rem;color:var(--text-muted);">Zero-connectivity cryptographically signed payment proposals via NFC, Bluetooth Low Energy, and Offline QR.</p>
+            <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Çevrimdışı Ödeme Protokolü</h2>
+            <p style="font-size:0.85rem;color:var(--text-muted);">İnternet olmadan uçak modunda bile cihazlar arası secp256k1 imzalı QR ödeme fişi üretin, doğrulayın ve bağlantı geldiğinde zincire yayınlayın.</p>
           </div>
           <span class="badge badge-native">Air-Gapped Secp256k1</span>
         </div>
 
         <div class="grid-2">
+          <!-- LEFT: SENDER (OFFLINE SIGN + QR) -->
           <div class="card">
             <div class="card-header">
-              <div class="card-title">Generate Offline Signed Proposal</div>
+              <div class="card-title">1. Çevrimdışı Ödeme Oluştur (Gönderen)</div>
             </div>
             <div class="form-group">
-              <label class="form-label">Recipient Address</label>
+              <label class="form-label">Alıcı Adresi (univa... veya 0x...)</label>
               <input class="form-input mono" id="off-to" placeholder="univaf63aua23vxdvcmvkunx66yzh2">
             </div>
             <div class="form-group">
-              <label class="form-label">Transfer Amount (UNIVA)</label>
-              <input class="form-input mono" type="number" id="off-amt" placeholder="50.0">
+              <label class="form-label">Transfer Tutarı (UNIVA)</label>
+              <input class="form-input mono" type="number" step="0.0001" id="off-amt" placeholder="10.0">
             </div>
-            <button class="btn btn-primary" onclick="generateOfflineProposal()">Sign Offline QR Proposal</button>
-            <div id="off-qr-result" style="margin-top:16px;display:none;"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Protocol Security Distinction</div>
-            </div>
-            <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;">
-              <p style="margin-bottom:12px;">
-                <strong style="color:var(--warning);">CRITICAL DISTINCTION:</strong> An offline signed proposal is a pre-authorized cryptographic promise generated offline.
-              </p>
-              <p style="margin-bottom:12px;">
-                It does <strong>NOT</strong> constitute confirmed on-chain balance until either device establishes network connectivity and broadcasts the ECDSA transaction to the UNIVA Mempool.
-              </p>
-              <div class="mono" style="padding:10px;background:#F8FAFC;border-radius:6px;border:1px solid var(--border);font-size:0.75rem;">
-                State: Proposal -> Broadcast -> Mining Confirmation (Block #N)
+            <button class="btn btn-primary" onclick="generateOfflineProposal()" style="width:100%;">🔐 İmzalı Çevrimdışı QR Oluştur</button>
+            <div id="off-qr-result" style="margin-top:16px;display:none;">
+              <div class="card card-accent" style="margin:0;text-align:center;">
+                <div style="font-weight:700;color:var(--success);margin-bottom:10px;">✓ secp256k1 İmzalı Çevrimdışı Fiş Hazır (Özel Anahtar İçermez)</div>
+                <canvas id="off-qr-canvas" width="220" height="220" style="background:#fff;padding:10px;border-radius:10px;border:1px solid var(--border);max-width:100%;height:auto;"></canvas>
+                <div id="off-qr-meta" class="mono" style="font-size:0.74rem;color:var(--text-muted);margin-top:8px;"></div>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                  <input class="form-input mono" id="off-qr-token" readonly style="font-size:0.72rem;">
+                  <button class="btn btn-metallic btn-sm" onclick="copyElemValue('off-qr-token', 'Çevrimdışı ödeme kodu kopyalandı!')">📋 Kopyala</button>
+                </div>
               </div>
             </div>
+          </div>
+
+          <!-- RIGHT: RECEIVER (SCAN / VERIFY / BROADCAST QUEUE) -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">2. Çevrimdışı Ödeme Al ve Ağa Yayınla (Alıcı)</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+              <button class="btn btn-metallic btn-sm" id="off-scan-btn" onclick="startOfflineQrScanner()">📷 Kamera ile QR Tara</button>
+              <button class="btn btn-danger btn-sm" id="off-scan-stop-btn" onclick="stopOfflineQrScanner()" style="display:none;">⏹️ Kamerayı Kapat</button>
+            </div>
+            <div id="off-scanner-wrap" style="display:none;margin-bottom:12px;">
+              <video id="off-scanner-video" playsinline autoplay muted style="width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border);background:#000;"></video>
+            </div>
+            <div class="form-group">
+              <label class="form-label">İmzalı Çevrimdışı Ödeme Kodu (UNIVA:OFF:V1:...)</label>
+              <textarea class="form-input mono" id="off-receive-input" rows="2" placeholder="QR tarayın veya göndericinin UNIVA:OFF:V1:... kodunu buraya yapıştırın"></textarea>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="receiveOfflineProposal()" style="width:100%;margin-bottom:16px;">✓ İmzayı Doğrula ve Bekleyenlere Ekle</button>
+
+            <div style="border-top:1px solid var(--border);padding-top:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:0.8rem;font-weight:700;">📡 Bekleyen Çevrimdışı İşlemler (<span id="off-queue-count">0</span>)</span>
+                <button class="btn btn-metallic btn-sm" onclick="syncOfflineQueue()">🚀 Bağlantı Varsa Yayınla</button>
+              </div>
+              <div id="off-queue-list" style="font-size:0.8rem;color:var(--text-muted);max-height:220px;overflow-y:auto;">
+                Henüz bekleyen çevrimdışı ödeme yok.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;">
+          <div class="card-header">
+            <div class="card-title">Protokol Güvenlik Kuralı</div>
+          </div>
+          <div style="font-size:0.84rem;color:var(--text-muted);line-height:1.6;">
+            <strong style="color:var(--warning);">KRİTİK AYRIM:</strong> Çevrimdışı imzalı ödeme fişi özel anahtarınızı asla içermez; yalnızca alıcı cihazın kriptografik olarak doğrulayabileceği imzalı bir işlemdir. İki cihazdan biri internete bağlandığı anda işlem <strong>UNIVA Mempool</strong> havuzuna gönderilir ve madencilik onayından sonra kalıcı bakiyeye işlenir.
           </div>
         </div>
       </div>
@@ -2555,6 +2588,10 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (res && typeof res.balance !== 'undefined') {
         const num = parseFloat(res.balance).toFixed(8);
         document.getElementById('w-vault-balance').innerHTML = num + ' <small style="font-size:1rem;color:var(--text-muted)">UNIVA</small>';
+        if (typeof res.nonce === 'number') {
+          localStorage.setItem('univa_nonce_' + walletAddr, String(res.nonce));
+        }
+        ensurePubkeyBound();
       } else {
         const mobBal = getMobileMinedBalance().toFixed(8);
         document.getElementById('w-vault-balance').innerHTML = mobBal + ' <small style="font-size:1rem;color:var(--text-muted)">UNIVA</small>';
@@ -2849,23 +2886,425 @@ Block Explorer: https://univa-network-l1.vercel.app
       }
     }
 
-    // ─── OFFLINE PAY & MYSTERY HELPERS ───
-    function generateOfflineProposal() {
-      const to = document.getElementById('off-to').value.trim();
-      const amt = document.getElementById('off-amt').value.trim();
-      const res = document.getElementById('off-qr-result');
-      if (!to || !amt) { alert('Enter recipient and amount.'); return; }
-      res.style.display = 'block';
-      res.innerHTML = `<div class="card card-accent" style="margin:0;">
-        <div style="font-weight:700;color:var(--success);">✓ Cryptographic Signed Proposal Generated</div>
-        <div class="mono" style="font-size:0.75rem;margin-top:6px;word-break:break-all;">
-          UNIVA:OFFLINE:PAY?to=${to}&amt=${amt}&sig=3045022100e4b8...&ts=${Date.now()}
-        </div>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">
-          Transmit via NFC or show QR to merchant. Syncs automatically upon reconnection.
-        </p>
-      </div>`;
+    // ─── PURE-JS SECP256K1 (ZERO EXTERNAL DEPS, 100% OFFLINE) ───
+    const SECP_P  = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2Fn;
+    const SECP_N  = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+    const SECP_GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n;
+    const SECP_GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8n;
+
+    function mod(a, m) { const r = a % m; return r >= 0n ? r : r + m; }
+    function modInv(a, m) {
+      let [old_r, r] = [mod(a, m), m], [old_s, s] = [1n, 0n];
+      while (r !== 0n) {
+        const q = old_r / r;
+        [old_r, r] = [r, old_r - q * r];
+        [old_s, s] = [s, old_s - q * s];
+      }
+      return mod(old_s, m);
     }
+    function pointAdd(p1, p2) {
+      if (!p1) return p2;
+      if (!p2) return p1;
+      const [x1, y1] = p1, [x2, y2] = p2;
+      if (x1 === x2 && y1 !== y2) return null;
+      let lam;
+      if (x1 === x2 && y1 === y2) lam = mod((3n * x1 * x1) * modInv(2n * y1, SECP_P), SECP_P);
+      else lam = mod((y2 - y1) * modInv(x2 - x1, SECP_P), SECP_P);
+      const x3 = mod(lam * lam - x1 - x2, SECP_P);
+      const y3 = mod(lam * (x1 - x3) - y1, SECP_P);
+      return [x3, y3];
+    }
+    function pointMul(k, pt = [SECP_GX, SECP_GY]) {
+      let r = null, a = pt, n = mod(k, SECP_N);
+      while (n > 0n) {
+        if (n & 1n) r = pointAdd(r, a);
+        a = pointAdd(a, a);
+        n >>= 1n;
+      }
+      return r;
+    }
+    function hex32(bi) { return bi.toString(16).padStart(64, '0'); }
+    function getSecp256k1PubKey(privHex) {
+      const pt = pointMul(BigInt('0x' + privHex));
+      return hex32(pt[0]) + hex32(pt[1]);
+    }
+    async function univaDigestSha1OfSha256(msg) {
+      const enc = new TextEncoder().encode(msg);
+      const s256 = await crypto.subtle.digest('SHA-256', enc);
+      const s1 = await crypto.subtle.digest('SHA-1', s256);
+      const sha256Hex = Array.from(new Uint8Array(s256)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const zHex = Array.from(new Uint8Array(s1)).map(b => b.toString(16).padStart(2, '0')).join('');
+      return { sha256Hex, z: BigInt('0x' + zHex) };
+    }
+    async function signSecp256k1Offline(privHex, msg) {
+      const d = BigInt('0x' + privHex);
+      const { sha256Hex, z } = await univaDigestSha1OfSha256(msg);
+      while (true) {
+        const kb = new Uint8Array(32);
+        crypto.getRandomValues(kb);
+        const k = mod(BigInt('0x' + Array.from(kb).map(b => b.toString(16).padStart(2, '0')).join('')), SECP_N - 1n) + 1n;
+        const R = pointMul(k);
+        const r = mod(R[0], SECP_N);
+        if (r === 0n) continue;
+        let s = mod(modInv(k, SECP_N) * (z + r * d), SECP_N);
+        if (s === 0n) continue;
+        if (s > SECP_N / 2n) s = SECP_N - s;
+        return { sha256Hex, signature: hex32(r) + hex32(s) };
+      }
+    }
+    async function verifySecp256k1Offline(pubHex, msg, sigHex) {
+      try {
+        if (!pubHex || pubHex.length !== 128 || !sigHex || sigHex.length !== 128) return false;
+        const Q = [BigInt('0x' + pubHex.slice(0, 64)), BigInt('0x' + pubHex.slice(64))];
+        const r = BigInt('0x' + sigHex.slice(0, 64));
+        const s = BigInt('0x' + sigHex.slice(64));
+        if (r <= 0n || r >= SECP_N || s <= 0n || s >= SECP_N) return false;
+        const { z } = await univaDigestSha1OfSha256(msg);
+        const w = modInv(s, SECP_N);
+        const u1 = mod(z * w, SECP_N);
+        const u2 = mod(r * w, SECP_N);
+        const P = pointAdd(pointMul(u1), pointMul(u2, Q));
+        if (!P) return false;
+        return mod(P[0], SECP_N) === r;
+      } catch (e) { return false; }
+    }
+
+    function canonicalTxMessageJS(tx) {
+      const pyF = n => Number.isInteger(n) ? n.toFixed(1) : String(n);
+      return `{"amount":${pyF(tx.amount)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"nonce":${tx.nonce},"public_key":${JSON.stringify(tx.public_key)},"to":${JSON.stringify(tx.to)},"type":"transfer"}`;
+    }
+
+    async function ensurePubkeyBound() {
+      if (!walletPrivKey || !walletAddr || !nodeConnected) return;
+      const boundKey = 'univa_bound_' + walletAddr;
+      if (localStorage.getItem(boundKey) === '1') return;
+      try {
+        const pub = getSecp256k1PubKey(walletPrivKey);
+        const msg = `UNIVA_BIND|${pub}|${walletAddr}|${walletEvm}`;
+        const { signature } = await signSecp256k1Offline(walletPrivKey, msg);
+        const res = await apiCall('/api/v1/wallet/bind-pubkey', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ public_key: pub, address: walletAddr, evm_address: walletEvm, signature })
+        });
+        if (res && res.bound) localStorage.setItem(boundKey, '1');
+      } catch (e) {}
+    }
+
+    // ─── PURE-JS QR CODE GENERATOR (BYTE MODE, ZERO CDN) ───
+    const QR_GF_EXP = new Uint8Array(512), QR_GF_LOG = new Uint8Array(256);
+    (() => {
+      let x = 1;
+      for (let i = 0; i < 255; i++) {
+        QR_GF_EXP[i] = x; QR_GF_LOG[x] = i;
+        x <<= 1; if (x & 0x100) x ^= 0x11d;
+      }
+      for (let i = 255; i < 512; i++) QR_GF_EXP[i] = QR_GF_EXP[i - 255];
+    })();
+    function qrRsPoly(nsym) {
+      let g = [1];
+      for (let i = 0; i < nsym; i++) {
+        const ng = new Array(g.length + 1).fill(0);
+        const f = QR_GF_EXP[i];
+        for (let j = 0; j < g.length; j++) {
+          ng[j] ^= g[j];
+          ng[j + 1] ^= g[j] ? QR_GF_EXP[QR_GF_LOG[g[j]] + QR_GF_LOG[f]] : 0;
+        }
+        g = ng;
+      }
+      return g;
+    }
+    function qrRsEncode(data, nsym) {
+      const gen = qrRsPoly(nsym);
+      const res = new Uint8Array(data.length + nsym);
+      res.set(data);
+      for (let i = 0; i < data.length; i++) {
+        const coef = res[i];
+        if (coef !== 0) {
+          const lcoef = QR_GF_LOG[coef];
+          for (let j = 0; j < gen.length; j++) {
+            if (gen[j] !== 0) res[i + j] ^= QR_GF_EXP[lcoef + QR_GF_LOG[gen[j]]];
+          }
+        }
+      }
+      return res.slice(data.length);
+    }
+    // Version L-level specs: [ver, totalDataCodewords, ecPerBlock, blocksG1, dataG1, blocksG2, dataG2, alignCoords]
+    const QR_SPECS = [
+      [2, 34, 10, 1, 34, 0, 0, [6, 18]],
+      [4, 80, 20, 1, 80, 0, 0, [6, 26]],
+      [6, 136, 18, 2, 68, 0, 0, [6, 34]],
+      [9, 232, 22, 2, 116, 0, 0, [6, 26, 46]],
+      [12, 370, 24, 2, 92, 2, 93, [6, 32, 58]],
+      [15, 523, 22, 5, 87, 1, 88, [6, 26, 46, 66]],
+      [18, 721, 30, 5, 90, 3, 91, [6, 30, 54, 78]]
+    ];
+    function drawUnivaQrCanvas(canvas, text) {
+      const bytes = new TextEncoder().encode(text);
+      const spec = QR_SPECS.find(s => (s[1] - (s[0] < 10 ? 2 : 3)) >= bytes.length) || QR_SPECS[QR_SPECS.length - 1];
+      const [ver, totalData, ecPerBlk, b1, d1, b2, d2, align] = spec;
+      const size = ver * 4 + 17;
+      const bits = [];
+      const pushBits = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+      pushBits(0b0100, 4);
+      pushBits(Math.min(bytes.length, totalData - 3), ver < 10 ? 8 : 16);
+      for (let i = 0; i < bytes.length && bits.length + 8 <= totalData * 8; i++) pushBits(bytes[i], 8);
+      for (let i = 0; i < 4 && bits.length < totalData * 8; i++) bits.push(0);
+      while (bits.length % 8 !== 0) bits.push(0);
+      const dataCw = [];
+      for (let i = 0; i < bits.length; i += 8) {
+        let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+        dataCw.push(b);
+      }
+      let padIdx = 0;
+      while (dataCw.length < totalData) dataCw.push(padIdx++ % 2 === 0 ? 0xec : 0x11);
+      const blocks = [], ecs = [];
+      let off = 0;
+      for (let i = 0; i < b1; i++) { const bl = dataCw.slice(off, off + d1); off += d1; blocks.push(bl); ecs.push(qrRsEncode(bl, ecPerBlk)); }
+      for (let i = 0; i < b2; i++) { const bl = dataCw.slice(off, off + d2); off += d2; blocks.push(bl); ecs.push(qrRsEncode(bl, ecPerBlk)); }
+      const stream = [];
+      const maxD = Math.max(d1, d2);
+      for (let i = 0; i < maxD; i++) for (const bl of blocks) if (i < bl.length) stream.push(bl[i]);
+      for (let i = 0; i < ecPerBlk; i++) for (const ec of ecs) stream.push(ec[i]);
+      const mat = Array.from({ length: size }, () => new Int8Array(size).fill(-1));
+      const func = Array.from({ length: size }, () => new Uint8Array(size));
+      const setF = (r, c, v) => { if (r >= 0 && r < size && c >= 0 && c < size) { mat[r][c] = v; func[r][c] = 1; } };
+      const finder = (r0, c0) => {
+        for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++) {
+          const inB = r >= 0 && r <= 6 && c >= 0 && c <= 6;
+          const v = inB && (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) ? 1 : 0;
+          setF(r0 + r, c0 + c, v);
+        }
+      };
+      finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+      for (let i = 8; i < size - 8; i++) { setF(6, i, i % 2 === 0 ? 1 : 0); setF(i, 6, i % 2 === 0 ? 1 : 0); }
+      for (const r of align) for (const c of align) {
+        if ((r < 9 && c < 9) || (r < 9 && c > size - 10) || (r > size - 10 && c < 9)) continue;
+        for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++)
+          setF(r + dr, c + dc, (Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0)) ? 1 : 0);
+      }
+      setF(size - 8, 8, 1);
+      for (let i = 0; i < 9; i++) { if (i !== 6) { setF(8, i, 0); setF(i, 8, 0); } }
+      for (let i = 0; i < 8; i++) { setF(8, size - 1 - i, 0); if (i < 7) setF(size - 1 - i, 8, 0); }
+      if (ver >= 7) {
+        let vInfo = ver;
+        let rem = ver << 12;
+        for (let i = 17; i >= 12; i--) if ((rem >> i) & 1) rem ^= (0x1f25 << (i - 12));
+        vInfo = (ver << 12) | rem;
+        for (let i = 0; i < 18; i++) {
+          const bit = (vInfo >> i) & 1;
+          setF(Math.floor(i / 3), size - 11 + (i % 3), bit);
+          setF(size - 11 + (i % 3), Math.floor(i / 3), bit);
+        }
+      }
+      let bitIdx = 0, up = true;
+      for (let col = size - 1; col > 0; col -= 2) {
+        if (col === 6) col--;
+        for (let i = 0; i < size; i++) {
+          const r = up ? size - 1 - i : i;
+          for (let c = col; c >= col - 1; c--) {
+            if (!func[r][c]) {
+              const b = bitIdx < stream.length * 8 ? (stream[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1 : 0;
+              mat[r][c] = b ^ (((r + c) % 2 === 0) ? 1 : 0); // mask 0
+              bitIdx++;
+            }
+          }
+        }
+        up = !up;
+      }
+      // Format bits for EC=L (01) + Mask 0 (000) -> 0b01000 -> BCH+XOR = 0x77C4 (111011111000100)
+      const fmt = 0x77C4;
+      const fCoords1 = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+      const fCoords2 = [[size-1,8],[size-2,8],[size-3,8],[size-4,8],[size-5,8],[size-6,8],[size-7,8],[8,size-8],[8,size-7],[8,size-6],[8,size-5],[8,size-4],[8,size-3],[8,size-2],[8,size-1]];
+      for (let i = 0; i < 15; i++) {
+        const b = (fmt >> (14 - i)) & 1;
+        mat[fCoords1[i][0]][fCoords1[i][1]] = b;
+        mat[fCoords2[i][0]][fCoords2[i][1]] = b;
+      }
+      const ctx = canvas.getContext('2d');
+      const px = canvas.width;
+      const pad = 12;
+      const cell = (px - pad * 2) / size;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, px, px);
+      ctx.fillStyle = '#111827';
+      for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+        if (mat[r][c] === 1) ctx.fillRect(pad + c * cell, pad + r * cell, Math.ceil(cell), Math.ceil(cell));
+      }
+    }
+
+    // ─── OFFLINE PAY PROTOCOL (CREATE + SCAN + VERIFY + BROADCAST QUEUE) ───
+    function getOfflineQueue() {
+      try { return JSON.parse(localStorage.getItem('univa_offline_queue_v1') || '[]'); } catch (e) { return []; }
+    }
+    function saveOfflineQueue(q) {
+      localStorage.setItem('univa_offline_queue_v1', JSON.stringify(q.slice(0, 100)));
+      renderOfflineQueue();
+    }
+    function copyElemValue(id, msg) {
+      const el = document.getElementById(id);
+      if (el) navigator.clipboard.writeText(el.value).then(() => showToast(msg));
+    }
+
+    async function generateOfflineProposal() {
+      if (!walletPrivKey || !walletAddr) { alert('Önce Cüzdan Kasasını açmalısınız!'); return; }
+      const to = document.getElementById('off-to').value.trim();
+      const amt = parseFloat(document.getElementById('off-amt').value);
+      if (!to || (!to.startsWith('univa') && !to.startsWith('0x'))) { alert('Geçerli bir UNIVA (univa...) veya EVM (0x...) alıcı adresi girin.'); return; }
+      if (!amt || amt <= 0) { alert('Geçerli bir tutar girin.'); return; }
+
+      const nonceKey = 'univa_nonce_' + walletAddr;
+      let nextNonce = parseInt(localStorage.getItem(nonceKey) || '0', 10);
+      const pubKey = getSecp256k1PubKey(walletPrivKey);
+      const tx = {
+        type: 'transfer',
+        from: walletAddr,
+        to: to,
+        amount: parseFloat(amt.toFixed(8)),
+        fee: 0.001,
+        nonce: nextNonce,
+        public_key: pubKey
+      };
+      const canon = canonicalTxMessageJS(tx);
+      const { sha256Hex, signature } = await signSecp256k1Offline(walletPrivKey, canon);
+      tx.tx_id = sha256Hex;
+      tx.signature = signature;
+      localStorage.setItem(nonceKey, String(nextNonce + 1));
+
+      const token = 'UNIVA:OFF:V1:' + btoa(JSON.stringify(tx));
+      document.getElementById('off-qr-result').style.display = 'block';
+      document.getElementById('off-qr-token').value = token;
+      document.getElementById('off-qr-meta').textContent = `Gönderen: ${walletAddr.slice(0,12)}... -> ${amt} UNIVA (Nonce #${nextNonce})`;
+      drawUnivaQrCanvas(document.getElementById('off-qr-canvas'), token);
+
+      const q = getOfflineQueue();
+      q.unshift({ tx, status: 'pending', createdAt: Date.now(), role: 'sender' });
+      saveOfflineQueue(q);
+      showToast('✓ İmzalı çevrimdışı QR fişi üretildi (Özel anahtar içermez)');
+    }
+
+    async function receiveOfflineProposal(rawOverride) {
+      const inp = document.getElementById('off-receive-input');
+      const raw = (rawOverride || (inp ? inp.value : '')).trim();
+      if (!raw.startsWith('UNIVA:OFF:V1:')) {
+        alert('Geçersiz kod! Kod UNIVA:OFF:V1: ile başlamalıdır.');
+        return;
+      }
+      try {
+        const tx = JSON.parse(atob(raw.slice('UNIVA:OFF:V1:'.length)));
+        const canon = canonicalTxMessageJS(tx);
+        const { sha256Hex } = await univaDigestSha1OfSha256(canon);
+        if (sha256Hex !== tx.tx_id) {
+          alert('❌ İşlem özeti (TX ID) bozuk veya değiştirilmiş!');
+          return;
+        }
+        const ok = await verifySecp256k1Offline(tx.public_key, canon, tx.signature);
+        if (!ok) {
+          alert('❌ Kriptografik secp256k1 imza geçersiz!');
+          return;
+        }
+        const q = getOfflineQueue();
+        if (!q.some(item => item.tx && item.tx.tx_id === tx.tx_id)) {
+          q.unshift({ tx, status: 'pending', createdAt: Date.now(), role: 'receiver' });
+          saveOfflineQueue(q);
+        }
+        if (inp) inp.value = '';
+        showToast(`✅ İmza doğrulandı: ${tx.amount} UNIVA kuyruğa eklendi!`);
+        if (nodeConnected) syncOfflineQueue();
+      } catch (e) {
+        alert('Kod çözümlenemedi: ' + e.message);
+      }
+    }
+
+    let offScannerStream = null, offScannerTimer = null;
+    async function startOfflineQrScanner() {
+      if (!('BarcodeDetector' in window)) {
+        alert('Bu tarayıcıda canlı kamera QR tarayıcısı desteklenmiyor; lütfen kodu aşağıdaki kutuya yapıştırın.');
+        return;
+      }
+      try {
+        offScannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const video = document.getElementById('off-scanner-video');
+        video.srcObject = offScannerStream;
+        document.getElementById('off-scanner-wrap').style.display = 'block';
+        document.getElementById('off-scan-btn').style.display = 'none';
+        document.getElementById('off-scan-stop-btn').style.display = 'inline-flex';
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        offScannerTimer = setInterval(async () => {
+          try {
+            const codes = await detector.detect(video);
+            if (codes && codes.length > 0 && codes[0].rawValue) {
+              stopOfflineQrScanner();
+              receiveOfflineProposal(codes[0].rawValue);
+            }
+          } catch (e) {}
+        }, 450);
+      } catch (e) {
+        alert('Kameraya erişilemedi: ' + e.message);
+      }
+    }
+    function stopOfflineQrScanner() {
+      if (offScannerTimer) { clearInterval(offScannerTimer); offScannerTimer = null; }
+      if (offScannerStream) { offScannerStream.getTracks().forEach(t => t.stop()); offScannerStream = null; }
+      const w = document.getElementById('off-scanner-wrap');
+      if (w) w.style.display = 'none';
+      const sb = document.getElementById('off-scan-btn'), stb = document.getElementById('off-scan-stop-btn');
+      if (sb) sb.style.display = 'inline-flex';
+      if (stb) stb.style.display = 'none';
+    }
+
+    let offSyncRunning = false;
+    async function syncOfflineQueue() {
+      if (offSyncRunning || !nodeConnected) return;
+      const q = getOfflineQueue();
+      const pending = q.filter(item => item.status === 'pending');
+      if (pending.length === 0) return;
+      offSyncRunning = true;
+      let changed = false;
+      for (const item of pending) {
+        try {
+          const res = await apiCall('/tx', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tx: item.tx })
+          });
+          if (res && res.status === 'ok') {
+            item.status = 'broadcasted';
+            changed = true;
+            showToast(`🚀 Çevrimdışı ödeme ağa işlendi: ${item.tx.amount} UNIVA`);
+          }
+        } catch (e) {}
+      }
+      if (changed) {
+        saveOfflineQueue(q);
+        fetchWalletBalance();
+        fetchLiveHistory();
+      }
+      offSyncRunning = false;
+    }
+
+    function renderOfflineQueue() {
+      const q = getOfflineQueue();
+      const cnt = document.getElementById('off-queue-count');
+      const box = document.getElementById('off-queue-list');
+      if (cnt) cnt.textContent = q.filter(x => x.status === 'pending').length;
+      if (!box) return;
+      if (q.length === 0) {
+        box.innerHTML = 'Henüz bekleyen çevrimdışı ödeme yok.';
+        return;
+      }
+      box.innerHTML = q.slice(0, 15).map(item => {
+        const badge = item.status === 'broadcasted'
+          ? '<span style="color:var(--success);font-weight:700;">✅ Ağa Yayınlandı</span>'
+          : '<span style="color:var(--warning);font-weight:700;">⏳ İnternet Bekleniyor</span>';
+        return `<div style="padding:8px 10px;margin-bottom:6px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;">
+          <div style="display:flex;justify-content:space-between;"><strong>${item.tx.amount} UNIVA</strong>${badge}</div>
+          <div class="mono" style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">${item.tx.from.slice(0,11)}... → ${item.tx.to.slice(0,11)}... (Nonce #${item.tx.nonce})</div>
+        </div>`;
+      }).join('');
+    }
+    window.addEventListener('online', () => setTimeout(syncOfflineQueue, 1200));
+    setTimeout(renderOfflineQueue, 400);
 
     function verifyMysteryCandidate() {
       const inp = document.getElementById('myst-solution-input').value.trim();
