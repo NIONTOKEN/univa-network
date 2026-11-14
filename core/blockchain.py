@@ -547,6 +547,25 @@ class Blockchain:
         return True
 
     def load(self, path: str = CHAIN_FILE_PATH) -> bool:
+        # Ensure persisted PWA pubkey bindings & local treasury wallet are registered before validating blocks
+        try:
+            from core.wallet import REGISTERED_PWA_ORIGINS, UnivaWallet
+            base_dir = os.path.dirname(os.path.abspath(path))
+            bindings_path = os.path.join(base_dir, "univa_pubkey_bindings.json")
+            if os.path.exists(bindings_path):
+                with open(bindings_path, "r", encoding="utf-8") as bf:
+                    bdata = json.load(bf)
+                if isinstance(bdata, dict):
+                    for pk, addrs in bdata.items():
+                        if isinstance(addrs, list):
+                            REGISTERED_PWA_ORIGINS.setdefault(pk, set()).update(addrs)
+            wallet_path = os.path.join(base_dir, "univa_wallet.json")
+            if os.path.exists(wallet_path):
+                w = UnivaWallet.load(wallet_path)
+                REGISTERED_PWA_ORIGINS.setdefault(w.public_key, set()).add(w.address)
+        except Exception:
+            pass
+
         candidates = [p for p in (path, path + ".bak") if os.path.exists(p)]
         for target_path in candidates:
             try:
