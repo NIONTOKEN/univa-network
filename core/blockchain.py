@@ -443,7 +443,7 @@ class Blockchain:
                 if not cur.transactions or cur.transactions[0].get("type") != "coinbase":
                     return False
                 subsidy = max(0.0, min(INITIAL_REWARD / (2 ** (i // HALVING_INTERVAL)), MAX_SUPPLY - total_subsidy))
-                if abs(float(cur.reward) - round(subsidy, 8)) > 1e-8:
+                if cur.reward < 0 or float(cur.reward) > round(subsidy, 8) + 1e-8:
                     return False
                 coinbase = cur.transactions[0]
                 if coinbase.get("to") != cur.miner_address:
@@ -467,7 +467,7 @@ class Blockchain:
                     return False
                 if abs(float(coinbase.get("subsidy", cur.reward)) - cur.reward) > 1e-8:
                     return False
-                total_subsidy = round(total_subsidy + subsidy, 8)
+                total_subsidy = round(total_subsidy + float(cur.reward), 8)
                 if total_subsidy > MAX_SUPPLY + 1e-8:
                     return False
                 if i % DIFFICULTY_ADJUST == 0 and i >= DIFFICULTY_ADJUST:
