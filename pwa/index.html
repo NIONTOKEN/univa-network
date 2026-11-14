@@ -1340,67 +1340,82 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">Bitcoin (BTC)</div>
-              <span class="badge badge-native">Consensus Peer</span>
+              <span class="badge badge-native">SHA-256 + secp256k1</span>
             </div>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
-              Shared SHA-256 Proof-of-Work foundation and BIP-113 MTP time-lock compatibility.
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+              Aynı SHA-256 İş Kanıtı, secp256k1 imza eğrisi ve BIP-113 MTP zaman kilidi uyumu.
             </p>
-            <div class="mono" style="font-size:0.78rem;color:var(--metallic);">Status: SHA-256 Proof Equivalent</div>
+            <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-btc-h">Mainnet Blok: Yükleniyor...</div>
           </div>
 
           <div class="card">
             <div class="card-header">
-              <div class="card-title">Ethereum (EVM)</div>
-              <span class="badge badge-live">Native RPC Bridge</span>
+              <div class="card-title">Ethereum (ETH / EVM)</div>
+              <span class="badge badge-live">Tam EVM RPC Aktif</span>
             </div>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
-              Full JSON-RPC emulation (Chain ID: 210001). MetaMask and Web3 wallets connect directly to UNIVA RPC.
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+              Tam JSON-RPC uyumu (Zincir ID: 210001). MetaMask, Trust Wallet ve OKX Wallet ile 0x ayna adresleri doğrudan çalışır.
             </p>
-            <div class="mono" style="font-size:0.78rem;color:var(--blue);">RPC: http://127.0.0.1:5050/rpc</div>
+            <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-eth-h">Mainnet Blok: Yükleniyor...</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">BNB Smart Chain (BSC)</div>
+              <span class="badge badge-live">Çoklu EVM Uyumlu</span>
+            </div>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+              EVM (0x...) ve BEP-20 standartlarıyla tam uyumlu. İlk UNIVA / USDT likidite havuzu (PancakeSwap) için önerilen en düşük komisyonlu ağ.
+            </p>
+            <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-bnb-h">Mainnet Blok: Yükleniyor...</div>
           </div>
 
           <div class="card">
             <div class="card-header">
               <div class="card-title">Solana (SOL)</div>
-              <span class="badge badge-dev">State Reader Active</span>
+              <span class="badge badge-dev">Canlı Slot Okuyucu</span>
             </div>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
-              Dual-direction Merkle state reader validating Solana slot confirmations into UNIVA.
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+              Ed25519 mimarisi nedeniyle doğrudan adres paylaşımı yoktur; canlı Mainnet-Beta slot okuyucusu ile ağ durumu izlenir.
             </p>
-            <div class="mono" style="font-size:0.78rem;color:var(--text-muted);">Reader Endpoint: Mainnet-Beta</div>
+            <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-sol-h">Mainnet Slot: Yükleniyor...</div>
           </div>
 
           <div class="card">
             <div class="card-header">
-              <div class="card-title">TON Blockchain</div>
-              <span class="badge badge-live">Telegram Mini App</span>
+              <div class="card-title">TON Blokzinciri</div>
+              <span class="badge badge-live">Canlı Masterchain Okuyucu</span>
             </div>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
-              Official Telegram bot integration (@UnivaNetworkBot) serving UNIVA WebApp directly in Telegram.
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+              TVM/Ed25519 altyapılı TON Mainnet canlı Masterchain blok okuyucusu + Telegram Mini Uygulama (@UnivaNetworkBot) entegrasyonu.
             </p>
-            <div class="mono" style="font-size:0.78rem;color:var(--success);">Bot: @UnivaNetworkBot</div>
+            <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-ton-h">Masterchain Seqno: Yükleniyor...</div>
           </div>
 
           <div class="card">
             <div class="card-header">
               <div class="card-title">TRON (TRX)</div>
-              <span class="badge badge-dev">Planned Reader</span>
+              <span class="badge badge-dev">secp256k1 + Canlı Okuyucu</span>
             </div>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
-              Cross-chain settlement verification planned for stablecoin interop.
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+              UNIVA ile aynı secp256k1 imza temelini paylaşır. Canlı TRON Mainnet blok yüksekliği gerçek zamanlı okunur.
             </p>
-            <div class="mono" style="font-size:0.78rem;color:var(--text-muted);">Roadmap v4.5 Integration</div>
+            <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-trx-h">Mainnet Blok: Yükleniyor...</div>
           </div>
+        </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">BNB Chain</div>
-              <span class="badge badge-dev">Planned Bridge</span>
-            </div>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
-              BEP-20 mirror bridge architecture scheduled for multi-asset staking pools.
+        <div class="card" style="margin-top:18px;">
+          <div class="card-header">
+            <div class="card-title">💱 Çoklu EVM Uyumu ve İlk UNIVA / USDT Likidite Rehberi (AMM)</div>
+            <button class="btn btn-metallic btn-sm" onclick="fetchMultichainStatus()">🔄 Canlı Ağları Yenile</button>
+          </div>
+          <div style="font-size:0.84rem;color:var(--text-muted);line-height:1.65;">
+            <p style="margin-bottom:8px;">
+              • <strong>Çoklu EVM Uyumu (ETH / BNB / Polygon / Base / Arbitrum):</strong> UNIVA, <code>0x...</code> EVM ayna adresleri ve <code>Chain ID: 210001</code> JSON-RPC ile tüm EVM cüzdanlarına uyumludur.
             </p>
-            <div class="mono" style="font-size:0.78rem;color:var(--text-muted);">Scheduled Q3 2026</div>
+            <p style="margin-bottom:0;">
+              • <strong>İlk UNIVA Değeri İçin Hangi Ağda USDT Yatırılmalı?</strong> En düşük işlem ücreti (~$0.05) ve kolay likidite için <strong>BNB Smart Chain (BEP-20 USDT — PancakeSwap)</strong> veya <strong>Base/Arbitrum (ERC-20 USDT)</strong> önerilir. Örneğin <code>10.000 wUNIVA + 1.000 USDT</code> havuzu açıldığında piyasa başlangıç fiyatı otomatik olarak <strong>1 UNIVA = 0.10 USDT</strong> olur. (UNIVA içi Native DEX sayfası şu an protokol içi test havuzudur; dış USDT kabulü için BEP-20 Wrapped UNIVA köprüsü gerekir.)
+            </p>
           </div>
         </div>
       </div>
@@ -1899,6 +1914,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       document.getElementById('mobile-drawer').classList.remove('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
+      if (viewId === 'multichain') fetchMultichainStatus();
       if (viewId === 'dashboard' || viewId === 'explorer' || viewId === 'network') {
         fetchLiveStats();
       }
@@ -3375,6 +3391,26 @@ Block Explorer: https://univa-network-l1.vercel.app
       requestAnimationFrame(frame);
     }
 
+    async function fetchMultichainStatus() {
+      const res = await apiCall('/api/v1/multichain/status');
+      if (!res || !res.chains) return;
+      const fmt = (c, label) => (c && c.online && c.height != null)
+        ? `🟢 ${label}: #${Number(c.height).toLocaleString()}`
+        : `🟡 ${label}: Bağlantı Bekleniyor`;
+      const map = {
+        'mc-btc-h': fmt(res.chains.btc, 'BTC Blok'),
+        'mc-eth-h': fmt(res.chains.eth, 'ETH Blok'),
+        'mc-bnb-h': fmt(res.chains.bnb, 'BNB Blok'),
+        'mc-sol-h': fmt(res.chains.sol, 'SOL Slot'),
+        'mc-ton-h': fmt(res.chains.ton, 'TON Seqno'),
+        'mc-trx-h': fmt(res.chains.trx, 'TRON Blok')
+      };
+      for (const [id, txt] of Object.entries(map)) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = txt;
+      }
+    }
+
     async function fetchMysteryStatus() {
       const res = await apiCall('/api/v1/mystery/status');
       if (!res) return;
@@ -3445,6 +3481,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         out.innerHTML = `<span style="color:var(--success);font-weight:700;">🎉 ${res.message} (TX: ${(res.tx_id || '').slice(0, 18)}...)</span>`;
         document.getElementById('myst-solution-input').value = '';
         fetchMysteryStatus();
+      fetchMultichainStatus();
         fetchWalletBalance();
       } else {
         out.innerHTML = `<span style="color:var(--error);font-weight:700;">❌ ${res?.detail || 'Cevap hatalı veya gizem kapısı henüz açılmadı.'}</span>`;

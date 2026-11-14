@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import time
+import urllib.request
 
 from core.blockchain import Blockchain
 from core.dex import UnivaDEX, to_base_units, from_base_units
@@ -1269,6 +1270,80 @@ async def mystery_solve(request: Request):
     state.setdefault("winners", []).append(record)
     _save_mystery_state(state)
     return {"status": "ok", "message": "Tebrikler! Gizem cozuldu ve 50.0 UNIVA odulunuz gonderildi!", **record}
+
+
+# ─── MULTICHAIN LIVE STATE READER (BTC, ETH, BNB, SOL, TRON, TON) ───────────
+
+_MULTICHAIN_CACHE = {"ts": 0.0, "data": None}
+
+def _fetch_json_post(url: str, payload: dict, timeout: float = 3.0):
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "User-Agent": "UNIVA-L1-Reader/4.0"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+def _fetch_text_get(url: str, timeout: float = 3.0):
+    req = urllib.request.Request(url, headers={"User-Agent": "UNIVA-L1-Reader/4.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8")
+
+@app.get("/api/v1/multichain/status")
+def multichain_live_status():
+    import concurrent.futures
+    now = time.time()
+    if _MULTICHAIN_CACHE["data"] and (now - _MULTICHAIN_CACHE["ts"] < 45):
+        return _MULTICHAIN_CACHE["data"]
+
+    def get_btc():
+        h = int(_fetch_text_get("https://mempool.space/api/blocks/tip/height").strip())
+        return {"height": h, "online": True}
+
+    def get_eth():
+        r = _fetch_json_post("https://eth.llamarpc.com", {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
+        return {"height": int(r["result"], 16), "online": True}
+
+    def get_bnb():
+        r = _fetch_json_post("https://bsc-dataseed.binance.org", {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
+        return {"height": int(r["result"], 16), "online": True}
+
+    def get_sol():
+        r = _fetch_json_post("https://api.mainnet-beta.solana.com", {"jsonrpc": "2.0", "id": 1, "method": "getSlot", "params": []})
+        return {"height": int(r["result"]), "online": True}
+
+    def get_trx():
+        r = _fetch_json_post("https://api.trongrid.io/wallet/getnowblock", {})
+        h = int(r["block_header"]["raw_data"]["number"])
+        return {"height": h, "online": True}
+
+    def get_ton():
+        r = json.loads(_fetch_text_get("https://toncenter.com/api/v2/getMasterchainInfo"))
+        h = int(r["result"]["last"]["seqno"])
+        return {"height": h, "online": True}
+
+    tasks = {"btc": get_btc, "eth": get_eth, "bnb": get_bnb, "sol": get_sol, "trx": get_trx, "ton": get_ton}
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+        futs = {k: ex.submit(fn) for k, fn in tasks.items()}
+        for k, fut in futs.items():
+            try:
+                results[k] = fut.result(timeout=3.5)
+            except Exception:
+                results[k] = {"height": None, "online": False}
+
+    payload = {
+        "status": "ok",
+        "univa_height": blockchain.height,
+        "univa_chain_id": 210001,
+        "chains": results,
+        "updated_at": int(now),
+    }
+    _MULTICHAIN_CACHE["ts"] = now
+    _MULTICHAIN_CACHE["data"] = payload
+    return payload
 
 
 @app.post("/rpc")
