@@ -579,7 +579,7 @@ class Blockchain:
                 if not self.is_chain_valid():
                     self.chain, self.total_mined, self.pending_transactions = old_chain, old_total, old_pending
                     continue
-                self.difficulty = int(data.get("difficulty", loaded_chain[-1].difficulty))
+                self.difficulty = int(loaded_chain[-1].difficulty)
                 self.total_mined = round(sum(float(b.reward) for b in loaded_chain[1:]), 8)
                 self.pending_transactions = []
                 print(f"[UNIVA] Zincir yüklendi: {target_path} | yükseklik={len(loaded_chain)-1}")

@@ -1303,7 +1303,7 @@ def multichain_live_status():
         return {"height": h, "online": True}
 
     def get_eth():
-        r = _fetch_json_post("https://eth.llamarpc.com", {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
+        r = _fetch_json_post("https://ethereum-rpc.publicnode.com", {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
         return {"height": int(r["result"], 16), "online": True}
 
     def get_bnb():
