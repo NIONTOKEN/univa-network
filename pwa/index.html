@@ -1492,46 +1492,60 @@
       <div class="content-wrap">
         <div class="card-header" style="margin-bottom:24px;">
           <div>
-            <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Mystery Protocol</h2>
-            <p style="font-size:0.85rem;color:var(--text-muted);">Periodic cryptographic puzzle consensus cycle unlocked every 100,000 blocks.</p>
+            <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Gizem Protokolü</h2>
+            <p style="font-size:0.85rem;color:var(--text-muted);">Her 100.000 blokta havai fişeklerle açılan gizemli bilmece ve 50.00 UNIVA ödül döngüsü.</p>
           </div>
-          <span class="badge badge-native">100,000-Block Epoch</span>
+          <span class="badge badge-native">100.000 Blokluk Dönem</span>
         </div>
 
         <div class="grid-2">
           <div class="card card-accent">
             <div class="card-header">
-              <div class="card-title">Epoch #1 Bounty Countdown</div>
-              <span class="badge badge-live">Active Cycle</span>
+              <div class="card-title" id="myst-epoch-title">Dönem #1 Ödül Geri Sayımı</div>
+              <span class="badge badge-live" id="myst-epoch-badge">Aktif Döngü</span>
             </div>
-            <div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:16px;">
-              Target Block: <strong style="color:var(--text);" class="mono">#100,000</strong><br>
-              Current Height: <strong style="color:var(--blue);" class="mono" id="myst-height">0</strong><br>
-              Blocks Remaining: <strong style="color:var(--warning);" class="mono" id="myst-remain">100,000</strong>
+            <div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:16px;line-height:1.7;">
+              Hedef Blok: <strong style="color:var(--text);" class="mono" id="myst-target">#100,000</strong><br>
+              Mevcut Yükseklik: <strong style="color:var(--blue);" class="mono" id="myst-height">0</strong><br>
+              Kalan Blok: <strong style="color:var(--warning);" class="mono" id="myst-remain">100,000</strong>
             </div>
-            <div class="stat-box" style="margin-bottom:16px;">
-              <div class="stat-label">Cryptographic Bounty</div>
-              <div class="stat-num" style="color:var(--gold);">10,000.00 UNIVA</div>
-              <div class="stat-sub">Awarded to the first valid zero-knowledge pre-image solution</div>
+            <div class="stat-box" style="margin-bottom:14px;">
+              <div class="stat-label">Gizem Ödülü</div>
+              <div class="stat-num" style="color:var(--gold);">50.00 UNIVA</div>
+              <div class="stat-sub">Doğru cevabı ilk bilen cüzdana Master Hazine'den zincir içi gönderilir</div>
             </div>
+            <button class="btn btn-metallic btn-sm" id="myst-test-btn" onclick="previewMysteryFireworks()" style="display:none;width:100%;">
+              🎆 Havai Fişek & Bulmaca Önizleme (Master Test)
+            </button>
           </div>
 
           <div class="card">
             <div class="card-header">
-              <div class="card-title">Puzzle Verification Console</div>
+              <div class="card-title">Gizemli Bilmece & Çözüm Konsolu</div>
             </div>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
-              Submit SHA-256 pre-image solution candidate for consensus validation:
-            </p>
+            <div id="myst-riddle-box" style="padding:14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;font-size:0.9rem;line-height:1.65;color:var(--text);">
+              🔒 Gizem Kapısı henüz kilitli. Zincir hedef bloğa ulaştığında havai fişeklerle birlikte dönemin gizemli bilmecesi burada açılacak!
+            </div>
             <div class="form-group">
-              <input class="form-input mono" id="myst-solution-input" placeholder="64-byte cryptographic pre-image">
+              <input class="form-input" id="myst-solution-input" placeholder="Bilmecenin cevabını yazın...">
             </div>
-            <button class="btn btn-metallic" onclick="verifyMysteryCandidate()">Verify Solution Hash</button>
-            <div id="myst-eval-out" style="margin-top:12px;font-size:0.82rem;"></div>
+            <button class="btn btn-primary" onclick="verifyMysteryCandidate()" style="width:100%;">✨ Cevabı Gönder & 50 UNIVA Kazan</button>
+            <div id="myst-eval-out" style="margin-top:12px;font-size:0.84rem;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;">
+          <div class="card-header">
+            <div class="card-title">🏆 Gizem Kazananları Onur Listesi</div>
+          </div>
+          <div id="myst-winners-list" style="font-size:0.84rem;color:var(--text-muted);">
+            Henüz çözülen gizem dönemi yok. İlk kazanan siz olabilirsiniz!
           </div>
         </div>
       </div>
     </section>
+
+    <canvas id="univa-fireworks-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99999;display:none;"></canvas>
 
     <!-- 11. DEVELOPERS PORTAL -->
     <section class="view-section" id="view-dev">
@@ -3306,13 +3320,152 @@ Block Explorer: https://univa-network-l1.vercel.app
     window.addEventListener('online', () => setTimeout(syncOfflineQueue, 1200));
     setTimeout(renderOfflineQueue, 400);
 
-    function verifyMysteryCandidate() {
+    let mystUnlockedCache = false;
+    let mystLastCelebratedEpoch = 0;
+
+    function launchMysteryFireworks(durationMs = 6500) {
+      const canvas = document.getElementById('univa-fireworks-canvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const ctx = canvas.getContext('2d');
+      const particles = [];
+      const colors = ['#D4AF37', '#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#FFFFFF'];
+
+      function spawnBurst() {
+        const cx = Math.random() * canvas.width * 0.8 + canvas.width * 0.1;
+        const cy = Math.random() * canvas.height * 0.45 + canvas.height * 0.1;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        for (let i = 0; i < 48; i++) {
+          const ang = (Math.PI * 2 * i) / 48 + (Math.random() - 0.5) * 0.2;
+          const spd = 2.2 + Math.random() * 4.5;
+          particles.push({
+            x: cx, y: cy,
+            vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+            alpha: 1, color, size: 2 + Math.random() * 2.5
+          });
+        }
+      }
+
+      spawnBurst();
+      const burstTimer = setInterval(spawnBurst, 550);
+      const start = Date.now();
+      function frame() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const pt = particles[i];
+          pt.x += pt.vx;
+          pt.y += pt.vy;
+          pt.vy += 0.055;
+          pt.alpha -= 0.014;
+          if (pt.alpha <= 0) { particles.splice(i, 1); continue; }
+          ctx.globalAlpha = pt.alpha;
+          ctx.fillStyle = pt.color;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        if (Date.now() - start < durationMs || particles.length > 0) {
+          requestAnimationFrame(frame);
+        } else {
+          canvas.style.display = 'none';
+        }
+      }
+      setTimeout(() => clearInterval(burstTimer), durationMs - 600);
+      requestAnimationFrame(frame);
+    }
+
+    function previewMysteryFireworks() {
+      launchMysteryFireworks(6500);
+      const box = document.getElementById('myst-riddle-box');
+      if (box) {
+        box.innerHTML = `<div style="font-weight:700;color:var(--gold);margin-bottom:6px;">🎆 ÖNİZLEME MODU — 100.000 BLOK GİZEM KAPISI</div>
+          <div style="font-style:italic;color:var(--text);">"Adım bir gölge, yüzüm hiç görülmedi; dokuz sayfalık bir ateş yaktım, tüm kilitleri eritip. Zincirlerin ilk halkasında imzam durur hâlâ, ama hazinem hiç kıpırdamadı — ben kimim?"</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">(Bu sadece Master önizlemesidir; gerçek 50 UNIVA ödülü #100.000. blokta açılır.)</div>`;
+      }
+      showToast('🎆 Havai Fişek & Gizem Kapısı Önizlemesi Başlatıldı!');
+    }
+
+    async function fetchMysteryStatus() {
+      const testBtn = document.getElementById('myst-test-btn');
+      const uname = (localStorage.getItem('univa_vault_username') || '').toLowerCase();
+      if (testBtn) {
+        testBtn.style.display = (uname === 'kaya' || walletAddr === 'univaf63aua23vxdvcmvkunx66yzh2') ? 'inline-flex' : 'none';
+      }
+      const res = await apiCall('/api/v1/mystery/status');
+      if (!res) return;
+      const tEl = document.getElementById('myst-epoch-title');
+      const bEl = document.getElementById('myst-epoch-badge');
+      const tgtEl = document.getElementById('myst-target');
+      const hEl = document.getElementById('myst-height');
+      const rEl = document.getElementById('myst-remain');
+      const box = document.getElementById('myst-riddle-box');
+      const wList = document.getElementById('myst-winners-list');
+
+      if (hEl) hEl.textContent = Number(res.height || 0).toLocaleString();
+      if (res.epoch && tEl) tEl.textContent = `Dönem #${res.epoch} Ödül Geri Sayımı`;
+      if (res.target_block && tgtEl) tgtEl.textContent = '#' + Number(res.target_block).toLocaleString();
+      if (typeof res.remaining_blocks !== 'undefined' && rEl) rEl.textContent = Number(res.remaining_blocks).toLocaleString();
+
+      mystUnlockedCache = !!res.unlocked;
+      if (res.unlocked && res.riddle_tr) {
+        if (bEl) bEl.textContent = '🎆 GİZEM KAPISI AÇIK!';
+        if (box) {
+          const lang = localStorage.getItem('univa_lang') || 'tr';
+          const txt = (lang === 'en' && res.riddle_en) ? res.riddle_en : res.riddle_tr;
+          box.innerHTML = `<div style="font-weight:700;color:var(--success);margin-bottom:6px;">🔓 DÖNEM #${res.epoch} BİLMECESİ AÇILDI (Ödül: 50.00 UNIVA)</div>
+            <div style="font-style:italic;color:var(--text);">"${txt}"</div>`;
+        }
+        if (mystLastCelebratedEpoch !== res.epoch) {
+          mystLastCelebratedEpoch = res.epoch;
+          launchMysteryFireworks(7000);
+        }
+      } else if (res.status === 'completed') {
+        if (bEl) bEl.textContent = 'Tamamlandı';
+        if (box) box.innerHTML = '🏆 İlk 5 gizem dönemi başarıyla çözüldü! Yeni dönem kelimeleri yakında eklenecek.';
+      }
+
+      if (wList && Array.isArray(res.winners)) {
+        if (res.winners.length === 0) {
+          wList.innerHTML = 'Henüz çözülen gizem dönemi yok. İlk kazanan siz olabilirsiniz!';
+        } else {
+          wList.innerHTML = res.winners.map(w => `
+            <div style="padding:10px 12px;margin-bottom:8px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+              <div><strong>Dönem #${w.epoch}</strong> (Blok #${Number(w.block_target).toLocaleString()}) · <span class="mono">${w.winner}</span></div>
+              <span style="color:var(--success);font-weight:700;">+${w.reward} UNIVA ✓</span>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    async function verifyMysteryCandidate() {
       const inp = document.getElementById('myst-solution-input').value.trim();
       const out = document.getElementById('myst-eval-out');
-      if (inp.length !== 64) {
-        out.innerHTML = '<span style="color:var(--error);">Pre-image must be exactly 64 hexadecimal characters.</span>';
+      if (!walletAddr) {
+        out.innerHTML = '<span style="color:var(--error);">Önce Cüzdan Kasası ile giriş yapmalısınız (ödül adresiniz için gerekli).</span>';
+        return;
+      }
+      if (!inp) {
+        out.innerHTML = '<span style="color:var(--error);">Lütfen bilmecenin cevabını yazın.</span>';
+        return;
+      }
+      out.innerHTML = '<span style="color:var(--blue);">Sunucu SHA-256 doğrulaması yapılıyor...</span>';
+      const res = await apiCall('/api/v1/mystery/solve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: walletAddr, answer: inp })
+      });
+      if (res && res.status === 'ok') {
+        launchMysteryFireworks(7500);
+        out.innerHTML = `<span style="color:var(--success);font-weight:700;">🎉 ${res.message} (TX: ${(res.tx_id || '').slice(0, 18)}...)</span>`;
+        document.getElementById('myst-solution-input').value = '';
+        fetchMysteryStatus();
+        fetchWalletBalance();
       } else {
-        out.innerHTML = '<span style="color:var(--warning);">Pre-image recorded. Epoch #1 evaluation occurs at Block #100,000.</span>';
+        out.innerHTML = `<span style="color:var(--error);font-weight:700;">❌ ${res?.detail || 'Cevap hatalı veya gizem kapısı henüz açılmadı.'}</span>`;
       }
     }
 
@@ -3946,7 +4099,8 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (uInput && savedUser) uInput.value = savedUser;
       initWalletSecurity();
       fetchLiveStats();
-      setInterval(fetchLiveStats, 6000);
+      fetchMysteryStatus();
+      setInterval(() => { fetchLiveStats(); fetchMysteryStatus(); }, 6000);
 
       // Deep-link router for Trust Wallet / OKX Wallet Explorer URLs (/tx/..., /address/..., /block/...)
       try {

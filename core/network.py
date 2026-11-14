@@ -1114,6 +1114,163 @@ def _process_rpc_call(body: dict) -> dict:
         return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": str(exc)}}
 
 
+# ─── MYSTERY PROTOCOL (100,000-BLOCK EPOCH PUZZLES) ─────────────────────────
+
+MYSTERY_STATE_FILE = os.path.join(BASE_DIR, "univa_mystery.json")
+MYSTERY_REWARD_UNIVA = 50.0
+MYSTERY_EPOCHS = [
+    {
+        "epoch": 1,
+        "target_block": 100_000,
+        "riddle_tr": "Adım bir gölge, yüzüm hiç görülmedi; dokuz sayfalık bir ateş yaktım, tüm kilitleri eritip. Zincirlerin ilk halkasında imzam durur hâlâ, ama hazinem hiç kıpırdamadı — ben kimim?",
+        "riddle_en": "My name is a shadow, my face was never seen; I lit a nine-page fire that melted every lock. My signature still stands on the first link of the chain, yet my treasure never moved — who am I?",
+        "hashes": {
+            "8917bb6228ae75cf421abffba92553416006195ec32be7ed6d25aacdfa0e216a",
+            "a525791edad3b400eda01b454dcb258882252b3115fc8c43bb0e8e32563f7ce9",
+            "a39fd2091f2fbee051c9fcc09aabd33dd4c7c84c76e59b02dcec0a489f8c4774",
+        },
+    },
+    {
+        "epoch": 2,
+        "target_block": 200_000,
+        "riddle_tr": "Karanlık derinlikte küçük bir kum tanesiydim önce; sabırla ördüm kendimi, kat kat parladım sessizce. Sedef bir zırhın içinde saklı beyaz bir sır gibiyim, denizin kalbinden doğan en nadir hazineyim — ben neyim?",
+        "riddle_en": "In dark depths I began as a tiny grain of sand; patiently I wove myself, shining layer by layer in silence. Like a white secret inside a mother-of-pearl armor, the rarest treasure born from the sea's heart — what am I?",
+        "hashes": {"2a6b507966207bd9e6a814c92a08efafeb85f1d095c19fd9cd726a0f72510c3c"},
+    },
+    {
+        "epoch": 3,
+        "target_block": 300_000,
+        "riddle_tr": "Gözle görünmem, elle tutulmam, sesim de çıkmaz; ama bir esintiyle yürür, unutulmuş anıları uyandırırım. Bazen bir çiçeğin nefesiyim, bazen özlenen bir izin; ardında bıraktığım görünmez imzamla — ben neyim?",
+        "riddle_en": "Unseen by eye, untouched by hand, silent as air; yet I travel on a breeze and awaken forgotten memories. Sometimes a flower's breath, sometimes a longed-for trace; an invisible signature left behind — what am I?",
+        "hashes": {"8e3f59a9d4b7387811a2cbb48b553ab09918274ccc352682db2b0de499e721b7"},
+    },
+    {
+        "epoch": 4,
+        "target_block": 400_000,
+        "riddle_tr": "Kanatlarım görünmez ama gölgen gibi yanındayım; en karanlık anda bile yolunu sessizce aydınlatırım. Sadece gökyüzünden değil, kalbinin en saf yerinden gelirim; fısıltıyla söylenen en koruyucu hitap benim — ben kimim?",
+        "riddle_en": "My wings are unseen yet I walk beside you like a shadow; even in the darkest hour I quietly light your path. Not only from the sky, I come from the purest place in your heart; the most protective whispered name — who am I?",
+        "hashes": {"e3ed0c087dab42cca41b32e5e16eac3551a544195b2b011db5d22e3fcbe6975c"},
+    },
+    {
+        "epoch": 5,
+        "target_block": 500_000,
+        "riddle_tr": "Ne bir ülkeye bağlıyım ne de tek bir sınıra; Taban31 izimle, 0x aynamla her ağı bağlarım tek çatıya. 21 milyonluk sınırda egemen bir ışık gibi doğdum; tek bir ağ, sınırsız olanak — benim adım ne?",
+        "riddle_en": "Bound to no nation and no single border; with my Base31 mark and 0x mirror I unite every chain under one roof. Born like a sovereign light within a 21 million cap; one network, infinite possibilities — what is my name?",
+        "hashes": {"5344b5a3180ba4f5a1d851409c50c4360ec8f718e010a8f49d65e390a8a74526"},
+    },
+]
+
+def _load_mystery_state() -> dict:
+    if os.path.exists(MYSTERY_STATE_FILE):
+        try:
+            with open(MYSTERY_STATE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict) and isinstance(data.get("winners"), list):
+                return data
+        except Exception:
+            pass
+    return {"winners": []}
+
+def _save_mystery_state(state: dict):
+    with open(MYSTERY_STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False)
+
+def _norm_mystery_answer(ans: str) -> str:
+    import unicodedata
+    s = unicodedata.normalize("NFKC", (ans or "").strip().lower())
+    for a, b in (("ı", "i"), ("İ", "i"), ("i̇", "i"), ("ğ", "g"), ("ş", "s"), ("ö", "o"), ("ü", "u"), ("ç", "c")):
+        s = s.replace(a, b)
+    return " ".join(s.split())
+
+def _get_active_or_next_mystery(height: int, state: dict):
+    solved_epochs = {w.get("epoch") for w in state.get("winners", [])}
+    for ep in MYSTERY_EPOCHS:
+        if ep["epoch"] not in solved_epochs:
+            return ep
+    return None
+
+@app.get("/api/v1/mystery/status")
+def mystery_status():
+    state = _load_mystery_state()
+    h = blockchain.height
+    ep = _get_active_or_next_mystery(h, state)
+    if not ep:
+        return {
+            "status": "completed",
+            "height": h,
+            "reward": MYSTERY_REWARD_UNIVA,
+            "unlocked": False,
+            "winners": state.get("winners", []),
+        }
+    unlocked = h >= ep["target_block"]
+    return {
+        "status": "ok",
+        "height": h,
+        "epoch": ep["epoch"],
+        "target_block": ep["target_block"],
+        "remaining_blocks": max(0, ep["target_block"] - h),
+        "reward": MYSTERY_REWARD_UNIVA,
+        "unlocked": unlocked,
+        "riddle_tr": ep["riddle_tr"] if unlocked else None,
+        "riddle_en": ep["riddle_en"] if unlocked else None,
+        "winners": state.get("winners", []),
+    }
+
+@app.post("/api/v1/mystery/solve")
+async def mystery_solve(request: Request):
+    from core.wallet import UnivaWallet, validate_address
+    data = await request.json()
+    addr = (data.get("address") or "").strip()
+    answer = (data.get("answer") or "").strip()
+    if not validate_address(addr):
+        raise HTTPException(400, "Gecersiz UNIVA odul adresi.")
+    if not answer:
+        raise HTTPException(400, "Lutfen bir cevap girin.")
+
+    state = _load_mystery_state()
+    ep = _get_active_or_next_mystery(blockchain.height, state)
+    if not ep:
+        raise HTTPException(400, "Tum tanimli gizem donemleri zaten cozuldu.")
+    if blockchain.height < ep["target_block"]:
+        raise HTTPException(403, f"Gizem kapisi henuz acilmadi! Hedef blok: #{ep['target_block']}")
+
+    guess_hash = hashlib.sha256(f"UNIVA_MYSTERY_V1|{ep['epoch']}|{_norm_mystery_answer(answer)}".encode("utf-8")).hexdigest()
+    if guess_hash not in ep["hashes"]:
+        raise HTTPException(400, "Yanlis cevap! Gizem henuz cozulmedi.")
+
+    # Odulu Master Hazine Cuzdanindan (univa_wallet.json) gercek zincir-ici transferle gonder
+    wallet_file = os.path.join(BASE_DIR, "univa_wallet.json")
+    if not os.path.exists(wallet_file):
+        raise HTTPException(500, "Hazine cuzdani bulunamadi.")
+    treasury = UnivaWallet.load(wallet_file)
+    try:
+        tx = blockchain.create_transaction(treasury, addr, MYSTERY_REWARD_UNIVA, 0.0, from_address=treasury.address)
+    except Exception as exc:
+        raise HTTPException(500, f"Odul transferi olusturulamadi: {exc}")
+
+    if not blockchain.add_transaction(tx):
+        raise HTTPException(500, "Odul islemi mempool tarafindan reddedildi (Hazine bakiyesini kontrol edin).")
+
+    try:
+        from core.p2p import publish_tx_from_thread
+        publish_tx_from_thread(tx)
+    except Exception:
+        pass
+
+    record = {
+        "epoch": ep["epoch"],
+        "block_target": ep["target_block"],
+        "solved_at_height": blockchain.height,
+        "winner": addr,
+        "reward": MYSTERY_REWARD_UNIVA,
+        "tx_id": tx.get("tx_id"),
+        "timestamp": int(time.time()),
+    }
+    state.setdefault("winners", []).append(record)
+    _save_mystery_state(state)
+    return {"status": "ok", "message": "Tebrikler! Gizem cozuldu ve 50.0 UNIVA odulunuz gonderildi!", **record}
+
+
 @app.post("/rpc")
 @app.post("/")
 async def rpc(request: Request):
