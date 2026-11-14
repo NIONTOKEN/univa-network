@@ -1514,9 +1514,6 @@
               <div class="stat-num" style="color:var(--gold);">50.00 UNIVA</div>
               <div class="stat-sub">Doğru cevabı ilk bilen cüzdana Master Hazine'den zincir içi gönderilir</div>
             </div>
-            <button class="btn btn-metallic btn-sm" id="myst-test-btn" onclick="previewMysteryFireworks()" style="display:none;width:100%;">
-              🎆 Havai Fişek & Bulmaca Önizleme (Master Test)
-            </button>
           </div>
 
           <div class="card">
@@ -1831,7 +1828,7 @@ Block Explorer: https://univa-network-l1.vercel.app
     'use strict';
 
     // ─── STATE MANAGEMENT & UNIFIED GLOBAL NODE BRIDGE ───
-    const PUBLIC_TUNNEL_URL = 'https://funky-decades-andrea-comes.trycloudflare.com';
+    const PUBLIC_TUNNEL_URL = 'https://demands-upgrade-survey-documentation.trycloudflare.com';
     const LOCAL_NODE_URL = 'http://127.0.0.1:5050';
     (function syncQueryNodeParam() {
       try {
@@ -1918,7 +1915,7 @@ Block Explorer: https://univa-network-l1.vercel.app
     // ─── API DATA FETCHING (MULTI-ENDPOINT AUTO-CONNECT) ───
     async function tryFetchEndpoint(baseUrl, endpoint, options = {}) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5500);
+      const timeout = setTimeout(() => controller.abort(), 2800);
       try {
         const headers = Object.assign({}, options.headers || {}, { 'X-Univa-Client': CLIENT_SESSION_ID });
         const res = await fetch(baseUrl + endpoint, { ...options, headers, signal: controller.signal });
@@ -1937,13 +1934,14 @@ Block Explorer: https://univa-network-l1.vercel.app
       // Auto-failover between Cloudflare Global HTTPS Tunnel and Localhost Node
       const fallbacks = IS_LOCALHOST
         ? [LOCAL_NODE_URL, PUBLIC_TUNNEL_URL]
-        : [PUBLIC_TUNNEL_URL, LOCAL_NODE_URL];
+        : [PUBLIC_TUNNEL_URL];
 
       for (const candidate of fallbacks) {
         if (candidate === NODE_URL) continue;
         data = await tryFetchEndpoint(candidate, endpoint, options);
         if (data !== null) {
           NODE_URL = candidate;
+          localStorage.setItem('univa_node_url', candidate);
           const inp = document.getElementById('core-node-override');
           if (inp) inp.value = NODE_URL;
           return data;
@@ -3377,23 +3375,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       requestAnimationFrame(frame);
     }
 
-    function previewMysteryFireworks() {
-      launchMysteryFireworks(6500);
-      const box = document.getElementById('myst-riddle-box');
-      if (box) {
-        box.innerHTML = `<div style="font-weight:700;color:var(--gold);margin-bottom:6px;">🎆 ÖNİZLEME MODU — 100.000 BLOK GİZEM KAPISI</div>
-          <div style="font-style:italic;color:var(--text);">"Adım bir gölge, yüzüm hiç görülmedi; dokuz sayfalık bir ateş yaktım, tüm kilitleri eritip. Zincirlerin ilk halkasında imzam durur hâlâ, ama hazinem hiç kıpırdamadı — ben kimim?"</div>
-          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">(Bu sadece Master önizlemesidir; gerçek 50 UNIVA ödülü #100.000. blokta açılır.)</div>`;
-      }
-      showToast('🎆 Havai Fişek & Gizem Kapısı Önizlemesi Başlatıldı!');
-    }
-
     async function fetchMysteryStatus() {
-      const testBtn = document.getElementById('myst-test-btn');
-      const uname = (localStorage.getItem('univa_vault_username') || '').toLowerCase();
-      if (testBtn) {
-        testBtn.style.display = (uname === 'kaya' || walletAddr === 'univaf63aua23vxdvcmvkunx66yzh2') ? 'inline-flex' : 'none';
-      }
       const res = await apiCall('/api/v1/mystery/status');
       if (!res) return;
       const tEl = document.getElementById('myst-epoch-title');
