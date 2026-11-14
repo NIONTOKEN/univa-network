@@ -694,8 +694,7 @@ async def submit_transaction(request: Request):
             try:
                 w = UnivaWallet.load(wallet_file)
                 if tx.get("from") == w.address:
-                    _save_pubkey_binding(w.public_key, sender_addr, derive_pwa_address(priv_key), derive_pwa_evm_address(priv_key))
-            tx = blockchain.create_transaction(
+                    tx = blockchain.create_transaction(
                         w, tx.get("to"), float(tx.get("amount", 0)), float(tx.get("fee", 0.0))
                     )
             except Exception:
