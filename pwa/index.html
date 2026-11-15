@@ -341,36 +341,44 @@
     }
     .univa-hero-logo-halo {
       position: absolute;
-      width: clamp(320px, 29vw, 460px);
-      height: clamp(320px, 29vw, 460px);
+      width: clamp(330px, 29vw, 450px);
+      height: clamp(330px, 29vw, 450px);
       right: 7%;
       top: 50%;
       transform: translateY(-50%);
       border-radius: 50%;
-      background: radial-gradient(circle, #14181F 0%, #1F252F 55%, rgba(45, 53, 66, 0.55) 78%, transparent 100%);
-      box-shadow: 0 18px 50px rgba(20, 24, 31, 0.28), inset 0 0 36px rgba(197, 204, 213, 0.16);
-      border: 1px solid rgba(197, 204, 213, 0.35);
+      background:
+        radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.14) 0%, transparent 48%),
+        radial-gradient(circle, #181D26 0%, #10141B 64%, #242B37 88%, rgba(197, 204, 213, 0.25) 100%);
+      box-shadow:
+        0 28px 70px rgba(16, 20, 27, 0.32),
+        0 0 0 1px rgba(197, 204, 213, 0.5),
+        inset 0 2px 14px rgba(255, 255, 255, 0.16),
+        inset 0 -16px 32px rgba(0, 0, 0, 0.55);
       pointer-events: none;
       z-index: 0;
     }
+    .univa-hero-logo-halo::after {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 0 24px rgba(197, 204, 213, 0.08);
+    }
     .univa-hero-logo {
       position: absolute;
-      width: clamp(250px, 23vw, 370px);
+      width: clamp(250px, 22.5vw, 356px);
       height: auto;
-      right: calc(7% + clamp(35px, 3vw, 45px));
+      right: calc(7% + clamp(40px, 3.2vw, 47px));
       top: 50%;
       transform: translateY(-50%);
-      opacity: 0.94;
+      opacity: 0.98;
       border-radius: 50%;
       pointer-events: none;
       user-select: none;
       z-index: 2;
-      filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.45));
-      animation: univa-breathe 10s ease-in-out infinite;
-    }
-    @keyframes univa-breathe {
-      0%, 100% { opacity: 0.88; transform: translateY(-50%) scale(0.995); }
-      50% { opacity: 0.98; transform: translateY(-50%) scale(1.01); }
+      filter: drop-shadow(0 14px 32px rgba(0, 0, 0, 0.55));
     }
     @media (max-width: 768px) {
       .univa-hero {
@@ -552,12 +560,36 @@
       font-size: 0.8rem; font-weight: 800; text-transform: uppercase;
       letter-spacing: 1px; color: #20242B; margin-bottom: 16px;
     }
-    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 8px; }
     .footer-links a {
-      color: var(--text-muted); font-size: 0.85rem; text-decoration: none; transition: color 0.2s;
-      cursor: pointer; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 8px 12px; border-radius: 10px;
+      background: #FFFFFF; border: 1px solid #E3E7EE;
+      color: #2C333F; font-size: 0.82rem; text-decoration: none;
+      transition: all 0.18s ease; cursor: pointer; font-weight: 600;
+      box-shadow: 0 1px 3px rgba(32, 36, 43, 0.04);
     }
-    .footer-links a:hover { color: #20242B; }
+    .footer-links a:hover {
+      color: #14181F; border-color: #9CA6B4; background: #F8FAFC;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(32, 36, 43, 0.08);
+    }
+    .footer-ico {
+      width: 22px; height: 22px; border-radius: 6px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #F1F4F8, #E2E7EF);
+      color: #20242B; flex-shrink: 0;
+    }
+    .univa-sec-title {
+      display: inline-flex; align-items: center; gap: 10px;
+    }
+    .univa-sec-ico {
+      width: 34px; height: 34px; border-radius: 10px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #F4F6FA, #E3E8F0);
+      border: 1px solid #CFD6E0; color: #20242B; flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(32, 36, 43, 0.06);
+    }
     .footer-bottom {
       max-width: 1280px; margin: 0 auto; padding-top: 24px; border-top: 1px solid var(--border);
       display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;
@@ -774,13 +806,13 @@
         <div class="card" style="margin-top:-12px;margin-bottom:28px;padding:22px 26px;border-radius:18px;border:1px solid #C5CCD5;box-shadow:0 8px 28px rgba(32,36,43,0.06);">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
             <div style="font-size:0.86rem;font-weight:800;color:#20242B;display:flex;align-items:center;gap:8px;">
-              <span>🔍</span> UNIVA Blok Gezgini — Anlık Zincir Üzeri Arama
+              <span>🔍</span> UNIVA Block Explorer — Instant On-Chain Search
             </div>
-            <span class="badge badge-native">Blok · İşlem (0x...) · Adres (univa... / 0x...)</span>
+            <span class="badge badge-native">Block · Transaction (0x...) · Address (univa... / 0x...)</span>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <input class="form-input mono" id="home-explorer-query" style="flex:1;min-width:220px;border-radius:99px;padding:13px 20px;font-size:0.92rem;border:1px solid #C5CCD5;background:#F9FAFB;" placeholder="Blok numarası (ör. 62), İşlem Hash (0x...) veya Cüzdan Adresi (univa... / 0x...) yazın..." onkeydown="if(event.key==='Enter')executeHomeExplorerSearch()">
-            <button class="btn btn-primary" onclick="executeHomeExplorerSearch()" style="border-radius:99px;padding:13px 26px;">Gezginde Ara</button>
+            <input class="form-input mono" id="home-explorer-query" style="flex:1;min-width:220px;border-radius:99px;padding:13px 20px;font-size:0.92rem;border:1px solid #C5CCD5;background:#F9FAFB;" placeholder="Enter Block Height (e.g. 62), TX Hash (0x...), or Wallet Address (univa... / 0x...)..." onkeydown="if(event.key==='Enter')executeHomeExplorerSearch()">
+            <button class="btn btn-primary" onclick="executeHomeExplorerSearch()" style="border-radius:99px;padding:13px 26px;">Search Explorer</button>
           </div>
         </div>
 
@@ -842,7 +874,7 @@
       <div class="content-wrap">
         <div class="card-header" style="margin-bottom:24px;">
           <div>
-            <h2 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;">Network Operations Dashboard</h2>
+            <h2 class="univa-sec-title" style="font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></span><span>Network Operations Dashboard</span></h2>
             <p style="font-size:0.85rem;color:var(--text-muted);">Real-time telemetry and consensus metrics from active UNIVA nodes.</p>
           </div>
           <button class="btn btn-metallic btn-sm" onclick="fetchLiveStats()">🔄 Refresh Data</button>
@@ -951,7 +983,7 @@
               </div>
               <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Block Subsidy</span>
-                <span class="mono">100.0 UNIVA</span>
+                <span class="mono">100.0 UNIVA (PC) / 10.0 UNIVA (Mobile)</span>
               </div>
               <div style="display:flex;justify-content:space-between;">
                 <span style="color:var(--text-muted);">Next Halving</span>
@@ -985,6 +1017,29 @@
             </table>
           </div>
         </div>
+
+        <!-- PER-MINER BLOCKS MINED & REWARDS -->
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header">
+            <div class="card-title">Miner Leaderboard & Blocks Mined per Address</div>
+            <button class="btn btn-metallic btn-sm" onclick="fetchAllAddresses()">🔄 Refresh Miners</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Miner Address</th>
+                  <th>Node Type</th>
+                  <th>Blocks Mined</th>
+                  <th>Confirmed Balance</th>
+                </tr>
+              </thead>
+              <tbody id="dash-miners-tbody">
+                <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Loading miner stats...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -993,7 +1048,7 @@
       <div class="content-wrap">
         <div class="card-header" style="margin-bottom:24px;">
           <div>
-            <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Block Explorer</h2>
+            <h2 class="univa-sec-title" style="font-size:1.6rem;font-weight:800;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span><span>UNIVA Block Explorer</span></h2>
             <p style="font-size:0.85rem;color:var(--text-muted);">Query verified blocks, transaction digests, and on-chain ledger balances.</p>
           </div>
         </div>
@@ -1035,23 +1090,23 @@
         <!-- RECENT ON-CHAIN TRANSACTIONS FEED -->
         <div class="card" style="margin-bottom:24px;">
           <div class="card-header">
-            <div class="card-title">Son Zincir İçi İşlemler (Transferler & Blok Ödülleri)</div>
-            <button class="btn btn-metallic btn-sm" onclick="fetchRecentTransactions()">🔄 İşlemleri Yenile</button>
+            <div class="card-title">Latest On-Chain Transactions (Transfers & Block Rewards)</div>
+            <button class="btn btn-metallic btn-sm" onclick="fetchRecentTransactions()">🔄 Refresh Transactions</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>İşlem ID (TX Hash)</th>
-                  <th>Tür</th>
-                  <th>Gönderen</th>
-                  <th>Alıcı</th>
-                  <th>Miktar</th>
-                  <th>Blok</th>
+                  <th>Transaction ID (TX Hash)</th>
+                  <th>Type</th>
+                  <th>Sender</th>
+                  <th>Recipient</th>
+                  <th>Amount</th>
+                  <th>Block</th>
                 </tr>
               </thead>
               <tbody id="explorer-txs-tbody">
-                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">Son işlemler yükleniyor...</td></tr>
+                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">Loading recent transactions...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1330,7 +1385,7 @@
       <div class="content-wrap">
         <div class="card-header" style="margin-bottom:24px;">
           <div>
-            <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Multichain Hub</h2>
+            <h2 class="univa-sec-title" style="font-size:1.6rem;font-weight:800;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><span>UNIVA Multichain Hub</span></h2>
             <p style="font-size:0.85rem;color:var(--text-muted);">Independent sovereign Layer-1 with cross-chain cryptographic verification and state proof reads.</p>
           </div>
           <span class="badge badge-native">Universal Interop</span>
@@ -1404,7 +1459,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top:18px;">
+        <div class="card" id="mc-admin-usdt-guide" style="display:none;margin-top:18px;">
           <div class="card-header">
             <div class="card-title">💱 Çoklu EVM Uyumu ve İlk UNIVA / USDT Likidite Rehberi (AMM)</div>
             <button class="btn btn-metallic btn-sm" onclick="fetchMultichainStatus()">🔄 Canlı Ağları Yenile</button>
@@ -1427,7 +1482,7 @@
       <div class="content-wrap">
         <div class="card-header" style="margin-bottom:24px;">
           <div>
-            <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Çevrimdışı Ödeme Protokolü</h2>
+            <h2 class="univa-sec-title" style="font-size:1.6rem;font-weight:800;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></span><span>UNIVA Çevrimdışı Ödeme Protokolü</span></h2>
             <p style="font-size:0.85rem;color:var(--text-muted);">İnternet olmadan uçak modunda bile cihazlar arası secp256k1 imzalı QR ödeme fişi üretin, doğrulayın ve bağlantı geldiğinde zincire yayınlayın.</p>
           </div>
           <span class="badge badge-native">Air-Gapped Secp256k1</span>
@@ -1507,7 +1562,7 @@
       <div class="content-wrap">
         <div class="card-header" style="margin-bottom:24px;">
           <div>
-            <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Gizem Protokolü</h2>
+            <h2 class="univa-sec-title" style="font-size:1.6rem;font-weight:800;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg></span><span>UNIVA Gizem Protokolü</span></h2>
             <p style="font-size:0.85rem;color:var(--text-muted);">Her 100.000 blokta havai fişeklerle açılan gizemli bilmece ve 50.00 UNIVA ödül döngüsü.</p>
           </div>
           <span class="badge badge-native">100.000 Blokluk Dönem</span>
@@ -1622,7 +1677,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       <div class="content-wrap">
         <div class="card-header" style="margin-bottom:24px;">
           <div>
-            <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Wallet Vault</h2>
+            <h2 class="univa-sec-title" style="font-size:1.6rem;font-weight:800;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14" r="1.5"/></svg></span><span>UNIVA Wallet Vault</span></h2>
             <p style="font-size:0.85rem;color:var(--text-muted);">Client-side AES-256-GCM + SHA-256 HMAC encrypted sovereign keys with L1 & EVM dual-address identity.</p>
           </div>
           <span class="badge badge-live">🛡️ AES-256-GCM Shield</span>
@@ -1747,32 +1802,32 @@ Block Explorer: https://univa-network-l1.vercel.app
       <div class="footer-col">
         <h5>Ecosystem</h5>
         <ul class="footer-links">
-          <li><a onclick="navigate('dashboard')">Operations Dashboard</a></li>
-          <li><a onclick="navigate('explorer')">Block Explorer</a></li>
-          <li><a onclick="navigate('network')">Network Center</a></li>
-          <li><a onclick="navigate('mining')">Mining Operations</a></li>
-          <li><a onclick="navigate('dex')">Native DEX (AMM)</a></li>
+          <li><a onclick="navigate('dashboard')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span>Operations Dashboard</span></a></li>
+          <li><a onclick="navigate('explorer')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span><span>Block Explorer</span></a></li>
+          <li><a onclick="navigate('network')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M10.5 7.5 6.5 16.5M13.5 7.5l4 9M8 19h8"/></svg></span><span>Network Center</span></a></li>
+          <li><a onclick="navigate('mining')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span><span>Mining Operations</span></a></li>
+          <li><a onclick="navigate('dex')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></span><span>Native DEX (AMM)</span></a></li>
         </ul>
       </div>
 
       <div class="footer-col">
         <h5>Technology</h5>
         <ul class="footer-links">
-          <li><a onclick="navigate('core')">UNIVA Core Node</a></li>
-          <li><a onclick="navigate('multichain')">Multichain Hub</a></li>
-          <li><a onclick="navigate('offline')">Offline Pay Protocol</a></li>
-          <li><a onclick="navigate('mystery')">Mystery Protocol</a></li>
-          <li><a onclick="navigate('dev')">Developer API / RPC</a></li>
+          <li><a onclick="navigate('core')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></span><span>UNIVA Core Node</span></a></li>
+          <li><a onclick="navigate('multichain')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/></svg></span><span>Multichain Hub</span></a></li>
+          <li><a onclick="navigate('offline')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM17 17h4v4h-4z"/></svg></span><span>Offline Pay Protocol</span></a></li>
+          <li><a onclick="navigate('mystery')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span>Mystery Protocol</span></a></li>
+          <li><a onclick="navigate('dev')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span><span>Developer API / RPC</span></a></li>
         </ul>
       </div>
 
       <div class="footer-col">
         <h5>Community & Code</h5>
         <ul class="footer-links">
-          <li><a href="https://github.com/NIONTOKEN/univa-network" target="_blank">GitHub Repository</a></li>
-          <li><a href="https://t.me/UnivaNetworkBot" target="_blank">Telegram Mini App Bot</a></li>
-          <li><a onclick="navigate('dev')">JSON-RPC Specs</a></li>
-          <li><a onclick="navigate('wallet')">Secure Wallet Vault</a></li>
+          <li><a href="https://github.com/NIONTOKEN/univa-network" target="_blank"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg></span><span>GitHub Repository</span></a></li>
+          <li><a href="https://t.me/UnivaNetworkBot" target="_blank"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span><span>Telegram Mini App Bot</span></a></li>
+          <li><a onclick="navigate('dev')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span><span>JSON-RPC Specs</span></a></li>
+          <li><a onclick="navigate('wallet')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span>Secure Wallet Vault</span></a></li>
         </ul>
       </div>
     </div>
@@ -2009,6 +2064,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         pill.classList.add('offline');
         text.textContent = 'Düğüm Bağlantısı Bekleniyor';
       }
+      if (typeof applyCurrentLanguage === 'function') applyCurrentLanguage();
     }
 
     async function fetchBlocksFeed() {
@@ -2023,12 +2079,14 @@ Block Explorer: https://univa-network-l1.vercel.app
 
       blocks.forEach(b => {
         const timeStr = new Date(b.timestamp * 1000).toLocaleTimeString();
+        const rew = (b.reward !== null && b.reward !== undefined) ? Number(b.reward) : 100.0;
+        const tierTag = rew <= 10.0 ? '<span class="badge badge-native" style="margin-left:6px;font-size:0.68rem;">📱 Mobile</span>' : '<span class="badge" style="margin-left:6px;font-size:0.68rem;background:#EEF2F7;color:#20242B;">🖥️ PC</span>';
         dashRows += `<tr>
           <td class="mono" style="font-weight:700;color:var(--blue);">#${b.index}</td>
           <td class="mono" style="font-size:0.75rem;">${b.hash.substring(0, 20)}...</td>
           <td class="mono" style="font-size:0.75rem;">${b.miner_address ? b.miner_address.substring(0, 16) + '...' : 'Genesis'}</td>
           <td class="mono">${b.transactions ? b.transactions.length : 1}</td>
-          <td class="mono" style="color:var(--success);">+${b.reward || 100.0}</td>
+          <td class="mono" style="color:var(--success);">+${rew}${tierTag}</td>
           <td style="font-size:0.75rem;color:var(--text-muted);">${timeStr}</td>
         </tr>`;
 
@@ -2037,7 +2095,7 @@ Block Explorer: https://univa-network-l1.vercel.app
           <td class="mono" style="font-size:0.75rem;">${b.hash.substring(0, 24)}...</td>
           <td class="mono" style="font-size:0.75rem;">${b.miner_address ? b.miner_address.substring(0, 18) + '...' : 'Genesis'}</td>
           <td class="mono">${b.difficulty}</td>
-          <td class="mono" style="color:var(--success);">+${b.reward || 100.0} UNIVA</td>
+          <td class="mono" style="color:var(--success);">+${rew} UNIVA${tierTag}</td>
           <td><button class="btn btn-metallic btn-sm" onclick="inspectBlock(${b.index})">Inspect</button></td>
         </tr>`;
       });
@@ -2121,6 +2179,17 @@ Block Explorer: https://univa-network-l1.vercel.app
         </tr>`;
       });
       tbody.innerHTML = rows;
+      const dashMiners = document.getElementById('dash-miners-tbody');
+      if (dashMiners) {
+        const sortedMiners = [...list].sort((a, b) => (b.blocks_mined || 0) - (a.blocks_mined || 0));
+        dashMiners.innerHTML = sortedMiners.map(item => `<tr>
+          <td class="mono" style="color:var(--blue);font-size:0.78rem;">${escapeHtml(item.address)}</td>
+          <td><span class="badge badge-native">${escapeHtml(item.address_type || 'UNIVA L1')}</span></td>
+          <td class="mono" style="font-weight:700;">${item.blocks_mined || 0}</td>
+          <td class="mono" style="color:var(--success);font-weight:700;">${Number(item.balance || 0).toFixed(4)} UNIVA</td>
+        </tr>`).join('');
+      }
+      if (typeof applyCurrentLanguage === 'function') applyCurrentLanguage();
     }
 
     async function executeHomeExplorerSearch() {
@@ -2156,6 +2225,7 @@ Block Explorer: https://univa-network-l1.vercel.app
           <td class="mono">${blkText}</td>
         </tr>`;
       }).join('');
+      if (typeof applyCurrentLanguage === 'function') applyCurrentLanguage();
     }
 
     async function inspectTxInExplorer(txId) {
@@ -2555,6 +2625,11 @@ Block Explorer: https://univa-network-l1.vercel.app
       document.getElementById('w-l1-full').textContent = walletAddr;
       document.getElementById('w-evm-full').textContent = walletEvm;
       document.getElementById('mining-target-addr').textContent = walletAddr;
+      const adminGuide = document.getElementById('mc-admin-usdt-guide');
+      if (adminGuide) {
+        const isAdminWallet = (uname.toLowerCase() === 'kaya' || walletAddr === 'univaf63aua23vxdvcmvkunx66yzh2');
+        adminGuide.style.display = isAdminWallet ? 'block' : 'none';
+      }
       showToast('Hoş geldin ' + uname + ' · Kasa aktif: ' + walletAddr.substring(0, 12) + '...');
       fetchWalletBalance();
       fetchLiveHistory();
@@ -2803,7 +2878,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         previous_hash: (stats && stats.last_hash) ? stats.last_hash : '0'.repeat(64),
         difficulty: diff,
         miner_address: targetAddr,
-        reward: 100.0,
+        reward: (/android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 10.0 : 100.0),
         startNonce: Math.floor(Math.random() * 100000),
         minFoundTimeMs: Date.now() + waitMs
       };
@@ -2837,7 +2912,8 @@ Block Explorer: https://univa-network-l1.vercel.app
           }
         }
         sessionMinedBlocks++;
-        const rewardAmt = minedBlockInfo ? (minedBlockInfo.reward || 100.0) : 100.0;
+        const defaultRew = /android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 10.0 : 100.0;
+        const rewardAmt = minedBlockInfo ? (minedBlockInfo.reward ?? defaultRew) : defaultRew;
         sessionMinedRewards += rewardAmt;
         document.getElementById('mining-blocks-val').textContent = sessionMinedBlocks;
         document.getElementById('mining-reward-val').textContent = sessionMinedRewards.toFixed(2);
@@ -2881,16 +2957,17 @@ Block Explorer: https://univa-network-l1.vercel.app
             await new Promise(r => setTimeout(r, 1000));
           }
           if (!isMining) break;
+          const mobRew = /android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 10.0 : 100.0;
           sessionMinedBlocks++;
-          sessionMinedRewards += 100.0;
+          sessionMinedRewards += mobRew;
           const mobIdx = 60 + getMobileMinedBlocks().length + 1;
           const digestBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(targetAddr + ':' + Date.now()));
           const digestHex = '0000' + Array.from(new Uint8Array(digestBuf)).map(b => b.toString(16).padStart(2, '0')).join('').substring(4);
-          recordMobileMinedBlock({ index: mobIdx, hash: digestHex, nonce: Math.floor(Math.random() * 900000), reward: 100.0, timestamp: Math.floor(Date.now() / 1000) });
+          recordMobileMinedBlock({ index: mobIdx, hash: digestHex, nonce: Math.floor(Math.random() * 900000), reward: mobRew, timestamp: Math.floor(Date.now() / 1000) });
           document.getElementById('mining-blocks-val').textContent = sessionMinedBlocks;
           document.getElementById('mining-reward-val').textContent = sessionMinedRewards.toFixed(2);
-          document.getElementById('mining-log-msg').innerHTML = `<span style="color:var(--success);">✓ Block #${mobIdx} Mined! Hash: <span class="mono">${digestHex.substring(0, 20)}...</span> (+100 UNIVA)</span>`;
-          showToast('🎉 BLOCK #' + mobIdx + ' MINED! +100 UNIVA');
+          document.getElementById('mining-log-msg').innerHTML = `<span style="color:var(--success);">✓ Block #${mobIdx} Mined! Hash: <span class="mono">${digestHex.substring(0, 20)}...</span> (+${mobRew} UNIVA)</span>`;
+          showToast('🎉 BLOCK #' + mobIdx + ' MINED! +' + mobRew + ' UNIVA');
           await fetchWalletBalance();
           await fetchLiveHistory();
           continue;
@@ -3409,6 +3486,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         const el = document.getElementById(id);
         if (el) el.textContent = txt;
       }
+      if (typeof applyCurrentLanguage === 'function') applyCurrentLanguage();
     }
 
     async function fetchMysteryStatus() {
@@ -3457,6 +3535,7 @@ Block Explorer: https://univa-network-l1.vercel.app
           `).join('');
         }
       }
+      if (typeof applyCurrentLanguage === 'function') applyCurrentLanguage();
     }
 
     async function verifyMysteryCandidate() {
@@ -3542,34 +3621,18 @@ Block Explorer: https://univa-network-l1.vercel.app
       function draw() {
         ctx.clearRect(0, 0, width, height);
 
-        // Metric Space Orbital Rings centered around the right-side UNIVA Logo Chamber
+        // Subtle static architectural halo glow behind right-side emblem (no spinning rings)
         const orbX = width > 768 ? width * 0.77 : width * 0.78;
         const orbY = width > 768 ? height * 0.50 : height * 0.36;
-        const radii = width > 768 ? [185, 225, 265] : [105, 130, 155];
-
-        radii.forEach((rad, rIdx) => {
-          ctx.save();
-          ctx.translate(orbX, orbY);
-          ctx.rotate(angle * (rIdx % 2 === 0 ? 1 : -1) * (0.6 + rIdx * 0.2));
-          ctx.strokeStyle = rIdx === 0 ? 'rgba(210, 216, 226, 0.55)' : 'rgba(90, 98, 112, 0.38)';
-          ctx.lineWidth = 1.25;
-          ctx.setLineDash(rIdx === 1 ? [8, 6] : [14, 8]);
-          ctx.beginPath();
-          ctx.arc(0, 0, rad, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // Orbiting metric satellites on the ring
-          for (let s = 0; s < 3; s++) {
-            const sa = (s * Math.PI * 2) / 3;
-            const sx = Math.cos(sa) * rad;
-            const sy = Math.sin(sa) * rad;
-            ctx.fillStyle = rIdx === 0 ? '#E2E8F0' : '#475569';
-            ctx.beginPath();
-            ctx.arc(sx, sy, 3.2, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          ctx.restore();
-        });
+        const maxR = width > 768 ? 270 : 160;
+        const grad = ctx.createRadialGradient(orbX, orbY, maxR * 0.3, orbX, orbY, maxR);
+        grad.addColorStop(0, 'rgba(197, 204, 213, 0.10)');
+        grad.addColorStop(0.65, 'rgba(197, 204, 213, 0.04)');
+        grad.addColorStop(1, 'rgba(197, 204, 213, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(orbX, orbY, maxR, 0, Math.PI * 2);
+        ctx.fill();
 
         // High-contrast metallic charcoal & silver network lines
         for (let i = 0; i < nodeCount; i++) {
@@ -4042,6 +4105,69 @@ Block Explorer: https://univa-network-l1.vercel.app
       return 'tr';
     }
 
+    const UNIVA_EXTRA_I18N_PAIRS = [["ÖNEMLİ TRANSFER VE CÜZDAN UYARISI / CRITICAL TRANSFER NOTICE", "ÖNEMLİ TRANSFER VE CÜZDAN UYARISI"], ["CRITICAL TRANSFER NOTICE", "ÖNEMLİ TRANSFER VE CÜZDAN UYARISI"], ["UNIVA Cüzdan İçi Transferler:", "UNIVA Internal Wallet Transfers:"], ["UNIVA kendi cüzdan kasası (Wallet Vault) içindeki transferlerde", "For transfers inside the UNIVA Wallet Vault, the"], ["ile başlayan 30 karakterli yerel L1 adresi", "30-character native L1 address"], ["kullanılır.", "is used."], ["⚠️ MetaMask, Trust Wallet, OKX Wallet ve Tüm Web3 Cüzdanları:", "⚠️ MetaMask, Trust Wallet, OKX Wallet & All Web3 Wallets:"], ["Dış Web3 cüzdanlarına gönderim yaparken veya bu cüzdanlardan transfer alırken", "When sending to or receiving from external Web3 wallets, you must use the"], ["mutlaka", "EVM address starting with"], ["ile başlayan EVM Adresi", "0x... EVM Address"], ["kullanılmalıdır!", "without fail!"], ["⛽ Gaz (Ağ) Ücreti Nereye Gider?:", "⛽ Where Does the Gas (Network) Fee Go?:"], ["Ağ üzerindeki her transferden kesilen küçük gaz ücreti aracıya gitmez; doğrudan o bloğu doğrulayıp üreten", "The small gas fee deducted from each transfer does not go to any middleman; it is added directly to the"], ["madencinin blok ödülüne", "miner's block reward"], ["eklenir.", "for validating and sealing that block."], ["UNIVA Block Explorer — Instant On-Chain Search", "UNIVA Blok Gezgini — Anlık Zincir Üzeri Arama"], ["Block · Transaction (0x...) · Address (univa... / 0x...)", "Blok · İşlem (0x...) · Adres (univa... / 0x...)"], ["Enter Block Height (e.g. 62), TX Hash (0x...), or Wallet Address (univa... / 0x...)...", "Blok numarası (ör. 62), İşlem Hash (0x...) veya Cüzdan Adresi (univa... / 0x...) yazın..."], ["Search Explorer", "Gezginde Ara"], ["Latest On-Chain Transactions (Transfers & Block Rewards)", "Son Zincir İçi İşlemler (Transferler & Blok Ödülleri)"], ["🔄 Refresh Transactions", "🔄 İşlemleri Yenile"], ["Transaction ID (TX Hash)", "İşlem ID (TX Hash)"], ["Type", "Tür"], ["Sender", "Gönderen"], ["Recipient", "Alıcı"], ["Amount", "Miktar"], ["Block", "Blok"], ["Loading recent transactions...", "Son işlemler yükleniyor..."], ["Blok Ödülü", "Block Reward"], ["Henüz işlem kaydı bulunamadı.", "No transaction records found yet."], ["Miner Leaderboard & Blocks Mined per Address", "Madenci Sıralaması & Adres Başına Bulunan Bloklar"], ["🔄 Refresh Miners", "🔄 Madencileri Yenile"], ["Miner Address", "Madenci Adresi"], ["Node Type", "Düğüm Türü"], ["Blocks Mined", "Bulunan Blok"], ["Confirmed Balance", "Onaylı Bakiye"], ["Loading miner stats...", "Madenci istatistikleri yükleniyor..."], ["100.0 UNIVA (PC) / 10.0 UNIVA (Mobile)", "100.0 UNIVA (PC) / 10.0 UNIVA (Mobil)"], ["📱 Mobile", "📱 Mobil"], ["Ecosystem", "Ekosistem"], ["Technology", "Teknoloji"], ["Community & Code", "Topluluk ve Kod"], ["Operations Dashboard", "Operasyon Kontrol Paneli"], ["Block Explorer", "Blok Gezgini"], ["Network Center", "Ağ Merkezi"], ["Mining Operations", "Madencilik İşlemleri"], ["Native DEX (AMM)", "Yerel DEX (AMM)"], ["UNIVA Core Node", "UNIVA Çekirdek Düğümü"], ["Multichain Hub", "Çoklu Zincir Merkezi"], ["Offline Pay Protocol", "Çevrimdışı Ödeme Protokolü"], ["Mystery Protocol", "Gizem Protokolü"], ["Developer API / RPC", "Geliştirici API / RPC"], ["GitHub Repository", "GitHub Deposu"], ["Telegram Mini App Bot", "Telegram Mini Uygulama Botu"], ["JSON-RPC Specs", "JSON-RPC Özellikleri"], ["Sovereign Wallet Vault", "Güvenli Cüzdan Kasası"], ["Secure Wallet Vault", "Güvenli Cüzdan Kasası"], ["UNIVA Çevrimdışı Ödeme Protokolü", "UNIVA Offline Payment Protocol"], ["İnternet olmadan uçak modunda bile cihazlar arası secp256k1 imzalı QR ödeme fişi üretin, doğrulayın ve bağlantı geldiğinde zincire yayınlayın.", "Generate and verify secp256k1-signed offline QR payment vouchers between devices even in airplane mode, and broadcast them to the chain once online."], ["1. Çevrimdışı Ödeme Oluştur (Gönderen)", "1. Create Offline Payment (Sender)"], ["Alıcı Adresi (univa... veya 0x...)", "Recipient Address (univa... or 0x...)"], ["Transfer Tutarı (UNIVA)", "Transfer Amount (UNIVA)"], ["🔐 İmzalı Çevrimdışı QR Oluştur", "🔐 Generate Signed Offline QR"], ["2. Çevrimdışı Ödeme Al ve Ağa Yayınla (Alıcı)", "2. Receive Offline Payment & Broadcast (Receiver)"], ["📷 Kamera ile QR Tara", "📷 Scan QR with Camera"], ["İmzalı Çevrimdışı Ödeme Kodu (UNIVA:OFF:V1:...)", "Signed Offline Payment Code (UNIVA:OFF:V1:...)"], ["QR tarayın veya göndericinin UNIVA:OFF:V1:... kodunu buraya yapıştırın", "Scan QR or paste sender's UNIVA:OFF:V1:... code here"], ["✓ İmzayı Doğrula ve Bekleyenlere Ekle", "✓ Verify Signature & Queue Offline TX"], ["📡 Bekleyen Çevrimdışı İşlemler (0)", "📡 Pending Offline Transactions (0)"], ["🚀 Bağlantı Varsa Yayınla", "🚀 Broadcast When Online"], ["Henüz bekleyen çevrimdışı ödeme yok.", "No pending offline payments yet."], ["Protokol Güvenlik Kuralı", "Protocol Security Rule"], ["KRİTİK AYRIM:", "CRITICAL DISTINCTION:"], ["Çevrimdışı imzalı ödeme fişi özel anahtarınızı asla içermez; yalnızca alıcı cihazın kriptografik olarak doğrulayabileceği imzalı bir işlemdir. İki cihazdan biri internete bağlandığı anda işlem UNIVA Mempool havuzuna gönderilir ve madencilik onayından sonra kalıcı bakiyeye işlenir.", "An offline signed payment voucher never contains your private key; it is purely a signed transaction that the receiver device can cryptographically verify. As soon as either device connects to the internet, it is submitted to the UNIVA Mempool and settled permanently after block confirmation."], ["UNIVA Gizem Protokolü", "UNIVA Mystery Protocol"], ["Her 100.000 blokta havai fişeklerle açılan gizemli bilmece ve 50.00 UNIVA ödül döngüsü.", "A mystery riddle unlocked with fireworks every 100,000 blocks and a 50.00 UNIVA reward cycle."], ["100.000 Blokluk Dönem", "100,000-Block Epoch"], ["Dönem #1 Ödül Geri Sayımı", "Epoch #1 Reward Countdown"], ["Aktif Döngü", "Active Cycle"], ["Hedef Blok:", "Target Block:"], ["Mevcut Yükseklik:", "Current Height:"], ["Kalan Blok:", "Remaining Blocks:"], ["Gizem Ödülü", "Mystery Reward"], ["Doğru cevabı ilk bilen cüzdana Master Hazine'den zincir içi gönderilir", "Sent on-chain from Master Treasury to the first wallet with the right answer"], ["Gizemli Bilmece & Çözüm Konsolu", "Mystery Riddle & Solution Console"], ["🔒 Gizem Kapısı henüz kilitli. Zincir hedef bloğa ulaştığında havai fişeklerle birlikte dönemin gizemli bilmecesi burada açılacak!", "🔒 Mystery Gate is still locked. When the chain reaches the target block, this epoch's riddle will unlock here with fireworks!"], ["Bilmecenin cevabını yazın...", "Enter the riddle answer..."], ["✨ Cevabı Gönder & 50 UNIVA Kazan", "✨ Submit Answer & Win 50 UNIVA"], ["🏆 Gizem Kazananları Onur Listesi", "🏆 Mystery Winners Hall of Fame"], ["Henüz çözülen gizem dönemi yok. İlk kazanan siz olabilirsiniz!", "No solved mystery epochs yet. You could be the first winner!"], ["Çoklu EVM Uyumu ve İlk UNIVA / USDT Likidite Rehberi (AMM)", "Multi-EVM Compatibility & Initial UNIVA / USDT Liquidity Guide (AMM)"], ["🔄 Canlı Ağları Yenile", "🔄 Refresh Live Chains"], ["Çoklu EVM Uyumu (ETH / BNB / Polygon / Base / Arbitrum):", "Multi-EVM Compatibility (ETH / BNB / Polygon / Base / Arbitrum):"], ["UNIVA, 0x... EVM ayna adresleri ve Chain ID: 210001 JSON-RPC ile tüm EVM cüzdanlarına uyumludur.", "UNIVA is compatible with all EVM wallets via 0x... mirror addresses and Chain ID: 210001 JSON-RPC."], ["İlk UNIVA Değeri İçin Hangi Ağda USDT Yatırılmalı?", "Which Network Should USDT Be Deposited On for Initial UNIVA Value?"], ["En düşük işlem ücreti (~$0.05) ve kolay likidite için BNB Smart Chain (BEP-20 USDT — PancakeSwap) veya Base/Arbitrum (ERC-20 USDT) önerilir. Örneğin 10.000 wUNIVA + 1.000 USDT havuzu açıldığında piyasa başlangıç fiyatı otomatik olarak 1 UNIVA = 0.10 USDT olur. (UNIVA içi Native DEX sayfası şu an protokol içi test havuzudur; dış USDT kabulü için BEP-20 Wrapped UNIVA köprüsü gerekir.)", "For the lowest fees (~$0.05) and easy liquidity, BNB Smart Chain (BEP-20 USDT — PancakeSwap) or Base/Arbitrum (ERC-20 USDT) is recommended. For example, opening a 10,000 wUNIVA + 1,000 USDT pool sets the initial market price to 1 UNIVA = 0.10 USDT. (UNIVA's built-in Native DEX is currently an internal test pool; external USDT requires a BEP-20 Wrapped UNIVA bridge.)"], ["Düğüm Bağlantısı Bekleniyor", "Awaiting Node Connection"], ["Yetkili Ana Bilgisayar Düğümü", "Authorized Host Node"], ["Blok Yüksekliği", "Block Height"], ["Ağ Hash Oranı", "Network Hashrate"], ["Canlı SHA-256 Motoru", "Live SHA-256 Engine"], ["Aktif Düğümler", "Active Nodes"], ["İşlemciler", "Transactions"], ["Blok Süresi", "Block Time"], ["60 sn", "60 sec"], ["Ağ Zorluğu", "Network Difficulty"], ["Toplam Arz", "Total Supply"], ["Maksimum Kapasite", "Max Capacity"], ["Mempool ve Onaylandı", "Mempool & Confirmed"], ["Hedef yeniden hedefleme aralığı", "Target retargeting interval"], ["60 blokta bir otomatik kalibrasyon", "Auto-calibrated every 60 blocks"], ["Bugüne kadar üretilen UNIVA", "Total UNIVA mined to date"], ["Matematiksel olarak değiştirilemez", "Mathematically immutable"], ["Ülke & Düğüm Haritası (Port 5050/5051)", "Country & Node Map (Port 5050/5051)"], ["ANA DÜĞÜM", "PRIMARY NODE"], ["AKTİF", "ACTIVE"]];
+    const UNIVA_EN_TO_TR = { ...UNIVA_TR_MAP };
+    const UNIVA_TR_TO_EN = {};
+    for (const [enStr, trStr] of Object.entries(UNIVA_TR_MAP)) {
+      if (trStr && !UNIVA_TR_TO_EN[trStr]) UNIVA_TR_TO_EN[trStr] = enStr;
+    }
+    for (const [a, b] of UNIVA_EXTRA_I18N_PAIRS) {
+      // Detect whether pair is [TR, EN] or [EN, TR] by checking Turkish diacritics/words
+      const aIsTr = /[çğıöşüÇĞİÖŞÜ]|\b(Blok|Düğüm|Çevrimdışı|Gizem|Çoklu|ÖNEMLİ|Henüz)\b/.test(a);
+      const enVal = aIsTr ? b : a;
+      const trVal = aIsTr ? a : b;
+      UNIVA_EN_TO_TR[enVal] = trVal;
+      UNIVA_TR_TO_EN[trVal] = enVal;
+    }
+
+    function getActiveLanguage() {
+      const saved = localStorage.getItem('univa_lang') || 'auto';
+      return saved === 'auto' ? detectUserLanguage() : saved;
+    }
+
+    function applyCurrentLanguage() {
+      applyNativeTranslations(getActiveLanguage());
+    }
+
+    function translateDynamicFragment(trimmed, target) {
+      const dict = target === 'tr' ? UNIVA_EN_TO_TR : UNIVA_TR_TO_EN;
+      if (dict[trimmed]) return dict[trimmed];
+      if (target === 'en') {
+        let m = trimmed.match(/^Son Hash:\s*(.+)$/);
+        if (m) return 'Last Hash: ' + m[1];
+        m = trimmed.match(/^Aktif Cihaz \/ Düğüm:\s*(\d+)$/);
+        if (m) return 'Active Devices / Nodes: ' + m[1];
+        m = trimmed.match(/^([\d,.]+)\s+blok sonra$/);
+        if (m) return 'In ' + m[1] + ' blocks';
+        m = trimmed.match(/^UNIVA · Blok #(\d+)$/);
+        if (m) return 'UNIVA · Block #' + m[1];
+        m = trimmed.match(/^Dönem #(\d+) Ödül Geri Sayımı$/);
+        if (m) return 'Epoch #' + m[1] + ' Reward Countdown';
+        m = trimmed.match(/^Hedef Blok:\s*(.+)$/);
+        if (m) return 'Target Block: ' + m[1];
+        m = trimmed.match(/^Mevcut Yükseklik:\s*(.+)$/);
+        if (m) return 'Current Height: ' + m[1];
+        m = trimmed.match(/^Kalan Blok:\s*(.+)$/);
+        if (m) return 'Remaining Blocks: ' + m[1];
+        m = trimmed.match(/^📡 Bekleyen Çevrimdışı İşlemler \((\d+)\)$/);
+        if (m) return '📡 Pending Offline Transactions (' + m[1] + ')';
+        m = trimmed.match(/^• Ana Düğüm:\s*(.+)$/);
+        if (m) return '• Primary Node: ' + m[1];
+      } else {
+        let m = trimmed.match(/^Last Hash:\s*(.+)$/);
+        if (m) return 'Son Hash: ' + m[1];
+        m = trimmed.match(/^Active Devices \/ Nodes:\s*(\d+)$/);
+        if (m) return 'Aktif Cihaz / Düğüm: ' + m[1];
+        m = trimmed.match(/^In ([\d,.]+) blocks$/);
+        if (m) return m[1] + ' blok sonra';
+        m = trimmed.match(/^UNIVA · Block #(\d+)$/);
+        if (m) return 'UNIVA · Blok #' + m[1];
+        m = trimmed.match(/^Epoch #(\d+) Reward Countdown$/);
+        if (m) return 'Dönem #' + m[1] + ' Ödül Geri Sayımı';
+      }
+      return null;
+    }
+
     const UNIVA_ORIG_TEXT_NODES = new WeakMap();
     function applyNativeTranslations(lang) {
       const target = (lang === 'en') ? 'en' : 'tr';
@@ -4062,12 +4188,11 @@ Block Explorer: https://univa-network-l1.vercel.app
         const origRaw = UNIVA_ORIG_TEXT_NODES.get(node);
         const trimmed = origRaw.replace(/\s+/g, ' ').trim();
         if (!trimmed) continue;
-        if (target === 'tr') {
-          if (UNIVA_TR_MAP[trimmed]) {
-            const lead = origRaw.match(/^\s*/)[0];
-            const trail = origRaw.match(/\s*$/)[0];
-            node.nodeValue = lead + UNIVA_TR_MAP[trimmed] + trail;
-          }
+        const translated = translateDynamicFragment(trimmed, target);
+        if (translated) {
+          const lead = origRaw.match(/^\s*/)[0];
+          const trail = origRaw.match(/\s*$/)[0];
+          node.nodeValue = lead + translated + trail;
         } else {
           node.nodeValue = origRaw;
         }
@@ -4077,14 +4202,16 @@ Block Explorer: https://univa-network-l1.vercel.app
           el.dataset.univaOrigPh = el.getAttribute('placeholder') || '';
         }
         const origPh = el.dataset.univaOrigPh.trim();
-        el.setAttribute('placeholder', (target === 'tr' && UNIVA_TR_MAP[origPh]) ? UNIVA_TR_MAP[origPh] : el.dataset.univaOrigPh);
+        const trPh = translateDynamicFragment(origPh, target);
+        el.setAttribute('placeholder', trPh || el.dataset.univaOrigPh);
       });
       document.querySelectorAll('[title]').forEach(el => {
         if (typeof el.dataset.univaOrigTitle === 'undefined') {
           el.dataset.univaOrigTitle = el.getAttribute('title') || '';
         }
         const origT = el.dataset.univaOrigTitle.trim();
-        el.setAttribute('title', (target === 'tr' && UNIVA_TR_MAP[origT]) ? UNIVA_TR_MAP[origT] : el.dataset.univaOrigTitle);
+        const trT = translateDynamicFragment(origT, target);
+        el.setAttribute('title', trT || el.dataset.univaOrigTitle);
       });
     }
 
