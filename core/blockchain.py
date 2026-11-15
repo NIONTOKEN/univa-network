@@ -577,8 +577,23 @@ class Blockchain:
                 old_chain, old_total, old_pending = self.chain, self.total_mined, self.pending_transactions
                 self.chain = loaded_chain
                 if not self.is_chain_valid():
-                    self.chain, self.total_mined, self.pending_transactions = old_chain, old_total, old_pending
-                    continue
+                    # Recover longest valid prefix so a corrupted tail block never resets the chain to 0
+                    lo, hi, best = 1, len(loaded_chain), 0
+                    while lo <= hi:
+                        mid = (lo + hi) // 2
+                        self.chain = loaded_chain[:mid]
+                        if self.is_chain_valid():
+                            best = mid
+                            lo = mid + 1
+                        else:
+                            hi = mid - 1
+                    if best > 1:
+                        print(f"[UNIVA] UYARI: {target_path} sonundaki bozuk blok(lar) temizlendi -> kurtarilan yukseklik={best-1}")
+                        loaded_chain = loaded_chain[:best]
+                        self.chain = loaded_chain
+                    else:
+                        self.chain, self.total_mined, self.pending_transactions = old_chain, old_total, old_pending
+                        continue
                 self.difficulty = int(loaded_chain[-1].difficulty)
                 self.total_mined = round(sum(float(b.reward) for b in loaded_chain[1:]), 8)
                 self.pending_transactions = []
