@@ -1360,13 +1360,19 @@ def multichain_live_status():
 
     tasks = {"btc": get_btc, "eth": get_eth, "bnb": get_bnb, "sol": get_sol, "trx": get_trx, "ton": get_ton}
     results = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
-        futs = {k: ex.submit(fn) for k, fn in tasks.items()}
-        for k, fut in futs.items():
+    ex = concurrent.futures.ThreadPoolExecutor(max_workers=6)
+    futs = {k: ex.submit(fn) for k, fn in tasks.items()}
+    concurrent.futures.wait(futs.values(), timeout=3.5)
+    for k, fut in futs.items():
+        if fut.done():
             try:
-                results[k] = fut.result(timeout=3.5)
+                results[k] = fut.result(timeout=0)
             except Exception:
                 results[k] = {"height": None, "online": False}
+        else:
+            fut.cancel()
+            results[k] = {"height": None, "online": False}
+    ex.shutdown(wait=False, cancel_futures=True)
 
     payload = {
         "status": "ok",
