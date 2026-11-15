@@ -688,19 +688,6 @@ async def submit_transaction(request: Request):
         except Exception as e:
             raise HTTPException(400, f"Imzalama hatasi: {e}")
 
-    # Otomatik sunucu cuzdani geri donusu
-    elif "signature" not in tx or not tx.get("signature"):
-        wallet_file = os.path.join(BASE_DIR, "univa_wallet.json")
-        if os.path.exists(wallet_file):
-            try:
-                w = UnivaWallet.load(wallet_file)
-                if tx.get("from") == w.address:
-                    tx = blockchain.create_transaction(
-                        w, tx.get("to"), float(tx.get("amount", 0)), float(tx.get("fee", 0.0))
-                    )
-            except Exception:
-                pass
-
     if not blockchain.add_transaction(tx):
         raise HTTPException(400, "Gecersiz islem: ECDSA imzasi, nonce, yetersiz bakiye veya adres formati hatali")
 
@@ -866,8 +853,12 @@ async def dex_quote(request: Request):
 
 @app.post("/api/v1/dex/swap")
 async def dex_swap(request: Request):
+    from core.wallet import UnivaWallet, derive_pwa_address, derive_pwa_evm_address
     data = await request.json()
-    user = data.get("user")
+    user = (data.get("user") or "").strip()
+    priv_key = (data.get("private_key") or "").strip()
+    pub_key = (data.get("public_key") or "").strip()
+    sig = (data.get("signature") or "").strip()
     asset_in = data.get("asset_in", "UNIVA")
     asset_out = data.get("asset_out", "uUSD")
     amount_in_float = float(data.get("amount_in", 0.0))
@@ -875,6 +866,19 @@ async def dex_swap(request: Request):
 
     if not user or amount_in_float <= 0:
         raise HTTPException(400, "Gecersiz istek")
+
+    # Kimlik dogrulamasi: private_key veya ECDSA imza zorunlu
+    if len(priv_key) == 64:
+        w = UnivaWallet(private_key_hex=priv_key)
+        allowed = {w.address, w.evm_address, derive_pwa_address(priv_key), derive_pwa_evm_address(priv_key)}
+        if user not in allowed:
+            raise HTTPException(403, "Cuzdan yetkisi gecersiz")
+    elif len(pub_key) == 128 and sig:
+        msg = f"UNIVA_DEX|{user}|{asset_in}|{asset_out}|{amount_in_float}"
+        if not UnivaWallet.verify_signature(pub_key, msg, sig):
+            raise HTTPException(403, "DEX ECDSA imza gecersiz")
+    else:
+        raise HTTPException(401, "Takas islemi icin cuzdan imzasi gereklidir")
     try:
         amt_in = to_base_units(amount_in_float)
         min_out = to_base_units(min_out_float)
@@ -1113,6 +1117,36 @@ def _process_rpc_call(body: dict) -> dict:
         return {"jsonrpc": "2.0", "id": req_id, "result": result}
     except Exception as exc:
         return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": str(exc)}}
+
+
+_RATE_LIMIT_LOG: Dict[str, List[float]] = {}
+
+@app.middleware("http")
+async def security_headers_and_rate_limit(request: Request, call_next):
+    client_ip = request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "unknown")
+    path = request.url.path
+    now = time.time()
+
+    # Brute-force & DDoS rate limiting per IP
+    if path.startswith("/api/v1/mystery/solve"):
+        hist = [t for t in _RATE_LIMIT_LOG.get("mys:" + client_ip, []) if now - t < 60.0]
+        if len(hist) >= 8:
+            return JSONResponse({"detail": "Cok fazla gizem denemesi. 1 dakika bekleyin."}, status_code=429)
+        hist.append(now)
+        _RATE_LIMIT_LOG["mys:" + client_ip] = hist
+    elif path.startswith("/tx") or path.startswith("/mine") or path.startswith("/api/v1/faucet"):
+        hist = [t for t in _RATE_LIMIT_LOG.get("write:" + client_ip, []) if now - t < 60.0]
+        if len(hist) >= 45:
+            return JSONResponse({"detail": "Rate limit asildi. Lutfen yavaslayin."}, status_code=429)
+        hist.append(now)
+        _RATE_LIMIT_LOG["write:" + client_ip] = hist
+
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
 
 
 # ─── MYSTERY PROTOCOL (100,000-BLOCK EPOCH PUZZLES) ─────────────────────────
