@@ -308,12 +308,14 @@ def receive_block(block_data: Dict[str, Any]):
 
 def _get_effective_balance(address: str) -> float:
     """Onaylanmis blok bakiyesi + mempool'daki bekleyen gonderim/alim farkini hesaplar."""
-    confirmed = blockchain.get_balance(address)
+    from core.wallet import normalize_address
+    norm = normalize_address(address)
+    confirmed = blockchain.get_balance(norm, include_pending_outgoing=False)
     pending_delta = 0.0
     for tx in blockchain.pending_transactions:
-        if tx.get("to") == address:
+        if normalize_address(tx.get("to", "")) == norm:
             pending_delta += float(tx.get("amount", 0.0))
-        if tx.get("from") == address:
+        if normalize_address(tx.get("from", "")) == norm:
             pending_delta -= (float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0)))
     return round(max(0.0, confirmed + pending_delta), 8)
 
@@ -326,7 +328,7 @@ def balance(address: str):
     return {
         "address": address,
         "balance": bal,
-        "confirmed_balance": blockchain.get_balance(address),
+        "confirmed_balance": blockchain.get_balance(address, include_pending_outgoing=False),
         "nonce": blockchain._pending_nonce(address),
         "ticker": "UNIVA",
         "valid_format": validate_address(address),
@@ -442,6 +444,8 @@ def address_history(address: str):
     """
     Belirtilen adresin dahil oldugu tum gonderilen, alinan ve madencilik (coinbase) islemlerini dondurur.
     """
+    from core.wallet import normalize_address
+    norm_addr = normalize_address(address)
     history = []
     # 1. Onaylanmis bloklardaki islemler
     for block in reversed(blockchain.chain):
@@ -451,9 +455,11 @@ def address_history(address: str):
             tx_from = tx.get("from")
             tx_to = tx.get("to")
             tx_type = tx.get("type", "transfer")
-            
-            if tx_from == address or tx_to == address:
-                is_incoming = (tx_to == address)
+            n_from = normalize_address(tx_from or "")
+            n_to = normalize_address(tx_to or "")
+
+            if n_from == norm_addr or n_to == norm_addr:
+                is_incoming = (n_to == norm_addr)
                 history.append({
                     "tx_id": tx.get("tx_id") or f"coinbase_{block_idx}",
                     "block_index": block_idx,
@@ -471,8 +477,8 @@ def address_history(address: str):
     for tx in blockchain.pending_transactions:
         tx_from = tx.get("from")
         tx_to = tx.get("to")
-        if tx_from == address or tx_to == address:
-            is_incoming = (tx_to == address)
+        if normalize_address(tx_from or "") == norm_addr or normalize_address(tx_to or "") == norm_addr:
+            is_incoming = (normalize_address(tx_to or "") == norm_addr)
             history.append({
                 "tx_id": tx.get("tx_id", "pending_tx"),
                 "block_index": None,

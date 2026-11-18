@@ -211,12 +211,16 @@ class Blockchain:
         return {tx.get("tx_id") for block in self.chain for tx in block.transactions if tx.get("tx_id")}
 
     def _account_nonce(self, address: str) -> int:
+        from core.wallet import normalize_address
+        norm = normalize_address(address)
         return sum(1 for block in self.chain for tx in block.transactions
-                   if tx.get("type", "transfer") == "transfer" and tx.get("from") == address)
+                   if tx.get("type", "transfer") == "transfer" and normalize_address(tx.get("from", "")) == norm)
 
     def _pending_nonce(self, address: str) -> int:
-        return self._account_nonce(address) + sum(1 for tx in self.pending_transactions
-            if tx.get("type", "transfer") == "transfer" and tx.get("from") == address)
+        from core.wallet import normalize_address
+        norm = normalize_address(address)
+        return self._account_nonce(norm) + sum(1 for tx in self.pending_transactions
+            if tx.get("type", "transfer") == "transfer" and normalize_address(tx.get("from", "")) == norm)
 
     @staticmethod
     def _canonical_tx_message(tx: dict) -> str:
@@ -239,16 +243,11 @@ class Blockchain:
                 return False
             if not isinstance(nonce, int) or isinstance(nonce, bool) or nonce < 0:
                 return False
-            from core.wallet import derive_univa_address, derive_legacy_20char_address, derive_evm_address, validate_address, UnivaWallet, REGISTERED_PWA_ORIGINS
+            from core.wallet import get_valid_sender_addresses, normalize_address, validate_address, UnivaWallet
             if not validate_address(tx["from"]) or not validate_address(tx["to"]):
                 return False
-            # Gönderen adresi: Yeni L1 adresi, eski 20-karakter adresi, EVM ayna adresi veya kayıtlı PWA adresi olabilir
-            valid_origins = {
-                derive_univa_address(tx["public_key"]),
-                derive_legacy_20char_address(tx["public_key"]),
-                derive_evm_address(tx["public_key"]),
-            } | REGISTERED_PWA_ORIGINS.get(tx["public_key"], set())
-            if tx["from"] not in valid_origins:
+            # Gönderen adresi: L1 (RIPEMD160/SHA256), eski 20-karakter, EVM 0x (büyük/küçük harf duyarsız) veya kayıtlı PWA adresi olabilir
+            if normalize_address(tx["from"]) not in get_valid_sender_addresses(tx["public_key"]):
                 return False
             message = self._canonical_tx_message(tx)
             if not UnivaWallet.verify_signature(tx["public_key"], message, tx["signature"]):
@@ -446,16 +445,18 @@ class Blockchain:
     def get_balance(self, address: str, asset: str = "UNIVA", include_pending_outgoing: bool = True) -> float:
         if asset != "UNIVA":
             return self.custom_balances.get((address, asset), 0.0)
+        from core.wallet import normalize_address
+        norm = normalize_address(address)
         bal = 0.0
         for block in self.chain:
             for tx in block.transactions:
-                if tx.get("to") == address:
+                if normalize_address(tx.get("to", "")) == norm:
                     bal += float(tx.get("amount", 0.0))
-                if tx.get("from") == address and tx.get("type") == "transfer":
+                if normalize_address(tx.get("from", "")) == norm and tx.get("type") == "transfer":
                     bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
         if include_pending_outgoing:
             for tx in self.pending_transactions:
-                if tx.get("from") == address and tx.get("type", "transfer") == "transfer":
+                if normalize_address(tx.get("from", "")) == norm and tx.get("type", "transfer") == "transfer":
                     bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
         return round(bal, 8)
 

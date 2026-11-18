@@ -70,13 +70,7 @@ def verify_transaction(tx: dict) -> bool:
     if any(k not in tx for k in required):
         return False
     try:
-        from core.wallet import (
-            REGISTERED_PWA_ORIGINS,
-            derive_evm_address,
-            derive_legacy_20char_address,
-            derive_univa_address,
-            validate_address,
-        )
+        from core.wallet import get_valid_sender_addresses, normalize_address, validate_address
 
         amount = float(tx["amount"])
         fee = float(tx["fee"])
@@ -90,12 +84,7 @@ def verify_transaction(tx: dict) -> bool:
         if not validate_address(tx["from"]) or not validate_address(tx["to"]):
             return False
 
-        valid_origins = {
-            derive_univa_address(tx["public_key"]),
-            derive_legacy_20char_address(tx["public_key"]),
-            derive_evm_address(tx["public_key"]),
-        } | REGISTERED_PWA_ORIGINS.get(tx["public_key"], set())
-        if tx["from"] not in valid_origins:
+        if normalize_address(tx["from"]) not in get_valid_sender_addresses(tx["public_key"]):
             return False
 
         canon_tx = {**tx, "type": tx.get("type", "transfer")}

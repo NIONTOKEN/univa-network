@@ -95,6 +95,58 @@ except ImportError:
 
 PREFIX = "univa"
 CHARSET = "23456789abcdefghjkmnpqrstuvwxyz"   # 31 karakter
+SECP256K1_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+
+
+def normalize_address(address: str) -> str:
+    """Normalize EVM 0x addresses to lowercase while preserving Base31 L1 addresses."""
+    if not isinstance(address, str):
+        return ""
+    s = address.strip()
+    if (s.startswith("0x") or s.startswith("0X")) and len(s) == 42:
+        return "0x" + s[2:].lower()
+    return s
+
+
+def to_checksum_evm_address(address: str) -> str:
+    """Return mixed-case checksum formatting for a 42-char 0x EVM address."""
+    norm = normalize_address(address)
+    if not (norm.startswith("0x") and len(norm) == 42):
+        return norm
+    hex_body = norm[2:]
+    digest = hashlib.sha3_256(hex_body.encode("ascii")).hexdigest()
+    return "0x" + "".join(
+        c.upper() if int(digest[i], 16) >= 8 and c in "abcdef" else c
+        for i, c in enumerate(hex_body)
+    )
+
+
+def derive_sha256_pubkey_address(public_key_hex: str) -> str:
+    """Backward-compatible P0 Base31 L1 address derived from SHA256(pubkey)."""
+    pub_bytes = bytes.fromhex(public_key_hex)
+    digest_hex = hashlib.sha256(pub_bytes).hexdigest()
+    chars = []
+    for i in range(25):
+        pos = (i * 2) % 58
+        sub = int(digest_hex[pos:pos + 2], 16)
+        chars.append(CHARSET[sub % 31])
+    return f"{PREFIX}{''.join(chars)}"
+
+
+def get_valid_sender_addresses(public_key_hex: str) -> set:
+    """All normalized valid L1 + EVM mirror addresses belonging to public_key_hex."""
+    pub = (public_key_hex or "").strip().lower()
+    if not pub:
+        return set()
+    origins = {
+        derive_univa_address(pub),
+        derive_legacy_20char_address(pub),
+        derive_sha256_pubkey_address(pub),
+        normalize_address(derive_evm_address(pub)),
+    }
+    for extra in REGISTERED_PWA_ORIGINS.get(pub, set()):
+        origins.add(normalize_address(extra))
+    return origins
 
 
 def derive_univa_address(public_key_hex: str) -> str:
@@ -164,12 +216,12 @@ def validate_address(address: str) -> bool:
     Geçerli UNIVA adresi doğrulaması:
     - Yeni L1 Formatı: 'univa' ile başlayan, sonu kısıtlamasız Base31 karakterli adresler (15 ila 37 karakter).
     - Eski Testnet Uyumluluğu: 'univa...univa' (20 karakter) veya genesis 'univa0000000000univa'
-    - EVM Formatı: 0x... (42 karakter hex)
+    - EVM Formatı: 0x... veya 0X... (42 karakter hex)
     """
     if not isinstance(address, str) or not address:
         return False
-    # EVM adresi doğrulaması
-    if address.startswith("0x") and len(address) == 42:
+    # EVM adresi doğrulaması (büyük/küçük harf duyarsız)
+    if (address.startswith("0x") or address.startswith("0X")) and len(address) == 42:
         return all(c in "0123456789abcdefABCDEF" for c in address[2:])
     # UNIVA L1 adresi doğrulaması
     if not address.startswith(PREFIX):
@@ -206,10 +258,12 @@ class UnivaWallet:
             raise RuntimeError("Install ecdsa or cryptography: pip install -r requirements.txt")
         self._address = derive_univa_address(self.public_key)
         try:
-            REGISTERED_PWA_ORIGINS[self.public_key] = {
+            origins = REGISTERED_PWA_ORIGINS.setdefault(self.public_key, set())
+            origins.update({
+                derive_sha256_pubkey_address(self.public_key),
                 derive_pwa_address(self.private_key),
                 derive_pwa_evm_address(self.private_key),
-            }
+            })
         except Exception:
             pass
 
@@ -230,32 +284,52 @@ class UnivaWallet:
     def address(self) -> str:
         return self._address
 
+    @staticmethod
+    def _normalize_low_s(raw_sig: bytes) -> str:
+        r = int.from_bytes(raw_sig[:32], "big")
+        s = int.from_bytes(raw_sig[32:], "big")
+        if s > SECP256K1_ORDER // 2:
+            s = SECP256K1_ORDER - s
+        return r.to_bytes(32, "big").hex() + s.to_bytes(32, "big").hex()
+
     def sign(self, message: str) -> str:
         msg_bytes = hashlib.sha256(message.encode()).digest()
         if ECDSA_AVAILABLE:
-            return self._sk.sign(msg_bytes).hex()
+            raw = self._sk.sign_deterministic(msg_bytes)
+            return self._normalize_low_s(raw)
         der = self._crypto_sk.sign(msg_bytes, ec.ECDSA(hashes.SHA1()))
         r, s = utils.decode_dss_signature(der)
-        return r.to_bytes(32, "big").hex() + s.to_bytes(32, "big").hex()
+        return self._normalize_low_s(r.to_bytes(32, "big") + s.to_bytes(32, "big"))
 
     @staticmethod
     def verify_signature(public_key_hex: str, message: str, signature_hex: str) -> bool:
         try:
+            sig = bytes.fromhex(signature_hex)
+            if len(sig) != 64:
+                return False
+            r = int.from_bytes(sig[:32], "big")
+            s = int.from_bytes(sig[32:], "big")
+            if not (0 < r < SECP256K1_ORDER and 0 < s < SECP256K1_ORDER):
+                return False
             msg_b = hashlib.sha256(message.encode()).digest()
             if ECDSA_AVAILABLE:
                 vk = VerifyingKey.from_string(bytes.fromhex(public_key_hex), curve=SECP256k1)
-                return vk.verify(bytes.fromhex(signature_hex), msg_b)
+                try:
+                    return vk.verify(sig, msg_b)
+                except Exception:
+                    return vk.verify_digest(sig, msg_b)
             if CRYPTOGRAPHY_FALLBACK:
                 pub = bytes.fromhex(public_key_hex)
                 if len(pub) != 64:
                     return False
                 vk = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256K1(), b"\x04" + pub)
-                sig = bytes.fromhex(signature_hex)
-                if len(sig) != 64:
-                    return False
-                der = utils.encode_dss_signature(int.from_bytes(sig[:32], "big"), int.from_bytes(sig[32:], "big"))
-                vk.verify(der, msg_b, ec.ECDSA(hashes.SHA1()))
-                return True
+                der = utils.encode_dss_signature(r, s)
+                try:
+                    vk.verify(der, msg_b, ec.ECDSA(hashes.SHA1()))
+                    return True
+                except Exception:
+                    vk.verify(der, msg_b, ec.ECDSA(utils.Prehashed(hashes.SHA256())))
+                    return True
             return False
         except Exception:
             return False
