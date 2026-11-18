@@ -3588,27 +3588,77 @@ Block Explorer: https://univa-network-l1.vercel.app
         return (seed - 1) / 2147483646;
       }
 
-      // Draw a tilted UNIVA interlocking diamond-shield watermark
+      let logoImg = document.getElementById('univa-hero-logo-mark');
+      if (!logoImg || !logoImg.getAttribute('src')) {
+        logoImg = new Image();
+        logoImg.src = '/logo.png';
+      }
+
+      // Draw a tilted UNIVA miniature logo watermark (with diamond-shield fallback while loading)
       function drawWatermarkGlyph(x, y, s, rot, alpha) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(rot);
-        ctx.strokeStyle = `rgba(235, 220, 178, ${alpha})`;
-        ctx.lineWidth = Math.max(0.9, s * 0.11);
+        if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+          ctx.globalAlpha = Math.min(1, alpha * 1.45);
+          ctx.beginPath();
+          ctx.arc(0, 0, s, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(logoImg, -s, -s, s * 2, s * 2);
+        } else {
+          ctx.strokeStyle = `rgba(235, 220, 178, ${alpha})`;
+          ctx.lineWidth = Math.max(0.9, s * 0.11);
+          ctx.beginPath();
+          ctx.moveTo(-s, -s * 0.18);
+          ctx.lineTo(-s * 0.28, -s * 0.58);
+          ctx.lineTo(s * 0.28, -s * 0.12);
+          ctx.lineTo(s, -s * 0.45);
+          ctx.lineTo(s * 0.36, s * 0.52);
+          ctx.lineTo(-s * 0.34, s * 0.08);
+          ctx.closePath();
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawCoreLogoMedallion(lx, ly, lr) {
+        ctx.save();
+        // Warm champagne & platinum volumetric glow anchoring the UNIVA emblem
+        const aura = ctx.createRadialGradient(lx, ly, lr * 0.4, lx, ly, lr * 1.85);
+        aura.addColorStop(0, 'rgba(250, 240, 202, 0.34)');
+        aura.addColorStop(0.55, 'rgba(215, 198, 148, 0.14)');
+        aura.addColorStop(1, 'rgba(7, 9, 13, 0)');
+        ctx.fillStyle = aura;
         ctx.beginPath();
-        // Twin interlocked UNIVA diamond-U wings
-        ctx.moveTo(-s, -s * 0.18);
-        ctx.lineTo(-s * 0.28, -s * 0.58);
-        ctx.lineTo(s * 0.28, -s * 0.12);
-        ctx.lineTo(s, -s * 0.45);
-        ctx.lineTo(s * 0.36, s * 0.52);
-        ctx.lineTo(-s * 0.34, s * 0.08);
-        ctx.closePath();
+        ctx.arc(lx, ly, lr * 1.85, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Dark obsidian backdrop medallion
+        ctx.fillStyle = '#090C12';
+        ctx.beginPath();
+        ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(lx, ly, lr * 0.94, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(logoImg, lx - lr * 0.94, ly - lr * 0.94, lr * 1.88, lr * 1.88);
+          ctx.restore();
+        }
+
+        // Double metallic bezel ring around UNIVA logo
+        ctx.strokeStyle = 'rgba(250, 240, 202, 0.78)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(lx, ly, lr, 0, Math.PI * 2);
         ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(-s * 0.45, -s * 0.04);
-        ctx.lineTo(0, s * 0.42);
-        ctx.lineTo(s * 0.48, -s * 0.04);
+        ctx.arc(lx, ly, lr * 1.09, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
       }
@@ -3815,8 +3865,26 @@ Block Explorer: https://univa-network-l1.vercel.app
         // Depth sort back-to-front so outer highlights frame dark interior crevices
         projected.sort((a, b) => a.z - b.z);
 
+        const logoCx = centerX + mouseX * 10;
+        const logoCy = centerY - scale * 0.06 + mouseY * 6;
+        const logoR = scale * 0.36;
+        let medallionDrawn = false;
+
         for (let i = 0; i < projected.length; i++) {
           const item = projected[i];
+          if (!medallionDrawn && item.z >= 0) {
+            drawCoreLogoMedallion(logoCx, logoCy, logoR);
+            medallionDrawn = true;
+          }
+
+          // Smoothly part front-hemisphere glyphs directly over the UNIVA core emblem window
+          const dxL = item.sx - logoCx;
+          const dyL = item.sy - logoCy;
+          const distL = Math.sqrt(dxL * dxL + dyL * dyL);
+          if (item.z >= 0 && distL < logoR * 1.15) {
+            if (distL < logoR * 0.88) continue;
+          }
+
           const L = item.light;
 
           // Palette interpolation: Dark obsidian crevice -> Antique metallic gold -> Luminous champagne platinum
@@ -3841,6 +3909,10 @@ Block Explorer: https://univa-network-l1.vercel.app
             alpha = 0.92 + k * 0.08;
           }
 
+          if (item.z >= 0 && distL < logoR * 1.15) {
+            alpha *= (distL - logoR * 0.88) / (logoR * 0.27);
+          }
+
           ctx.save();
           ctx.translate(item.sx, item.sy);
           ctx.rotate(item.tilt);
@@ -3857,6 +3929,9 @@ Block Explorer: https://univa-network-l1.vercel.app
           ctx.closePath();
           ctx.fill();
           ctx.restore();
+        }
+        if (!medallionDrawn) {
+          drawCoreLogoMedallion(logoCx, logoCy, logoR);
         }
 
         // Detached drifting micro-glyph spores around the canopy
