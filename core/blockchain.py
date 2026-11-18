@@ -220,8 +220,8 @@ class Blockchain:
 
     @staticmethod
     def _canonical_tx_message(tx: dict) -> str:
-        fields = {k: tx.get(k) for k in ("type", "from", "to", "amount", "fee", "nonce", "public_key")}
-        return json.dumps(fields, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        from core.transaction import canonical_tx_message
+        return canonical_tx_message(tx)
 
     def verify_transaction(self, tx: dict, include_pending: bool = True) -> bool:
         """Validate a signed transfer. Coinbase/genesis are accepted only in block validation."""
@@ -235,7 +235,9 @@ class Blockchain:
             nonce = tx["nonce"]
             if not (amount > 0 and fee >= 0 and amount < float("inf") and fee < float("inf")):
                 return False
-            if round(amount, 8) != amount or round(fee, 8) != fee or not isinstance(nonce, int) or nonce < 0:
+            if round(amount, 8) != amount or round(fee, 8) != fee:
+                return False
+            if not isinstance(nonce, int) or isinstance(nonce, bool) or nonce < 0:
                 return False
             from core.wallet import derive_univa_address, derive_legacy_20char_address, derive_evm_address, validate_address, UnivaWallet, REGISTERED_PWA_ORIGINS
             if not validate_address(tx["from"]) or not validate_address(tx["to"]):
@@ -331,74 +333,115 @@ class Blockchain:
             return new_block
 
     def accept_block(self, block_data: dict) -> bool:
-        """Validate and append exactly the next block. Used by the P2P testnet."""
-        try:
-            block = block_data if isinstance(block_data, Block) else Block.from_dict(block_data)
-            if block.index != self.height + 1 or block.previous_hash != self.last_block.hash:
-                return False
-            if block.difficulty != self.difficulty:
-                return False
-            if block.hash != block.calculate_hash() or not block.hash.startswith("0" * block.difficulty):
-                return False
-            if block.merkle_root != calculate_merkle_root(block.transactions):
-                return False
-            if block.timestamp <= self.get_median_time_past(11):
-                return False
-            if not block.transactions or block.transactions[0].get("type") != "coinbase":
-                return False
-            coinbase = block.transactions[0]
-            subsidy = self.get_current_reward(block.index)
-            txs = block.transactions[1:]
-            fees = 0.0
-            # Validate sequentially against a temporary mempool, preserving rollback on failure.
-            old_pending = list(self.pending_transactions)
-            self.pending_transactions = []
-            for tx in txs:
-                if not self.verify_transaction(tx, include_pending=True):
-                    self.pending_transactions = old_pending
-                    return False
-                self.pending_transactions.append(tx)
-                fees = round(fees + float(tx["fee"]), 8)
-            self.pending_transactions = old_pending
-            if abs(float(block.reward) - subsidy) > 1e-8:
-                return False
-            if abs(float(coinbase.get("amount", -1)) - round(subsidy + fees, 8)) > 1e-8:
-                return False
-            if coinbase.get("to") != block.miner_address:
-                return False
-            self.chain.append(block)
-            self.total_mined = round(self.total_mined + subsidy, 8)
-            # Remove confirmed transactions from mempool.
-            confirmed = {tx.get("tx_id") for tx in txs}
-            self.pending_transactions = [tx for tx in old_pending if tx.get("tx_id") not in confirmed]
-            self._adjust_difficulty()
-            self.save()
+        """Validate and append exactly the next block with full reward-tier, PoW, MTP, and tx consensus checks."""
+        with self._lock:
             try:
-                from core.database import insert_block, insert_transactions
-                insert_block(block.to_dict())
-                insert_transactions(block.to_dict())
+                from core.wallet import validate_address
+                block = block_data if isinstance(block_data, Block) else Block.from_dict(block_data)
+                if block.index != self.height + 1 or block.previous_hash != self.last_block.hash:
+                    return False
+                if block.difficulty != self.difficulty:
+                    return False
+                if block.hash != block.calculate_hash() or not block.hash.startswith("0" * block.difficulty):
+                    return False
+                if block.merkle_root != calculate_merkle_root(block.transactions):
+                    return False
+                if block.timestamp <= self.get_median_time_past(11) or block.timestamp > time.time() + 7200:
+                    return False
+                if not validate_address(block.miner_address):
+                    return False
+                if not block.transactions or block.transactions[0].get("type") != "coinbase":
+                    return False
+                if len([tx for tx in block.transactions if tx.get("type") == "coinbase"]) != 1:
+                    return False
+
+                coinbase = block.transactions[0]
+                max_subsidy = self.get_current_reward(block.index)
+                blk_reward = float(block.reward)
+                # Parity with is_chain_valid(): allow valid rewards <= max_subsidy (e.g. mobile 10.0 vs PC 100.0)
+                if blk_reward < 0 or blk_reward > round(max_subsidy, 8) + 1e-8:
+                    return False
+                if self.total_mined + blk_reward > MAX_SUPPLY + 1e-8:
+                    return False
+
+                txs = block.transactions[1:]
+                fees = 0.0
+                old_pending = list(self.pending_transactions)
+                self.pending_transactions = []
+                seen_block_txids = set()
+                for tx in txs:
+                    tid = tx.get("tx_id")
+                    if tid in seen_block_txids or not self.verify_transaction(tx, include_pending=True):
+                        self.pending_transactions = old_pending
+                        return False
+                    seen_block_txids.add(tid)
+                    self.pending_transactions.append(tx)
+                    fees = round(fees + float(tx["fee"]), 8)
+                self.pending_transactions = old_pending
+
+                if blk_reward <= 0 and fees <= 0:
+                    return False
+                expected_coinbase = round(blk_reward + fees, 8)
+                if abs(float(coinbase.get("amount", -1)) - expected_coinbase) > 1e-8:
+                    return False
+                if abs(float(coinbase.get("subsidy", blk_reward)) - blk_reward) > 1e-8:
+                    return False
+                if coinbase.get("to") != block.miner_address:
+                    return False
+
+                self.chain.append(block)
+                self.total_mined = round(self.total_mined + blk_reward, 8)
+                confirmed = {tx.get("tx_id") for tx in txs}
+                confirmed_nonces = {(tx.get("from"), tx.get("nonce")) for tx in txs}
+                self.pending_transactions = [
+                    tx for tx in old_pending
+                    if tx.get("tx_id") not in confirmed and (tx.get("from"), tx.get("nonce")) not in confirmed_nonces
+                ]
+                self._adjust_difficulty()
+                self.save()
+                try:
+                    from core.database import insert_block, insert_transactions
+                    insert_block(block.to_dict())
+                    insert_transactions(block.to_dict())
+                except Exception:
+                    pass
+                return True
             except Exception:
-                pass
-            return True
-        except Exception:
-            return False
+                return False
+
+    @staticmethod
+    def _compute_next_difficulty(chain_slice: List[Block], current_diff: int) -> int:
+        """Exact 60-block retargeting formula shared across live mining, reorg, and chain validation."""
+        height = len(chain_slice) - 1
+        if height < DIFFICULTY_ADJUST or height % DIFFICULTY_ADJUST != 0:
+            return current_diff
+        # Height 60 starts from block #1 (excluding static historical Genesis timestamp); all subsequent epochs span 60 blocks.
+        start_idx = max(1, height - DIFFICULTY_ADJUST)
+        elapsed = float(chain_slice[-1].timestamp) - float(chain_slice[start_idx].timestamp)
+        span = max(1, height - start_idx)
+        target = TARGET_BLOCK_TIME * span
+        if elapsed < target / 2:
+            return current_diff + 1
+        elif elapsed > target * 2:
+            return max(1, current_diff - 1)
+        return current_diff
 
     def _adjust_difficulty(self):
-        if self.height % DIFFICULTY_ADJUST != 0 or self.height < DIFFICULTY_ADJUST:
-            return
-        prev = self.chain[-DIFFICULTY_ADJUST]
-        elapsed = self.last_block.timestamp - prev.timestamp
-        target = TARGET_BLOCK_TIME * DIFFICULTY_ADJUST
-        if elapsed < target / 2:
-            self.difficulty += 1
-        elif elapsed > target * 2:
-            self.difficulty = max(1, self.difficulty - 1)
+        self.difficulty = self._compute_next_difficulty(self.chain, self.difficulty)
 
     def add_transaction(self, tx: dict) -> bool:
-        if not self.verify_transaction(tx, include_pending=True):
-            return False
-        self.pending_transactions.append(dict(tx))
-        return True
+        with self._lock:
+            if not isinstance(tx, dict):
+                return False
+            tid = tx.get("tx_id")
+            sender_nonce = (tx.get("from"), tx.get("nonce"))
+            for p in self.pending_transactions:
+                if p.get("tx_id") == tid or (p.get("from"), p.get("nonce")) == sender_nonce:
+                    return False
+            if not self.verify_transaction(tx, include_pending=True):
+                return False
+            self.pending_transactions.append(dict(tx))
+            return True
 
     def get_balance(self, address: str, asset: str = "UNIVA", include_pending_outgoing: bool = True) -> float:
         if asset != "UNIVA":
@@ -416,75 +459,131 @@ class Blockchain:
                     bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
         return round(bal, 8)
 
-    def is_chain_valid(self) -> bool:
+    @staticmethod
+    def calculate_chain_work(chain_slice: List[Block]) -> int:
+        """Cumulative SHA-256 Proof-of-Work score for heaviest-chain fork choice."""
+        return sum(16 ** max(1, int(b.difficulty)) for b in chain_slice)
+
+    def _validate_chain_state(self, candidate_chain: List[Block]):
+        """Validate full chain and return (True, total_subsidy, next_difficulty) or (False, 0.0, INITIAL_DIFF)."""
         original_chain = self.chain
         original_total = self.total_mined
         original_pending = self.pending_transactions
-        if not original_chain or original_chain[0].index != 0:
-            return False
+        if not candidate_chain or candidate_chain[0].index != 0:
+            return False, 0.0, INITIAL_DIFF
         total_subsidy = 0.0
         expected_difficulty = INITIAL_DIFF
         try:
-            genesis = original_chain[0]
+            from core.wallet import validate_address
+            genesis = candidate_chain[0]
             if genesis.hash != genesis.calculate_hash() or genesis.previous_hash != "0" * 64:
-                return False
+                return False, 0.0, INITIAL_DIFF
             if genesis.merkle_root != calculate_merkle_root(genesis.transactions):
-                return False
-            for i in range(1, len(original_chain)):
-                cur, prev = original_chain[i], original_chain[i - 1]
+                return False, 0.0, INITIAL_DIFF
+            for i in range(1, len(candidate_chain)):
+                cur, prev = candidate_chain[i], candidate_chain[i - 1]
                 if cur.index != i or cur.previous_hash != prev.hash:
-                    return False
+                    return False, 0.0, INITIAL_DIFF
                 if cur.hash != cur.calculate_hash() or cur.merkle_root != calculate_merkle_root(cur.transactions):
-                    return False
+                    return False, 0.0, INITIAL_DIFF
                 if cur.difficulty != expected_difficulty or not cur.hash.startswith("0" * cur.difficulty):
-                    return False
-                if cur.timestamp <= self._median_for_chain(original_chain[:i], 11):
-                    return False
+                    return False, 0.0, INITIAL_DIFF
+                if cur.timestamp <= self._median_for_chain(candidate_chain[:i], 11):
+                    return False, 0.0, INITIAL_DIFF
+                if not validate_address(cur.miner_address):
+                    return False, 0.0, INITIAL_DIFF
                 if not cur.transactions or cur.transactions[0].get("type") != "coinbase":
-                    return False
+                    return False, 0.0, INITIAL_DIFF
                 subsidy = max(0.0, min(INITIAL_REWARD / (2 ** (i // HALVING_INTERVAL)), MAX_SUPPLY - total_subsidy))
                 if cur.reward < 0 or float(cur.reward) > round(subsidy, 8) + 1e-8:
-                    return False
+                    return False, 0.0, INITIAL_DIFF
                 coinbase = cur.transactions[0]
                 if coinbase.get("to") != cur.miner_address:
-                    return False
+                    return False, 0.0, INITIAL_DIFF
                 if len([tx for tx in cur.transactions if tx.get("type") == "coinbase"]) != 1:
-                    return False
-                # Replay transactions against the prefix so balance, nonce, signature and replay checks are contextual.
-                self.chain = original_chain[:i]
+                    return False, 0.0, INITIAL_DIFF
+
+                self.chain = candidate_chain[:i]
                 self.total_mined = total_subsidy
                 self.pending_transactions = []
                 fees = 0.0
+                seen_block_txids = set()
                 for tx in cur.transactions[1:]:
-                    if not self.verify_transaction(tx, include_pending=True):
-                        return False
+                    tid = tx.get("tx_id")
+                    if tid in seen_block_txids or not self.verify_transaction(tx, include_pending=True):
+                        return False, 0.0, INITIAL_DIFF
+                    seen_block_txids.add(tid)
                     self.pending_transactions.append(tx)
                     fees = round(fees + float(tx["fee"]), 8)
                 expected_coinbase = round(float(cur.reward) + fees, 8)
-                if cur.reward < 0 or cur.reward > subsidy + 1e-8:
-                    return False
+                if cur.reward <= 0 and fees <= 0:
+                    return False, 0.0, INITIAL_DIFF
                 if abs(float(coinbase.get("amount", -1)) - expected_coinbase) > 1e-8:
-                    return False
+                    return False, 0.0, INITIAL_DIFF
                 if abs(float(coinbase.get("subsidy", cur.reward)) - cur.reward) > 1e-8:
-                    return False
+                    return False, 0.0, INITIAL_DIFF
                 total_subsidy = round(total_subsidy + float(cur.reward), 8)
                 if total_subsidy > MAX_SUPPLY + 1e-8:
-                    return False
-                if i % DIFFICULTY_ADJUST == 0 and i >= DIFFICULTY_ADJUST:
-                    prev_window = original_chain[i - 59]
-                    elapsed = cur.timestamp - prev_window.timestamp
-                    target = TARGET_BLOCK_TIME * DIFFICULTY_ADJUST
-                    if elapsed < target / 2:
-                        expected_difficulty += 1
-                    elif elapsed > target * 2:
-                        expected_difficulty = max(1, expected_difficulty - 1)
-            return True
+                    return False, 0.0, INITIAL_DIFF
+                expected_difficulty = self._compute_next_difficulty(candidate_chain[:i + 1], expected_difficulty)
+            return True, total_subsidy, expected_difficulty
         except Exception:
-            return False
+            return False, 0.0, INITIAL_DIFF
         finally:
             self.chain = original_chain
             self.total_mined = original_total
             self.pending_transactions = original_pending
+
+    def is_chain_valid(self) -> bool:
+        with self._lock:
+            valid, _, _ = self._validate_chain_state(self.chain)
+            return valid
+
+    def replace_chain(self, candidate_blocks: list, save_path: Optional[str] = None) -> bool:
+        """Heaviest-valid-chain fork resolution (reorg) with orphaned mempool transaction recovery."""
+        with self._lock:
+            try:
+                candidate = [
+                    b if isinstance(b, Block) else Block.from_dict(b)
+                    for b in candidate_blocks
+                ]
+                if not candidate or candidate[0].hash != self.chain[0].hash:
+                    return False
+                if self.calculate_chain_work(candidate) <= self.calculate_chain_work(self.chain):
+                    return False
+                valid, total_subsidy, next_diff = self._validate_chain_state(candidate)
+                if not valid:
+                    return False
+
+                new_tx_ids = {
+                    tx.get("tx_id") for b in candidate for tx in b.transactions if tx.get("tx_id")
+                }
+                # Recover valid transfer transactions from orphaned tail blocks + old mempool
+                orphaned_transfers = [
+                    tx for b in self.chain[1:] for tx in b.transactions
+                    if tx.get("type", "transfer") == "transfer" and tx.get("tx_id") not in new_tx_ids
+                ]
+                carry_candidates = orphaned_transfers + [
+                    tx for tx in self.pending_transactions if tx.get("tx_id") not in new_tx_ids
+                ]
+
+                self.chain = candidate
+                self.total_mined = round(total_subsidy, 8)
+                self.difficulty = int(next_diff)
+                self.pending_transactions = []
+                for tx in carry_candidates:
+                    if self.verify_transaction(tx, include_pending=True):
+                        self.pending_transactions.append(dict(tx))
+
+                self.save(save_path or CHAIN_FILE_PATH, force=True)
+                try:
+                    from core.database import rebuild_index
+                    rebuild_index(self.chain)
+                except Exception:
+                    pass
+                return True
+            except Exception:
+                return False
 
     @staticmethod
     def _median_for_chain(chain, n=11):
@@ -523,17 +622,18 @@ class Blockchain:
             "chain":       [b.to_dict() for b in self.chain],
         }
 
-    def save(self, path: str = CHAIN_FILE_PATH):
+    def save(self, path: str = CHAIN_FILE_PATH, force: bool = False):
         """Kalıcı ve güvenli kayıt: Asla var olan blokları ezmez, otomatik .bak yedeği alır."""
-        # Diskteki var olan dosya bizden uzunsa ASLA ezme!
+        # Diskteki var olan dosya bizden uzunsa ASLA ezme (yalnizca dogrulanmis reorg haric)!
         if os.path.exists(path):
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    disk_d = json.load(f)
-                    if len(disk_d.get("chain", [])) > len(self.chain):
-                        return False # Diskteki veri daha guncel
-            except Exception:
-                pass
+            if not force:
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        disk_d = json.load(f)
+                        if len(disk_d.get("chain", [])) > len(self.chain):
+                            return False # Diskteki veri daha guncel
+                except Exception:
+                    pass
             # Otomatik .bak yedegi olustur
             try:
                 shutil.copyfile(path, path + ".bak")
@@ -575,14 +675,14 @@ class Blockchain:
                 if not loaded_chain:
                     continue
                 old_chain, old_total, old_pending = self.chain, self.total_mined, self.pending_transactions
-                self.chain = loaded_chain
-                if not self.is_chain_valid():
+                valid, total_sub, next_diff = self._validate_chain_state(loaded_chain)
+                if not valid:
                     # Recover longest valid prefix so a corrupted tail block never resets the chain to 0
                     lo, hi, best = 1, len(loaded_chain), 0
                     while lo <= hi:
                         mid = (lo + hi) // 2
-                        self.chain = loaded_chain[:mid]
-                        if self.is_chain_valid():
+                        ok, _, _ = self._validate_chain_state(loaded_chain[:mid])
+                        if ok:
                             best = mid
                             lo = mid + 1
                         else:
@@ -590,12 +690,13 @@ class Blockchain:
                     if best > 1:
                         print(f"[UNIVA] UYARI: {target_path} sonundaki bozuk blok(lar) temizlendi -> kurtarilan yukseklik={best-1}")
                         loaded_chain = loaded_chain[:best]
-                        self.chain = loaded_chain
+                        valid, total_sub, next_diff = self._validate_chain_state(loaded_chain)
                     else:
                         self.chain, self.total_mined, self.pending_transactions = old_chain, old_total, old_pending
                         continue
-                self.difficulty = int(loaded_chain[-1].difficulty)
-                self.total_mined = round(sum(float(b.reward) for b in loaded_chain[1:]), 8)
+                self.chain = loaded_chain
+                self.difficulty = int(next_diff)
+                self.total_mined = round(total_sub, 8)
                 self.pending_transactions = []
                 print(f"[UNIVA] Zincir yüklendi: {target_path} | yükseklik={len(loaded_chain)-1}")
                 return True
