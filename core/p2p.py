@@ -15,18 +15,29 @@ Port: 5050 (HTTP API - network.py ile)
 
 import asyncio
 import json
+import os
+import secrets
 import time
 import hashlib
 import threading
 import websockets
+from collections import OrderedDict
 from typing import Set, Dict, Optional
 
-P2P_PORT    = 5051
-P2P_VERSION = "UNIVA/2.1.0"
+P2P_PORT          = 5051
+P2P_VERSION       = "UNIVA/2.1.0"
+MAX_PEERS         = 64
+MAX_PEERS_PER_IP  = 4
+MAX_MSG_BYTES     = 1_048_576  # 1 MB max frame
+MAX_TIME_DRIFT    = 120.0      # +-120 seconds replay window
+MAX_NONCES        = 5000
 
 # Aktif bağlantı seti (thread-safe için asyncio.Lock ile kullanılır)
 _connected_peers: Dict[str, websockets.WebSocketServerProtocol] = {}
 _peer_lock = asyncio.Lock()
+_seen_nonces: "OrderedDict[str, float]" = OrderedDict()
+_nonce_lock = threading.Lock()
+_node_wallet_cache = None
 
 # Dışarıdan erişim için referans
 _blockchain_ref = None
@@ -34,22 +45,97 @@ _db_path        = "univa_chain.db"
 _p2p_loop = None
 
 
+def _get_node_wallet():
+    global _node_wallet_cache
+    if _node_wallet_cache is not None:
+        return _node_wallet_cache
+    from core.wallet import UnivaWallet
+    wallet_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "univa_wallet.json")
+    if os.path.exists(wallet_path):
+        try:
+            _node_wallet_cache = UnivaWallet.load(wallet_path)
+            return _node_wallet_cache
+        except Exception:
+            pass
+    _node_wallet_cache = UnivaWallet.create_new()
+    return _node_wallet_cache
+
+
 # ════════════════════════════════════════════════════════════════
-# MESAJ PROTOKOLÜ
+# MESAJ PROTOKOLÜ (ECDSA İMZALI + REPLAY KORUMALI)
 # ════════════════════════════════════════════════════════════════
 
+def _canonical_p2p_body(msg: dict) -> str:
+    body = {
+        "type": msg.get("type"),
+        "version": msg.get("version"),
+        "time": msg.get("time"),
+        "nonce": msg.get("nonce"),
+        "payload": msg.get("payload", {}),
+    }
+    return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
 def make_msg(msg_type: str, payload: dict = None) -> str:
-    return json.dumps({
+    msg = {
         "type":    msg_type,
         "version": P2P_VERSION,
-        "time":    time.time(),
-        "payload": payload or {}
-    }, ensure_ascii=False)
+        "time":    round(time.time(), 3),
+        "nonce":   secrets.token_hex(12),
+        "payload": payload or {},
+    }
+    w = _get_node_wallet()
+    msg["node_pubkey"] = w.public_key
+    msg["sig"] = w.sign(_canonical_p2p_body(msg))
+    return json.dumps(msg, ensure_ascii=False)
+
+
+def verify_p2p_msg(msg: dict) -> bool:
+    """Verify P2P timestamp window, nonce uniqueness (anti-replay), and ECDSA signature."""
+    if not isinstance(msg, dict) or not msg.get("type"):
+        return False
+    msg_time = msg.get("time")
+    if not isinstance(msg_time, (int, float)) or abs(time.time() - float(msg_time)) > MAX_TIME_DRIFT:
+        return False
+
+    nonce = msg.get("nonce")
+    pub = str(msg.get("node_pubkey") or "").strip().lower()
+    sig = str(msg.get("sig") or "").strip().lower()
+
+    if not sig:
+        if os.environ.get("UNIVA_P2P_ALLOW_UNSIGNED") == "1":
+            return True
+        return False
+
+    if len(pub) != 128 or not isinstance(nonce, str) or len(nonce) < 8:
+        return False
+
+    from core.wallet import UnivaWallet
+    if not UnivaWallet.verify_signature(pub, _canonical_p2p_body(msg), sig):
+        return False
+
+    replay_key = f"{pub[:16]}:{nonce}"
+    with _nonce_lock:
+        if replay_key in _seen_nonces:
+            return False
+        _seen_nonces[replay_key] = float(msg_time)
+        while len(_seen_nonces) > MAX_NONCES:
+            _seen_nonces.popitem(last=False)
+    return True
 
 
 def parse_msg(raw: str) -> Optional[dict]:
     try:
-        return json.loads(raw)
+        if isinstance(raw, bytes):
+            if len(raw) > MAX_MSG_BYTES:
+                return None
+            raw = raw.decode("utf-8")
+        elif isinstance(raw, str) and len(raw.encode("utf-8")) > MAX_MSG_BYTES:
+            return None
+        msg = json.loads(raw)
+        if not verify_p2p_msg(msg):
+            return None
+        return msg
     except Exception:
         return None
 
@@ -221,11 +307,19 @@ MSG_HANDLERS = {
 # ════════════════════════════════════════════════════════════════
 
 async def connection_handler(ws, path=None):
-    """Her gelen bağlantı için çalışır."""
+    """Her gelen bağlantı için çalışır (Peer ve IP limiti korumalı)."""
     remote = ws.remote_address or ("unknown", 0)
-    peer_id = f"{remote[0]}:{remote[1]}"
+    remote_ip = str(remote[0])
+    peer_id = f"{remote_ip}:{remote[1]}"
 
     async with _peer_lock:
+        ip_count = sum(1 for pid in _connected_peers if pid.rsplit(":", 1)[0] == remote_ip)
+        if len(_connected_peers) >= MAX_PEERS or ip_count >= MAX_PEERS_PER_IP:
+            try:
+                await ws.close(code=1008, reason="Peer connection limit exceeded")
+            except Exception:
+                pass
+            return
         _connected_peers[peer_id] = ws
 
     print(f"[P2P] OK Baglandi: {peer_id} | Toplam: {len(_connected_peers)}")
@@ -282,8 +376,10 @@ async def connect_to_peer(host: str, port: int = None):
     uri = f"ws://{host}:{port}"
     peer_id = f"{host}:{port}"
     try:
-        async with websockets.connect(uri, ping_interval=30, ping_timeout=10) as ws:
+        async with websockets.connect(uri, ping_interval=30, ping_timeout=10, max_size=MAX_MSG_BYTES) as ws:
             async with _peer_lock:
+                if len(_connected_peers) >= MAX_PEERS:
+                    return
                 _connected_peers[peer_id] = ws
 
             # Handshake
@@ -349,6 +445,7 @@ async def start_p2p_server(blockchain_instance, seed_peers: list = None,
         host, port,
         ping_interval=20,
         ping_timeout=10,
+        max_size=MAX_MSG_BYTES,
     )
     print(f"[P2P] WebSocket P2P sunucusu baslatildi: ws://{host}:{port}")
 

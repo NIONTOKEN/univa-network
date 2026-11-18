@@ -2405,6 +2405,52 @@ Block Explorer: https://univa-network-l1.vercel.app
       return { valid: true, normalized: words.join(' ') };
     }
 
+    async function decryptServerWalletPayload(encData, pin) {
+      if (!encData || encData.cipher !== 'SHA256-CTR-HMAC') {
+        throw new Error('Desteklenmeyen sunucu kasa formatı');
+      }
+      const fromHex = hex => new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+      const enc = new TextEncoder();
+      const salt = fromHex(encData.salt);
+      const nonce = fromHex(encData.nonce);
+      const ciphertext = fromHex(encData.ciphertext);
+      const iterations = Number(encData.iterations || 200000);
+      const keyMat = await crypto.subtle.importKey('raw', enc.encode(pin), { name: 'PBKDF2' }, false, ['deriveBits']);
+      const bits = new Uint8Array(await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+        keyMat, 512
+      ));
+      const encKey = bits.slice(0, 32);
+      const macKey = bits.slice(32, 64);
+      const hmacInput = new Uint8Array(salt.length + nonce.length + ciphertext.length);
+      hmacInput.set(salt, 0);
+      hmacInput.set(nonce, salt.length);
+      hmacInput.set(ciphertext, salt.length + nonce.length);
+      const hKey = await crypto.subtle.importKey('raw', macKey, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+      const sigBuf = await crypto.subtle.sign('HMAC', hKey, hmacInput);
+      const expectedMac = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      if (expectedMac !== String(encData.hmac || '').toLowerCase()) {
+        throw new Error('Sunucu kasa HMAC doğrulaması başarısız');
+      }
+      const out = new Uint8Array(ciphertext.length);
+      let pos = 0, counter = 0;
+      while (pos < ciphertext.length) {
+        const blkIn = new Uint8Array(32 + 16 + 4);
+        blkIn.set(encKey, 0);
+        blkIn.set(nonce, 32);
+        blkIn[48] = (counter >>> 24) & 0xff;
+        blkIn[49] = (counter >>> 16) & 0xff;
+        blkIn[50] = (counter >>> 8) & 0xff;
+        blkIn[51] = counter & 0xff;
+        const ks = new Uint8Array(await crypto.subtle.digest('SHA-256', blkIn));
+        const take = Math.min(32, ciphertext.length - pos);
+        for (let i = 0; i < take; i++) out[pos + i] = ciphertext[pos + i] ^ ks[i];
+        pos += take;
+        counter += 1;
+      }
+      return JSON.parse(new TextDecoder().decode(out));
+    }
+
     async function deriveKeypairFromMnemonic(phrase) {
       const norm = phrase.trim().toLowerCase().replace(/\s+/g, ' ');
       const enc = new TextEncoder();
@@ -2414,7 +2460,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         keyMat, 256
       );
       const privHex = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
-      const kp = generateKeypair(privHex);
+      const kp = await generateKeypair(privHex);
       kp.mnemonic = norm;
       return kp;
     }
@@ -2454,7 +2500,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       document.getElementById('seed-backup-modal').classList.remove('active');
     }
 
-    function generateKeypair(customPriv) {
+    async function generateKeypair(customPriv) {
       let priv = customPriv;
       if (!priv || priv.length !== 64) {
         const rand = new Uint8Array(32);
@@ -2462,13 +2508,19 @@ Block Explorer: https://univa-network-l1.vercel.app
         priv = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
       }
 
+      // Derive BOTH L1 address and EVM mirror strictly from secp256k1 PUBLIC key (never slice private key!)
+      const pubHex = getSecp256k1PubKey(priv);
+      const pubBytes = new Uint8Array(pubHex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+      const digestBuf = await crypto.subtle.digest('SHA-256', pubBytes);
+      const digestHex = Array.from(new Uint8Array(digestBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
       let addr = 'univa';
       for (let i = 0; i < 25; i++) {
-        const sub = parseInt(priv.substr((i * 2) % 58, 2), 16);
+        const sub = parseInt(digestHex.substr((i * 2) % 58, 2), 16);
         addr += CHARSET[sub % 31];
       }
-      const evm = '0x' + priv.substring(0, 40);
-      return { address: addr, evm_address: evm, private_key: priv };
+      const evm = '0x' + digestHex.slice(-40);
+      return { address: addr, evm_address: evm, public_key: pubHex, private_key: priv };
     }
 
     function initWalletSecurity() {
@@ -2520,11 +2572,14 @@ Block Explorer: https://univa-network-l1.vercel.app
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: 'kaya', pin: pin })
         });
-        if (authRes && authRes.status === 'ok' && authRes.private_key) {
+        if (authRes && authRes.status === 'ok' && authRes.encrypted_private_key) {
+          const decPriv = await decryptServerWalletPayload(authRes.encrypted_private_key, pin);
           const kp = {
             address: authRes.address,
             evm_address: authRes.evm_address,
-            private_key: authRes.private_key,
+            public_key: authRes.public_key,
+            private_key: decPriv.private_key,
+            session_token: authRes.session_token,
             username: 'kaya',
             role: 'MASTER_ADMIN'
           };
@@ -2548,7 +2603,7 @@ Block Explorer: https://univa-network-l1.vercel.app
 
         if (customInput) {
           if (/^[0-9a-fA-F]{64}$/.test(customInput)) {
-            kp = generateKeypair(customInput.toLowerCase());
+            kp = await generateKeypair(customInput.toLowerCase());
           } else {
             const check = await validateMnemonic12(customInput);
             if (!check.valid) {
@@ -2767,29 +2822,49 @@ Block Explorer: https://univa-network-l1.vercel.app
         return;
       }
 
-      fb.innerHTML = '<span style="color:var(--blue);">Signing with ECDSA secp256k1 and broadcasting...</span>';
-      const res = await apiCall('/tx', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      fb.innerHTML = '<span style="color:var(--blue);">Signing locally with ECDSA secp256k1 (zero private key transmission)...</span>';
+      try {
+        await ensurePubkeyBound();
+        const balRes = await apiCall('/api/v1/balance/' + walletAddr);
+        const nonceKey = 'univa_nonce_' + walletAddr;
+        const nonce = (balRes && typeof balRes.nonce === 'number')
+          ? balRes.nonce
+          : parseInt(localStorage.getItem(nonceKey) || '0', 10);
+        const pubKey = getSecp256k1PubKey(walletPrivKey);
+        const tx = {
+          type: 'transfer',
           from: walletAddr,
           to: to,
-          amount: amt,
+          amount: parseFloat(amt.toFixed(8)),
           fee: 0.001,
-          private_key: walletPrivKey
-        })
-      });
+          nonce: nonce,
+          public_key: pubKey
+        };
+        const canon = canonicalTxMessageJS(tx);
+        const { sha256Hex, signature } = await signSecp256k1Offline(walletPrivKey, canon);
+        tx.tx_id = sha256Hex;
+        tx.signature = signature;
+        localStorage.setItem(nonceKey, String(nonce + 1));
 
-      if (res && res.status === 'ok') {
-        fb.innerHTML = `<span style="color:var(--success);font-weight:700;">✓ Transfer başarıyla imzalandı ve ağa işlendi! TX ID: ${res.tx_id.substring(0, 22)}...</span>`;
-        document.getElementById('w-send-amt').value = '';
-        showToast('✓ Transfer gönderildi: ' + amt + ' UNIVA');
-        await fetchWalletBalance();
-        await fetchLiveHistory();
-        await fetchAllAddresses();
-        await fetchLiveStats();
-      } else {
-        fb.innerHTML = `<span style="color:var(--error);font-weight:700;">Hata: ${res?.detail || 'Yetersiz bakiye veya geçersiz imza.'}</span>`;
+        const res = await apiCall('/tx', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tx })
+        });
+
+        if (res && res.status === 'ok') {
+          fb.innerHTML = `<span style="color:var(--success);font-weight:700;">✓ Transfer başarıyla imzalandı ve ağa işlendi! TX ID: ${res.tx_id.substring(0, 22)}...</span>`;
+          document.getElementById('w-send-amt').value = '';
+          showToast('✓ Transfer gönderildi: ' + amt + ' UNIVA');
+          await fetchWalletBalance();
+          await fetchLiveHistory();
+          await fetchAllAddresses();
+          await fetchLiveStats();
+        } else {
+          fb.innerHTML = `<span style="color:var(--error);font-weight:700;">Hata: ${res?.detail || 'Yetersiz bakiye veya geçersiz imza.'}</span>`;
+        }
+      } catch (err) {
+        fb.innerHTML = `<span style="color:var(--error);font-weight:700;">İstemci imzalama/yayın hatası: ${err.message}</span>`;
       }
     }
 
@@ -2808,7 +2883,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         document.getElementById('mining-target-addr').textContent = walletAddr;
         return walletAddr;
       }
-      const tempKp = generateKeypair();
+      const tempKp = await generateKeypair();
       walletAddr = tempKp.address;
       localStorage.setItem('univa_public_addr', walletAddr);
       document.getElementById('mining-target-addr').textContent = walletAddr;

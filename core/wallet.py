@@ -12,7 +12,69 @@ Adres Standardi:
 """
 
 import hashlib
+import hmac
 import json
+import secrets
+
+_WALLET_KDF_ITERATIONS = 200_000
+
+
+def _derive_wallet_keys(passphrase: str, salt: bytes, iterations: int = _WALLET_KDF_ITERATIONS):
+    if not isinstance(passphrase, str) or len(passphrase) < 4:
+        raise ValueError("Passphrase must be at least 4 characters")
+    master = hashlib.pbkdf2_hmac("sha256", passphrase.encode("utf-8"), salt, iterations, dklen=64)
+    return master[:32], master[32:]
+
+
+def _xor_keystream(data: bytes, enc_key: bytes, nonce: bytes) -> bytes:
+    out = bytearray(len(data))
+    counter = 0
+    pos = 0
+    while pos < len(data):
+        block = hashlib.sha256(enc_key + nonce + counter.to_bytes(4, "big")).digest()
+        take = min(32, len(data) - pos)
+        for i in range(take):
+            out[pos + i] = data[pos + i] ^ block[i]
+        pos += take
+        counter += 1
+    return bytes(out)
+
+
+def encrypt_wallet_dict(data: dict, passphrase: str) -> dict:
+    """Encrypt a wallet payload using PBKDF2-HMAC-SHA256 (200k) + CTR keystream + HMAC-SHA256."""
+    salt = secrets.token_bytes(16)
+    nonce = secrets.token_bytes(16)
+    enc_key, mac_key = _derive_wallet_keys(passphrase, salt)
+    plaintext = json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ciphertext = _xor_keystream(plaintext, enc_key, nonce)
+    mac = hmac.new(mac_key, salt + nonce + ciphertext, hashlib.sha256).hexdigest()
+    return {
+        "kdf": "PBKDF2-HMAC-SHA256",
+        "iterations": _WALLET_KDF_ITERATIONS,
+        "cipher": "SHA256-CTR-HMAC",
+        "salt": salt.hex(),
+        "nonce": nonce.hex(),
+        "ciphertext": ciphertext.hex(),
+        "hmac": mac,
+    }
+
+
+def decrypt_wallet_dict(enc_data: dict, passphrase: str) -> dict:
+    """Authenticate and decrypt a wallet payload created by encrypt_wallet_dict."""
+    if not isinstance(enc_data, dict) or enc_data.get("cipher") != "SHA256-CTR-HMAC":
+        raise ValueError("Unsupported encrypted wallet format")
+    salt = bytes.fromhex(enc_data["salt"])
+    nonce = bytes.fromhex(enc_data["nonce"])
+    ciphertext = bytes.fromhex(enc_data["ciphertext"])
+    iterations = int(enc_data.get("iterations", _WALLET_KDF_ITERATIONS))
+    if iterations < 100_000:
+        raise ValueError("Insecure KDF iteration count")
+    enc_key, mac_key = _derive_wallet_keys(passphrase, salt, iterations)
+    expected_mac = hmac.new(mac_key, salt + nonce + ciphertext, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_mac, str(enc_data.get("hmac", ""))):
+        raise ValueError("Invalid passphrase or corrupted encrypted wallet")
+    plaintext = _xor_keystream(ciphertext, enc_key, nonce)
+    return json.loads(plaintext.decode("utf-8"))
 
 try:
     import ecdsa
@@ -228,6 +290,20 @@ class UnivaWallet:
     def load(cls, path: str = "univa_wallet.json") -> "UnivaWallet":
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
+        if isinstance(data, dict) and data.get("cipher") == "SHA256-CTR-HMAC":
+            raise ValueError("Encrypted wallet requires load_encrypted(path, passphrase)")
         w = cls(private_key_hex=data["private_key"])
         print(f"[UNIVA] Cuzdan yuklendi -> {w.address} (Uzunluk: {len(w.address)})")
         return w
+
+    def save_encrypted(self, path: str, passphrase: str) -> None:
+        enc_payload = encrypt_wallet_dict(self.to_dict(), passphrase)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(enc_payload, f, indent=2)
+
+    @classmethod
+    def load_encrypted(cls, path: str, passphrase: str) -> "UnivaWallet":
+        with open(path, "r", encoding="utf-8") as f:
+            enc_data = json.load(f)
+        data = decrypt_wallet_dict(enc_data, passphrase)
+        return cls(private_key_hex=data["private_key"])

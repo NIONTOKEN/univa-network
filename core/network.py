@@ -28,7 +28,7 @@ app = FastAPI(title="UNIVA L1 Unified Node API", version="3.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -95,7 +95,6 @@ async def add_pna_and_security_headers(request: Request, call_next):
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = request.headers.get("access-control-request-headers", "*")
         response.headers["Access-Control-Allow-Private-Network"] = "true"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
     # 2. Payload Size Protection (Anti-DoS / Memory Exhaustion)
@@ -553,10 +552,22 @@ async def master_wallet_auth(request: Request):
         raise HTTPException(404, "Master cuzdan dosyasi bulunamadi")
 
     if not os.path.exists(MASTER_AUTH_FILE):
+        direct_ip = request.client.host if request.client else ""
+        has_proxy_hdr = bool(request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for"))
+        is_loopback = (direct_ip in ("127.0.0.1", "::1", "localhost")) and not has_proxy_hdr
+        init_tok_env = os.environ.get("UNIVA_MASTER_INIT_TOKEN", "").strip()
+        req_init_tok = request.headers.get("x-univa-init-token", "").strip()
+        has_valid_init_tok = bool(init_tok_env and req_init_tok and hmac.compare_digest(req_init_tok, init_tok_env))
+        if not (is_loopback or has_valid_init_tok):
+            raise HTTPException(
+                403,
+                "Ilk Master PIN yalnizca yerel ana dugumden (localhost) veya gecerli X-Univa-Init-Token ile olusturulabilir.",
+            )
         salt_hex = secrets.token_hex(16)
         dk_hex = hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), bytes.fromhex(salt_hex), 200_000).hex()
         with open(MASTER_AUTH_FILE, "w", encoding="utf-8") as f:
             json.dump({"username": "kaya", "salt": salt_hex, "hash": dk_hex, "created_at": now}, f, indent=2)
+        expected_hash = dk_hex
     else:
         with open(MASTER_AUTH_FILE, "r", encoding="utf-8") as f:
             auth_rec = json.load(f)
@@ -570,13 +581,20 @@ async def master_wallet_auth(request: Request):
 
     _MASTER_FAIL_BUCKETS[client_ip] = []
     w = UnivaWallet.load(wallet_file)
+    from core.wallet import encrypt_wallet_dict
+    enc_payload = encrypt_wallet_dict({"private_key": w.private_key}, pin)
+    session_key = hashlib.sha256(expected_hash.encode("utf-8")).digest()
+    session_ts = str(int(now))
+    session_sig = hmac.new(session_key, f"MASTER|{w.address}|{session_ts}".encode("utf-8"), hashlib.sha256).hexdigest()
     return {
         "status": "ok",
         "role": "MASTER_ADMIN",
         "address": w.address,
         "evm_address": w.evm_address,
         "public_key": w.public_key,
-        "private_key": w.private_key,
+        "encrypted_private_key": enc_payload,
+        "vault_salt": enc_payload["salt"],
+        "session_token": f"{session_ts}.{session_sig}",
         "balance": _get_effective_balance(w.address),
     }
 
@@ -585,8 +603,16 @@ async def master_wallet_auth(request: Request):
 async def create_or_recover_wallet(request: Request):
     """
     Kullaniciya tek ve kalici bir secp256k1 ECDSA cuzdani uretir veya
-    mevcut private_key ile ayni 30 karakterlik L1 adresini geri yukler.
+    mevcut private_key ile ayni L1 adresini geri yukler (yalnizca yerel/legacy modda).
     """
+    direct_ip = request.client.host if request.client else ""
+    has_proxy = bool(request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for"))
+    is_loopback = (direct_ip in ("127.0.0.1", "::1", "localhost")) and not has_proxy
+    if os.environ.get("UNIVA_ALLOW_LEGACY_SERVER_SIGN") != "1" and not is_loopback:
+        raise HTTPException(
+            403,
+            "Guvenlik Politikasi (P0): Yeni cuzdanlar ve ozel anahtarlar yalnizca istemci cihazda uretilir.",
+        )
     from core.wallet import UnivaWallet
     try:
         data = await request.json()
@@ -662,8 +688,14 @@ async def submit_transaction(request: Request):
     if not isinstance(tx, dict):
         raise HTTPException(400, "Gecersiz islem verisi")
 
-    # Eger istemci private_key ile gonderdiyse secp256k1 ECDSA imzasini olustur
+    # P0 Guvenlik Politikasi: Ozel anahtar sunucuya gonderilemez; imza istemcide uretilir
     priv_key = (tx.get("private_key") or data.get("private_key") or "").strip()
+    if priv_key:
+        if os.environ.get("UNIVA_ALLOW_LEGACY_SERVER_SIGN") != "1":
+            raise HTTPException(
+                400,
+                "Guvenlik Politikasi (P0): Ozel anahtar sunucuya gonderilemez; islemi istemci tarafinda imzalayip gonderin.",
+            )
     if ("signature" not in tx or not tx.get("signature")) and len(priv_key) == 64:
         try:
             w = UnivaWallet(private_key_hex=priv_key)
@@ -708,7 +740,6 @@ async def submit_transaction(request: Request):
 # ─── MADENCILIK ENDPOINTI ────────────────────────────────────────────────────
 
 @app.post("/mine/{miner_address}")
-@app.get("/api/v1/faucet/{miner_address}")
 @app.post("/api/v1/faucet/{miner_address}")
 def mine_block(miner_address: str, request: Request, device: str = ""):
     from core.wallet import validate_address
@@ -867,7 +898,13 @@ async def dex_swap(request: Request):
     if not user or amount_in_float <= 0:
         raise HTTPException(400, "Gecersiz istek")
 
-    # Kimlik dogrulamasi: private_key veya ECDSA imza zorunlu
+    # Kimlik dogrulamasi: P0 politikasi geregi private_key sunucuya gonderilemez, ECDSA imza zorunludur
+    if priv_key:
+        if os.environ.get("UNIVA_ALLOW_LEGACY_SERVER_SIGN") != "1":
+            raise HTTPException(
+                400,
+                "Guvenlik Politikasi (P0): DEX takasinda ozel anahtar sunucuya gonderilemez; istemci imzasi gereklidir.",
+            )
     if len(priv_key) == 64:
         w = UnivaWallet(private_key_hex=priv_key)
         allowed = {w.address, w.evm_address, derive_pwa_address(priv_key), derive_pwa_evm_address(priv_key)}
