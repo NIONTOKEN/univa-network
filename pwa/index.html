@@ -40,7 +40,12 @@
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html, body { max-width: 100vw; overflow-x: hidden; width: 100%; }
     body {
-      background: var(--bg);
+      background-color: #07090D;
+      background-image:
+        radial-gradient(circle at 68% 45%, rgba(243, 229, 171, 0.08) 0%, rgba(20, 24, 32, 0.45) 45%, #07090D 82%),
+        radial-gradient(rgba(235, 224, 194, 0.045) 1px, transparent 1px);
+      background-size: 100% 100%, 10px 10px;
+      background-attachment: fixed;
       color: var(--text);
       font-family: var(--font-main);
       min-height: 100vh;
@@ -254,22 +259,33 @@
     }
 
     /* MAIN CONTAINER & SECTIONS */
-    main.app-main { flex: 1; display: flex; flex-direction: column; width: 100%; }
-    .view-section { display: none; width: 100%; animation: fadeView 0.22s ease-out; }
+    main.app-main { flex: 1; display: flex; flex-direction: column; width: 100%; position: relative; }
+    .view-section { display: none; width: 100%; position: relative; z-index: 2; animation: fadeView 0.22s ease-out; }
     .view-section.active { display: block; }
     @keyframes fadeView {
       from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .content-wrap { max-width: 1280px; margin: 0 auto; padding: 32px 24px; width: 100%; }
+    .content-wrap { max-width: 1280px; margin: 0 auto; padding: 32px 24px; width: 100%; position: relative; z-index: 2; }
+    .content-wrap > .card-header:first-child {
+      background: rgba(255, 255, 255, 0.90);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 18px 24px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+    }
 
-    /* PREMIUM WHITE CARDS & METALLIC 3D STAT CARDS */
+    /* PREMIUM FROSTED CARDS OVER 3D CANOPY STAGE */
     .card {
-      background: var(--card);
-      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.90);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(221, 225, 231, 0.85);
       border-radius: 14px;
       padding: 24px;
-      box-shadow: 0 2px 10px rgba(32, 36, 43, 0.04);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
       transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
     }
@@ -304,21 +320,17 @@
     }
     .copy-icon-btn:hover { background: #20242B; color: #FFFFFF; border-color: #20242B; }
 
-    /* HERO SECTION — OBSIDIAN STAGE & 3D GENESIS CORE CANOPY */
+    /* HERO SECTION — TRANSPARENT STAGE OVER FULL-VIEWPORT 3D CANOPY */
     .hero-container,
     .univa-hero {
       position: relative;
       isolation: isolate;
       overflow: hidden;
-      min-height: 580px;
+      min-height: 600px;
       display: flex;
       align-items: center;
-      background-color: #07090D;
-      background-image:
-        radial-gradient(circle at 64% 48%, rgba(243, 229, 171, 0.09) 0%, rgba(28, 32, 40, 0.28) 38%, rgba(7, 9, 13, 0.96) 76%),
-        radial-gradient(rgba(235, 224, 194, 0.05) 1px, transparent 1px);
-      background-size: 100% 100%, 10px 10px;
-      border-bottom: 1px solid #1E2430;
+      background: transparent;
+      border-bottom: 1px solid rgba(243, 229, 171, 0.14);
       padding: 64px 36px;
     }
     .univa-hero-inner {
@@ -334,13 +346,13 @@
       pointer-events: none;
     }
     .hero-canvas-wrap {
-      position: absolute;
+      position: fixed;
       inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: auto;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
       opacity: 1;
-      z-index: 1;
+      z-index: 0;
     }
     .univa-hero-logo-halo,
     .univa-hero-logo {
@@ -526,7 +538,10 @@
 
     /* FOOTER */
     footer.main-footer {
-      background: var(--bg-secondary); border-top: 1px solid var(--border);
+      position: relative; z-index: 2;
+      background: rgba(245, 246, 248, 0.94); backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
       padding: 56px 24px 32px; margin-top: auto;
     }
     .footer-grid {
@@ -756,11 +771,11 @@
 
   <!-- MAIN APP ROUTING VIEWS -->
   <main class="app-main">
+    <canvas id="hero-network-canvas" class="hero-canvas-wrap" aria-hidden="true"></canvas>
 
     <!-- 1. LANDING PAGE -->
     <section class="view-section active" id="view-landing">
       <div class="hero-container univa-hero">
-        <canvas id="hero-network-canvas" class="hero-canvas-wrap" aria-hidden="true"></canvas>
         <div class="univa-hero-logo-halo" aria-hidden="true"></div>
         <img src="/logo.png" alt="UNIVA" class="univa-hero-logo" id="univa-hero-logo-mark" decoding="async" />
         <div class="univa-hero-inner">
@@ -1946,6 +1961,8 @@ Block Explorer: https://univa-network-l1.vercel.app
       });
       document.getElementById('mobile-drawer').classList.remove('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (typeof window.setHeroSceneView === 'function') window.setHeroSceneView(viewId);
 
       if (viewId === 'multichain') fetchMultichainStatus();
       if (viewId === 'dashboard' || viewId === 'explorer' || viewId === 'network') {
@@ -3569,238 +3586,541 @@ Block Explorer: https://univa-network-l1.vercel.app
       fetchLiveStats();
     }
 
-    // ─── HERO 3D GENESIS CORE CANOPY & GLYPH CLOUD (OBSIDIAN + PLATINUM/CHAMPAGNE) ───
+    // ─── FULL-PAGE 3D UNIVA LEAF-GLYPH MORPHING ENGINE (PANOKOD-STYLE TREE <-> UNIVA LOGO & SECTION SHAPES) ───
     function initHeroCanvas() {
       const canvas = document.getElementById('hero-network-canvas');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      const heroEl = canvas.closest('.univa-hero') || canvas.parentElement;
       const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       let width = 0, height = 0, dpr = 1;
       let t = 0;
       let mouseX = 0, mouseY = 0, targetMouseX = 0, targetMouseY = 0;
+      let scrollRatio = 0;
 
-      // Seeded pseudo-random for deterministic organic sculpture
-      let seed = 133742;
-      function rand() {
-        seed = (seed * 16807) % 2147483647;
-        return (seed - 1) / 2147483646;
+      // Deterministic PRNG for clean repeatable sculptural lobes & scatter vortices
+      function makePrng(initSeed) {
+        let s = initSeed;
+        return () => {
+          s = (s * 16807) % 2147483647;
+          return (s - 1) / 2147483646;
+        };
       }
 
-      let logoImg = document.getElementById('univa-hero-logo-mark');
-      if (!logoImg || !logoImg.getAttribute('src')) {
-        logoImg = new Image();
-        logoImg.src = '/logo.png';
-      }
-
-      // Draw a tilted UNIVA miniature logo watermark (with diamond-shield fallback while loading)
-      function drawWatermarkGlyph(x, y, s, rot, alpha) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(rot);
-        if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
-          ctx.globalAlpha = Math.min(1, alpha * 1.45);
-          ctx.beginPath();
-          ctx.arc(0, 0, s, 0, Math.PI * 2);
-          ctx.clip();
-          ctx.drawImage(logoImg, -s, -s, s * 2, s * 2);
-        } else {
-          ctx.strokeStyle = `rgba(235, 220, 178, ${alpha})`;
-          ctx.lineWidth = Math.max(0.9, s * 0.11);
-          ctx.beginPath();
-          ctx.moveTo(-s, -s * 0.18);
-          ctx.lineTo(-s * 0.28, -s * 0.58);
-          ctx.lineTo(s * 0.28, -s * 0.12);
-          ctx.lineTo(s, -s * 0.45);
-          ctx.lineTo(s * 0.36, s * 0.52);
-          ctx.lineTo(-s * 0.34, s * 0.08);
-          ctx.closePath();
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
-
-      function drawCoreLogoMedallion(lx, ly, lr) {
-        ctx.save();
-        // Warm champagne & platinum volumetric glow anchoring the UNIVA emblem
-        const aura = ctx.createRadialGradient(lx, ly, lr * 0.4, lx, ly, lr * 1.85);
-        aura.addColorStop(0, 'rgba(250, 240, 202, 0.34)');
-        aura.addColorStop(0.55, 'rgba(215, 198, 148, 0.14)');
-        aura.addColorStop(1, 'rgba(7, 9, 13, 0)');
-        ctx.fillStyle = aura;
-        ctx.beginPath();
-        ctx.arc(lx, ly, lr * 1.85, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Dark obsidian backdrop medallion
-        ctx.fillStyle = '#090C12';
-        ctx.beginPath();
-        ctx.arc(lx, ly, lr, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(lx, ly, lr * 0.94, 0, Math.PI * 2);
-          ctx.clip();
-          ctx.drawImage(logoImg, lx - lr * 0.94, ly - lr * 0.94, lr * 1.88, lr * 1.88);
-          ctx.restore();
-        }
-
-        // Double metallic bezel ring around UNIVA logo
-        ctx.strokeStyle = 'rgba(250, 240, 202, 0.78)';
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.arc(lx, ly, lr, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(lx, ly, lr * 1.09, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // Build 3D volumetric canopy lobes + braided genesis pillar + ambient spores
-      const isMobileInit = window.innerWidth <= 768;
-      const canopyCount = isMobileInit ? 1100 : 2150;
-      const trunkCount = isMobileInit ? 200 : 420;
-      const sporeCount = isMobileInit ? 36 : 68;
-      const bgGlyphCount = isMobileInit ? 22 : 38;
-
-      const lobes = [
-        { cx: 0.00, cy: -0.10, cz: 0.04, rx: 1.00, ry: 0.78, rz: 0.88 },
-        { cx: -0.52, cy: -0.02, cz: 0.18, rx: 0.56, ry: 0.50, rz: 0.52 },
-        { cx: 0.54, cy: -0.04, cz: 0.12, rx: 0.58, ry: 0.52, rz: 0.52 },
-        { cx: 0.05, cy: -0.44, cz: -0.06, rx: 0.62, ry: 0.46, rz: 0.56 },
-        { cx: -0.34, cy: 0.24, cz: 0.28, rx: 0.48, ry: 0.40, rz: 0.44 },
-        { cx: 0.36, cy: 0.22, cz: -0.22, rx: 0.48, ry: 0.40, rz: 0.46 }
+      // Build 5 brightness tiers of crisp UNIVA Logo Leaf Sprites (from deep shadow to blazing champagne platinum)
+      const SHADE_PALETTE = [
+        [44, 39, 31],     // 0: deep bronze-obsidian shadow
+        [106, 94, 70],    // 1: muted antique bronze
+        [176, 157, 114],  // 2: brushed gold-silver midtone
+        [232, 212, 162],  // 3: warm champagne gold
+        [252, 245, 222]   // 4: blazing platinum-ivory ridge highlight
       ];
 
-      const particles = [];
-
-      // 1. Multi-lobed volumetric canopy glyph clusters
-      for (let i = 0; i < canopyCount; i++) {
-        const lobe = lobes[Math.floor(rand() * lobes.length)];
-        const u = rand() * 2 - 1;
-        const theta = rand() * Math.PI * 2;
-        const s = Math.sqrt(Math.max(0, 1 - u * u));
-        // Concentrate density toward sculpted outer bark/foliage shells with hollow depth creases
-        const shell = 0.68 + 0.34 * Math.pow(rand(), 0.42);
-        const ripple = 1 + 0.11 * Math.sin(theta * 5 + u * 4) + 0.07 * Math.cos(u * 7);
-
-        const x = lobe.cx + s * Math.cos(theta) * lobe.rx * shell * ripple;
-        const y = lobe.cy + u * lobe.ry * shell * ripple;
-        const z = lobe.cz + s * Math.sin(theta) * lobe.rz * shell * ripple;
-
-        particles.push({
-          kind: 'canopy',
-          x, y, z,
-          phase: rand() * Math.PI * 2,
-          size: 3.0 + rand() * 4.4,
-          flowTilt: Math.atan2(y - lobe.cy * 0.4, x - lobe.cx * 0.4) + (rand() - 0.5) * 0.55,
-          shimmer: rand()
+      function buildVectorSprites() {
+        return SHADE_PALETTE.map(([r, g, b]) => {
+          const off = document.createElement('canvas');
+          off.width = 48; off.height = 48;
+          const octx = off.getContext('2d');
+          octx.translate(24, 24);
+          octx.strokeStyle = `rgb(${r},${g},${b})`;
+          octx.lineCap = 'round';
+          octx.lineJoin = 'round';
+          // Outer U arc
+          octx.lineWidth = 4.2;
+          octx.beginPath();
+          octx.moveTo(-13, -13); octx.lineTo(-13, 2);
+          octx.arc(0, 2, 13, Math.PI, 0, true);
+          octx.lineTo(13, -13);
+          octx.stroke();
+          // Inner U arc
+          octx.lineWidth = 3.4;
+          octx.beginPath();
+          octx.moveTo(-6.2, -13); octx.lineTo(-6.2, 2);
+          octx.arc(0, 2, 6.2, Math.PI, 0, true);
+          octx.lineTo(6.2, -13);
+          octx.stroke();
+          // Sovereign base crescent arc
+          octx.lineWidth = 2.8;
+          octx.beginPath();
+          octx.arc(0, 17.5, 9, Math.PI * 1.15, Math.PI * 1.85, false);
+          octx.stroke();
+          return off;
         });
       }
 
-      // 2. Braided Genesis Pillar / Root Stream rising into canopy core
-      for (let i = 0; i < trunkCount; i++) {
-        const v = rand(); // 0 = canopy base, 1 = deep bottom base
-        const twist = v * 9.5 + (i % 5) * (Math.PI * 2 / 5);
-        const radius = (0.11 + v * 0.16) * (0.55 + 0.45 * rand());
-        const flare = v > 0.72 ? Math.pow((v - 0.72) / 0.28, 1.5) * 0.22 : 0;
-        const spread = radius + flare;
-        const x = Math.cos(twist) * spread;
-        const z = Math.sin(twist) * spread;
-        const y = 0.44 + v * 0.92;
+      let leafSprites = buildVectorSprites();
 
-        particles.push({
-          kind: 'trunk',
-          x, y, z,
-          v,
-          phase: rand() * Math.PI * 2,
-          size: 2.2 + rand() * 2.8,
-          flowTilt: Math.PI * 0.5 + Math.cos(twist) * 0.22,
-          shimmer: rand()
-        });
+      // Upgrade leaf sprites using the actual /logo.png luminance alpha silhouette (black background removed cleanly)
+      (function loadLogoSprites() {
+        const img = new Image();
+        img.src = '/logo.png';
+        img.onload = () => {
+          try {
+            const probe = document.createElement('canvas');
+            probe.width = 64; probe.height = 64;
+            const pctx = probe.getContext('2d');
+            pctx.drawImage(img, 0, 0, 64, 64);
+            const raw = pctx.getImageData(0, 0, 64, 64);
+            const d = raw.data;
+            let visiblePx = 0;
+            // Detect outer circle rim and strip dark backdrop pixels so ONLY the UNIVA emblem remains
+            for (let y = 0; y < 64; y++) {
+              for (let x = 0; x < 64; x++) {
+                const idx = (y * 64 + x) * 4;
+                const lum = 0.299 * d[idx] + 0.587 * d[idx + 1] + 0.114 * d[idx + 2];
+                const dx = (x - 32) / 32, dy = (y - 32) / 32;
+                const radial = Math.sqrt(dx * dx + dy * dy);
+                if (radial > 0.88) {
+                  d[idx + 3] = 0;
+                } else {
+                  const a = lum > 68 ? Math.min(255, Math.round((lum - 68) * 1.65)) : 0;
+                  d[idx + 3] = a;
+                  if (a > 40) visiblePx++;
+                }
+              }
+            }
+            if (visiblePx < 80) return; // keep vector sprites if unexpected image
+            leafSprites = SHADE_PALETTE.map(([r, g, b]) => {
+              const tinted = new ImageData(new Uint8ClampedArray(d), 64, 64);
+              const td = tinted.data;
+              for (let k = 0; k < td.length; k += 4) {
+                if (td[k + 3] > 0) {
+                  td[k] = r; td[k + 1] = g; td[k + 2] = b;
+                }
+              }
+              const off = document.createElement('canvas');
+              off.width = 64; off.height = 64;
+              off.getContext('2d').putImageData(tinted, 0, 0);
+              return off;
+            });
+          } catch (_) {
+            // Keep crisp vector UNIVA U-emblem sprites on any read error
+          }
+        };
+      })();
+
+      const isMobileInit = window.innerWidth <= 768;
+      const COUNT = isMobileInit ? 1550 : 3000;
+      const BG_GLYPHS = isMobileInit ? 20 : 36;
+
+      // Tree Canopy Lobes (Panokod-style voluminous multi-lobed organic silhouette)
+      const TREE_LOBES = [
+        { cx:  0.00, cy: -0.14, cz:  0.02, rx: 0.94, ry: 0.72, rz: 0.82 },
+        { cx: -0.54, cy: -0.02, cz:  0.16, rx: 0.56, ry: 0.48, rz: 0.50 },
+        { cx:  0.54, cy: -0.04, cz:  0.12, rx: 0.58, ry: 0.50, rz: 0.50 },
+        { cx:  0.02, cy: -0.48, cz: -0.04, rx: 0.62, ry: 0.44, rz: 0.54 },
+        { cx: -0.34, cy:  0.24, cz:  0.24, rx: 0.48, ry: 0.36, rz: 0.44 },
+        { cx:  0.38, cy:  0.22, cz: -0.18, rx: 0.48, ry: 0.36, rz: 0.44 },
+        { cx: -0.18, cy: -0.32, cz:  0.34, rx: 0.46, ry: 0.38, rz: 0.42 }
+      ];
+
+      // Precompute 3D point cloud coordinates for each named shape
+      const shapeCache = {};
+      function getShapePoints(shapeName) {
+        if (shapeCache[shapeName]) return shapeCache[shapeName];
+        const rnd = makePrng(98765 + shapeName.length * 1337 + shapeName.charCodeAt(0) * 97);
+        const pts = new Array(COUNT);
+
+        for (let i = 0; i < COUNT; i++) {
+          let x = 0, y = 0, z = 0, shade = 0.7, sz = 1.0, tilt = (rnd() - 0.5) * 0.8;
+
+          if (shapeName === 'tree') {
+            const trunkShare = Math.floor(COUNT * 0.14);
+            if (i < trunkShare) {
+              // Fibrous twisted Genesis trunk rising into deep shadowed crown belly
+              const v = rnd();
+              const twist = v * 11 + (i % 5) * (Math.PI * 2 / 5);
+              const flare = v > 0.7 ? Math.pow((v - 0.7) / 0.3, 1.5) * 0.24 : 0;
+              const rad = (0.09 + v * 0.13) * (0.55 + 0.45 * rnd()) + flare;
+              x = Math.cos(twist) * rad;
+              z = Math.sin(twist) * rad;
+              y = 0.34 + v * 0.92;
+              shade = 0.18 + Math.max(0, z * 1.4) * 0.45 + (1 - v) * 0.12;
+              sz = 0.72 + rnd() * 0.45;
+              tilt = Math.PI * 0.5 + Math.cos(twist) * 0.22;
+            } else {
+              const lobe = TREE_LOBES[Math.floor(rnd() * TREE_LOBES.length)];
+              const u = rnd() * 2 - 1;
+              const theta = rnd() * Math.PI * 2;
+              const s = Math.sqrt(Math.max(0, 1 - u * u));
+              const shell = 0.74 + 0.28 * Math.pow(rnd(), 0.32);
+              const fold = 1 + 0.10 * Math.sin(theta * 5 + u * 4) + 0.06 * Math.cos(u * 7);
+              x = lobe.cx + s * Math.cos(theta) * lobe.rx * shell * fold;
+              y = lobe.cy + u * lobe.ry * shell * fold;
+              z = lobe.cz + s * Math.sin(theta) * lobe.rz * shell * fold;
+
+              // Panokod volumetric occlusion: inner crevices deeply shadowed, outer sunlit crowns blazing champagne
+              const radialDist = Math.sqrt(x * x + (y + 0.08) * (y + 0.08) + z * z);
+              const outerRim = Math.max(0, Math.min(1, (radialDist - 0.58) / 0.55));
+              const topSun = Math.max(0, -y * 0.62 - x * 0.28 + z * 0.48);
+              shade = Math.min(1, outerRim * 0.70 + topSun * 0.46 + (shell - 0.74) * 0.7);
+              sz = 0.80 + rnd() * 0.75;
+              tilt = Math.atan2(y - lobe.cy * 0.4, x - lobe.cx * 0.4) + (rnd() - 0.5) * 0.5;
+            }
+          } else if (shapeName === 'univa_logo') {
+            // Giant 3D UNIVA Emblem composed cleanly of concentric double-U arcs + pillars + base crescent
+            const seg = i % 10;
+            const depthThick = (rnd() - 0.5) * 0.24;
+            const jitter = (rnd() - 0.5) * 0.055;
+            if (seg < 4) {
+              // Outer U (tall arms + rounded bottom curve)
+              const tArc = rnd();
+              const R = 0.72 + jitter;
+              if (tArc < 0.28) {
+                x = -R; y = -0.68 + (tArc / 0.28) * 0.76;
+              } else if (tArc > 0.72) {
+                x = R; y = -0.68 + ((1 - tArc) / 0.28) * 0.76;
+              } else {
+                const a = Math.PI - ((tArc - 0.28) / 0.44) * Math.PI;
+                x = Math.cos(a) * R;
+                y = 0.08 + Math.sin(a) * R * 0.92;
+              }
+              shade = 0.68 + rnd() * 0.32;
+            } else if (seg < 8) {
+              // Inner U
+              const tArc = rnd();
+              const R = 0.36 + jitter * 0.75;
+              if (tArc < 0.28) {
+                x = -R; y = -0.66 + (tArc / 0.28) * 0.72;
+              } else if (tArc > 0.72) {
+                x = R; y = -0.66 + ((1 - tArc) / 0.28) * 0.72;
+              } else {
+                const a = Math.PI - ((tArc - 0.28) / 0.44) * Math.PI;
+                x = Math.cos(a) * R;
+                y = 0.06 + Math.sin(a) * R * 0.92;
+              }
+              shade = 0.55 + rnd() * 0.42;
+            } else {
+              // Base sovereign crescent arc underneath U
+              const a = Math.PI * 1.16 + rnd() * (Math.PI * 0.68);
+              const R = 0.85 + jitter * 0.7;
+              x = Math.cos(a) * R * 1.15;
+              y = 1.62 + Math.sin(a) * R * 0.85;
+              shade = 0.72 + rnd() * 0.28;
+            }
+            z = depthThick;
+            sz = 0.90 + rnd() * 0.60;
+            tilt = (rnd() - 0.5) * 0.3;
+          } else if (shapeName === 'cubes') {
+            // Dashboard: 3D Isometric Cube Grid
+            const cIdx = i % 6;
+            const offsets = [[-0.55,-0.35,0],[0.55,-0.35,0],[0,0.45,0],[-0.3,0.1,0.45],[0.45,0.2,-0.4],[0,-0.55,-0.3]];
+            const oc = offsets[cIdx];
+            const s = 0.34;
+            const face = Math.floor(rnd() * 3);
+            const u = (rnd() - 0.5) * 2 * s, v = (rnd() - 0.5) * 2 * s;
+            const side = rnd() > 0.5 ? s : -s;
+            if (face === 0) { x = oc[0] + side; y = oc[1] + u; z = oc[2] + v; }
+            else if (face === 1) { x = oc[0] + u; y = oc[1] + side; z = oc[2] + v; }
+            else { x = oc[0] + u; y = oc[1] + v; z = oc[2] + side; }
+            shade = 0.45 + 0.5 * rnd();
+            sz = 0.82 + rnd() * 0.45;
+          } else if (shapeName === 'lens') {
+            // Explorer: 3D Magnifying Lens + Radar Sweep
+            if (i < COUNT * 0.74) {
+              const a = rnd() * Math.PI * 2;
+              const rTube = (rnd() - 0.5) * 0.14;
+              const R = 0.68 + rTube;
+              x = -0.15 + Math.cos(a) * R;
+              y = -0.15 + Math.sin(a) * R;
+              z = (rnd() - 0.5) * 0.22;
+              shade = 0.62 + Math.sin(a - 0.8) * 0.34;
+            } else {
+              // Handle
+              const d = rnd();
+              const spread = (rnd() - 0.5) * 0.14;
+              x = 0.33 + d * 0.62 + spread;
+              y = 0.33 + d * 0.62 - spread;
+              z = (rnd() - 0.5) * 0.18;
+              shade = 0.45 + d * 0.45;
+            }
+          } else if (shapeName === 'globe') {
+            // Network Center: 3D Geodesic Network Sphere
+            const u = rnd() * 2 - 1;
+            const latRing = i % 5 === 0 ? Math.round(u * 4) / 4 : u;
+            const theta = rnd() * Math.PI * 2;
+            const s = Math.sqrt(Math.max(0, 1 - latRing * latRing));
+            const R = 0.92;
+            x = s * Math.cos(theta) * R;
+            y = latRing * R;
+            z = s * Math.sin(theta) * R;
+            shade = Math.max(0.18, 0.48 + z * 0.52);
+            sz = 0.78 + rnd() * 0.55;
+          } else if (shapeName === 'diamond') {
+            // Mining Center: 3D Octahedron Hash Crystal
+            const edge = i % 4 === 0;
+            const u = rnd(), v = rnd();
+            const sx = rnd() > 0.5 ? 1 : -1;
+            const sy = rnd() > 0.5 ? 1 : -1;
+            const szSign = rnd() > 0.5 ? 1 : -1;
+            let b1 = edge ? (rnd() > 0.5 ? 0 : 1 - u) : u * (1 - v);
+            let b2 = edge ? (1 - b1) : v;
+            let b3 = 1 - b1 - b2;
+            if (b3 < 0) { const tmp = b1; b1 = 1 - v; b2 = 1 - u; b3 = 1 - b1 - b2; }
+            x = sx * b1 * 0.95;
+            y = sy * b2 * 1.15;
+            z = szSign * b3 * 0.95;
+            shade = Math.min(1, 0.38 + Math.max(0, -y * 0.4 + z * 0.6));
+          } else if (shapeName === 'infinity') {
+            // Native DEX: 3D Lemniscate Infinity Pool Torus
+            const a = rnd() * Math.PI * 2;
+            const denom = 1 + Math.sin(a) * Math.sin(a);
+            const rx = (1.12 * Math.cos(a)) / denom;
+            const ry = (0.78 * Math.sin(a) * Math.cos(a)) / denom;
+            const tubeA = rnd() * Math.PI * 2;
+            const tubeR = 0.14 * Math.pow(rnd(), 0.5);
+            x = rx + Math.cos(tubeA) * tubeR;
+            y = ry + Math.sin(tubeA) * tubeR;
+            z = Math.sin(a) * 0.35 + Math.cos(tubeA) * tubeR;
+            shade = 0.42 + (0.5 + 0.5 * Math.sin(a * 2 + tubeA)) * 0.56;
+          } else if (shapeName === 'helix') {
+            // Core Node: Double Helix Core Reactor
+            const strand = i % 7 === 0 ? 'rung' : (i % 2 === 0 ? 'a' : 'b');
+            const v = (rnd() - 0.5) * 2;
+            const ang = v * 5.2;
+            if (strand === 'rung') {
+              const p = rnd() * 2 - 1;
+              x = Math.cos(ang) * 0.58 * p;
+              z = Math.sin(ang) * 0.58 * p;
+              y = v * 1.05;
+              shade = 0.48 + rnd() * 0.3;
+            } else {
+              const shift = strand === 'a' ? 0 : Math.PI;
+              const j = (rnd() - 0.5) * 0.12;
+              x = Math.cos(ang + shift) * (0.62 + j);
+              z = Math.sin(ang + shift) * (0.62 + j);
+              y = v * 1.05;
+              shade = Math.max(0.25, 0.55 + z * 0.45);
+            }
+          } else if (shapeName === 'chains') {
+            // Multichain Hub: 3 Interlocking 3D Chain Links
+            const link = i % 3;
+            const a = rnd() * Math.PI * 2;
+            const rx = 0.52 * Math.cos(a), ry = 0.30 * Math.sin(a);
+            const tr = (rnd() - 0.5) * 0.09;
+            if (link === 0) {
+              x = rx - 0.42; y = ry + tr; z = Math.sin(a) * 0.18 + tr;
+            } else if (link === 1) {
+              x = ry; y = rx; z = Math.cos(a) * 0.25 + tr;
+            } else {
+              x = rx + 0.42; y = ry + tr; z = -Math.sin(a) * 0.18 + tr;
+            }
+            shade = 0.45 + 0.52 * rnd();
+          } else if (shapeName === 'qr') {
+            // Offline Pay: 3D QR Grid Blocks + Signal Waves
+            if (i < COUNT * 0.72) {
+              const gx = (Math.floor(rnd() * 7) - 3) * 0.24;
+              const gy = (Math.floor(rnd() * 7) - 3) * 0.24;
+              x = gx + (rnd() - 0.5) * 0.13;
+              y = gy + (rnd() - 0.5) * 0.13;
+              z = (rnd() - 0.5) * 0.22;
+              shade = (Math.abs(gx) > 0.4 && Math.abs(gy) > 0.4) ? 0.92 : 0.42 + rnd() * 0.45;
+            } else {
+              const ring = (i % 3) + 1;
+              const a = -Math.PI * 0.78 + rnd() * Math.PI * 0.56;
+              const R = 0.75 + ring * 0.18;
+              x = Math.cos(a) * R * 1.1;
+              y = Math.sin(a) * R * 0.8 - 0.35;
+              z = (rnd() - 0.5) * 0.16;
+              shade = 0.65 + rnd() * 0.35;
+            }
+          } else if (shapeName === 'mystery') {
+            // Mystery Protocol: 3D Riddle Question Mark + Celestial Halo
+            const p = rnd();
+            if (p < 0.60) {
+              const a = -Math.PI * 1.15 + rnd() * (Math.PI * 1.48);
+              const r = 0.46 + (rnd() - 0.5) * 0.11;
+              x = Math.cos(a) * r;
+              y = -0.34 + Math.sin(a) * r;
+            } else if (p < 0.80) {
+              const tStem = rnd();
+              x = (rnd() - 0.5) * 0.10;
+              y = 0.12 + tStem * 0.36;
+            } else {
+              const a = rnd() * Math.PI * 2;
+              const r = rnd() * 0.13;
+              x = Math.cos(a) * r;
+              y = 0.72 + Math.sin(a) * r;
+            }
+            z = (rnd() - 0.5) * 0.22;
+            shade = 0.6 + rnd() * 0.4;
+          } else if (shapeName === 'code') {
+            // Developer Portal: 3D Code Terminal Brackets < / >
+            const branch = i % 5;
+            const s = rnd(), j = (rnd() - 0.5) * 0.09;
+            if (branch === 0) { x = -0.95 + s * 0.45 + j; y = -s * 0.48 + j; }
+            else if (branch === 1) { x = -0.95 + s * 0.45 + j; y = s * 0.48 + j; }
+            else if (branch === 2) { x = 0.95 - s * 0.45 + j; y = -s * 0.48 + j; }
+            else if (branch === 3) { x = 0.95 - s * 0.45 + j; y = s * 0.48 + j; }
+            else { x = (s - 0.5) * 0.42 + j; y = -(s - 0.5) * 1.18 + j; }
+            z = (rnd() - 0.5) * 0.24;
+            shade = 0.55 + rnd() * 0.45;
+          } else {
+            // Wallet Vault ('shield'): Sovereign Security Shield + Lock Core
+            const tU = rnd();
+            const depthR = 0.6 + 0.4 * Math.pow(rnd(), 0.4);
+            const vy = (tU * 2 - 1) * 0.95;
+            const widthAtY = vy < -0.1 ? 0.82 : Math.max(0.06, 0.82 * (1 - (vy + 0.1) / 1.05));
+            const edgeBias = rnd() > 0.38 ? (rnd() > 0.5 ? 1 : -1) * (0.85 + rnd() * 0.15) : (rnd() * 2 - 1) * depthR;
+            x = edgeBias * widthAtY;
+            y = vy;
+            z = (rnd() - 0.5) * 0.20 + (Math.abs(x) < 0.2 && Math.abs(y + 0.05) < 0.2 ? 0.18 : 0);
+            shade = Math.abs(edgeBias) > 0.8 ? 0.92 : 0.40 + rnd() * 0.45;
+          }
+
+          pts[i] = { x, y, z, shade, sz, tilt };
+        }
+        shapeCache[shapeName] = pts;
+        return pts;
       }
 
-      // 3. Detached glowing UNIVA spores drifting outward from canopy edge
-      const spores = [];
-      for (let i = 0; i < sporeCount; i++) {
-        const ang = rand() * Math.PI * 2;
-        const dist = 0.85 + rand() * 0.85;
-        spores.push({
-          bx: Math.cos(ang) * dist * 1.15,
-          by: Math.sin(ang) * dist * 0.85 - 0.08,
-          bz: (rand() - 0.5) * 0.8,
-          speed: 0.2 + rand() * 0.5,
-          phase: rand() * Math.PI * 2,
-          size: 3.2 + rand() * 4.2,
-          rot: (rand() - 0.5) * 1.2
-        });
+      const VIEW_TO_SHAPE = {
+        landing: 'tree',
+        dashboard: 'cubes',
+        explorer: 'lens',
+        network: 'globe',
+        mining: 'diamond',
+        dex: 'infinity',
+        core: 'helix',
+        multichain: 'chains',
+        offline: 'qr',
+        mystery: 'mystery',
+        dev: 'code',
+        wallet: 'shield'
+      };
+
+      const initRnd = makePrng(551199);
+      const particles = new Array(COUNT);
+      const startPts = getShapePoints('tree');
+      for (let i = 0; i < COUNT; i++) {
+        const p = startPts[i];
+        particles[i] = {
+          sx: p.x, sy: p.y, sz: p.z, sShade: p.shade, sSize: p.sz, sTilt: p.tilt,
+          tx: p.x, ty: p.y, tz: p.z, tShade: p.shade, tSize: p.sz, tTilt: p.tilt,
+          phase: initRnd() * Math.PI * 2,
+          swirlA: initRnd() * Math.PI * 2,
+          swirlR: 0.75 + initRnd() * 1.45,
+          swirlY: (initRnd() - 0.5) * 1.1,
+          delay: initRnd() * 0.26
+        };
       }
 
-      // 4. Floating faint watermark glyphs across backdrop
+      // Faint floating UNIVA leaf-watermarks drifting slowly across the full-page backdrop
       const bgGlyphs = [];
-      for (let i = 0; i < bgGlyphCount; i++) {
+      for (let i = 0; i < BG_GLYPHS; i++) {
         bgGlyphs.push({
-          rx: rand(),
-          ry: rand(),
-          size: 9 + rand() * 14,
-          rot: (rand() - 0.5) * 0.9,
-          drot: (rand() - 0.5) * 0.15,
-          alpha: 0.025 + rand() * 0.055,
-          vx: (rand() - 0.5) * 0.00025,
-          vy: -0.00012 - rand() * 0.00022
+          rx: initRnd(),
+          ry: initRnd(),
+          size: 8 + initRnd() * 14,
+          rot: (initRnd() - 0.5) * 1.2,
+          drot: (initRnd() - 0.5) * 0.22,
+          alpha: 0.03 + initRnd() * 0.06,
+          vx: (initRnd() - 0.5) * 0.00028,
+          vy: -0.00014 - initRnd() * 0.00024
         });
       }
+
+      let currentShape = 'tree';
+      let currentViewId = 'landing';
+      let morphProgress = 1.0;
+      let lastAutoSwitch = performance.now();
+
+      function morphToShape(shapeName) {
+        if (!shapeName || shapeName === currentShape) return;
+        const nextPts = getShapePoints(shapeName);
+        for (let i = 0; i < COUNT; i++) {
+          const pt = particles[i];
+          const easeNow = Math.min(1, morphProgress);
+          pt.sx = pt.sx + (pt.tx - pt.sx) * easeNow;
+          pt.sy = pt.sy + (pt.ty - pt.sy) * easeNow;
+          pt.sz = pt.sz + (pt.tz - pt.sz) * easeNow;
+          pt.sShade = pt.sShade + (pt.tShade - pt.sShade) * easeNow;
+          pt.sSize = pt.sSize + (pt.tSize - pt.sSize) * easeNow;
+          pt.sTilt = pt.sTilt + (pt.tTilt - pt.sTilt) * easeNow;
+
+          const np = nextPts[i];
+          pt.tx = np.x; pt.ty = np.y; pt.tz = np.z;
+          pt.tShade = np.shade; pt.tSize = np.sz; pt.tTilt = np.tilt;
+        }
+        currentShape = shapeName;
+        morphProgress = 0.0;
+        lastAutoSwitch = performance.now();
+      }
+
+      window.setHeroSceneView = function(viewId) {
+        currentViewId = viewId || 'landing';
+        const targetShape = VIEW_TO_SHAPE[currentViewId] || 'tree';
+        morphToShape(targetShape);
+      };
+
+      // Wire subtle hover morph previews on Landing ecosystem module links
+      document.querySelectorAll('#view-landing [onclick^="navigate("]').forEach(card => {
+        const m = (card.getAttribute('onclick') || '').match(/navigate\('([^']+)'\)/);
+        if (m && VIEW_TO_SHAPE[m[1]]) {
+          card.addEventListener('mouseenter', () => {
+            if (currentViewId === 'landing') morphToShape(VIEW_TO_SHAPE[m[1]]);
+          });
+        }
+      });
 
       function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, 2);
-        width = canvas.offsetWidth || (heroEl ? heroEl.offsetWidth : window.innerWidth);
-        height = canvas.offsetHeight || (heroEl ? heroEl.offsetHeight : 560);
+        width = window.innerWidth;
+        height = window.innerHeight;
         canvas.width = Math.floor(width * dpr);
         canvas.height = Math.floor(height * dpr);
       }
       window.addEventListener('resize', resize);
       resize();
 
-      if (heroEl && !reduceMotion) {
-        heroEl.addEventListener('mousemove', (e) => {
-          const rect = heroEl.getBoundingClientRect();
-          targetMouseX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-          targetMouseY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
-        });
-        heroEl.addEventListener('mouseleave', () => {
-          targetMouseX = 0;
-          targetMouseY = 0;
-        });
+      if (!reduceMotion) {
+        window.addEventListener('mousemove', (e) => {
+          targetMouseX = (e.clientX / Math.max(1, width) - 0.5) * 2;
+          targetMouseY = (e.clientY / Math.max(1, height) - 0.5) * 2;
+        }, { passive: true });
+        window.addEventListener('scroll', () => {
+          const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+          scrollRatio = Math.max(0, Math.min(1, window.scrollY / maxScroll));
+        }, { passive: true });
       }
 
+      const projected = new Array(COUNT);
+      for (let i = 0; i < COUNT; i++) projected[i] = { sx: 0, sy: 0, z: 0, size: 1, shadeIdx: 0, alpha: 1, rot: 0 };
+
       function draw() {
+        const now = performance.now();
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, width, height);
 
         mouseX += (targetMouseX - mouseX) * 0.05;
         mouseY += (targetMouseY - mouseY) * 0.05;
 
+        // Auto-cycle on landing: Canopy Tree <-> Wind Scatter <-> Pure UNIVA Logo
+        if (!reduceMotion && currentViewId === 'landing' && morphProgress >= 1.0 && (now - lastAutoSwitch) > 5800) {
+          morphToShape(currentShape === 'tree' ? 'univa_logo' : 'tree');
+        }
+
+        if (morphProgress < 1.0) {
+          morphProgress = Math.min(1.0, morphProgress + 0.0145);
+        }
+
         const isMob = width <= 768;
-        const centerX = isMob ? width * 0.58 : width * 0.67;
-        const centerY = isMob ? height * 0.45 : height * 0.47;
+        // On landing hero top, place sculptural focal point nicely right-center; when scrolled or in subpages, center-right gracefully
+        const viewShiftX = currentViewId === 'landing'
+          ? (isMob ? width * 0.54 : width * (0.67 - scrollRatio * 0.14))
+          : (isMob ? width * 0.50 : width * 0.56);
+        const viewShiftY = height * (isMob ? 0.46 : 0.49);
         const scale = Math.min(width, height) * (isMob ? 0.34 : 0.39);
 
-        // Ambient warm champagne radial glow behind sculpture
-        const halo = ctx.createRadialGradient(centerX, centerY - scale * 0.1, scale * 0.1, centerX, centerY, scale * 1.9);
-        halo.addColorStop(0, 'rgba(243, 229, 171, 0.14)');
-        halo.addColorStop(0.5, 'rgba(186, 173, 134, 0.05)');
+        // Soft ambient volumetric glow anchoring the sculpture
+        const halo = ctx.createRadialGradient(viewShiftX, viewShiftY - scale * 0.08, scale * 0.08, viewShiftX, viewShiftY, scale * 1.95);
+        halo.addColorStop(0, 'rgba(243, 229, 171, 0.11)');
+        halo.addColorStop(0.5, 'rgba(186, 173, 134, 0.04)');
         halo.addColorStop(1, 'rgba(7, 9, 13, 0)');
         ctx.fillStyle = halo;
         ctx.fillRect(0, 0, width, height);
 
-        // Render floating faint UNIVA watermark glyphs
+        // Background drifting semi-transparent UNIVA logo watermarks across full screen
         for (let i = 0; i < bgGlyphs.length; i++) {
           const g = bgGlyphs[i];
           if (!reduceMotion) {
@@ -3808,141 +4128,82 @@ Block Explorer: https://univa-network-l1.vercel.app
             g.ry = (g.ry + g.vy + 1) % 1;
             g.rot += g.drot * 0.015;
           }
-          drawWatermarkGlyph(
-            g.rx * width + mouseX * 14,
-            g.ry * height + mouseY * 10,
-            g.size,
-            g.rot,
-            g.alpha
-          );
+          ctx.save();
+          ctx.globalAlpha = g.alpha;
+          ctx.translate(g.rx * width + mouseX * 18, g.ry * height + mouseY * 12);
+          ctx.rotate(g.rot);
+          ctx.drawImage(leafSprites[3], -g.size, -g.size, g.size * 2, g.size * 2);
+          ctx.restore();
         }
 
-        // Camera rotation from slow idle sway + pointer position
-        const yaw = Math.sin(t * 0.22) * 0.20 + mouseX * 0.28;
-        const pitch = Math.cos(t * 0.18) * 0.06 - mouseY * 0.16;
+        const yaw = Math.sin(t * 0.25) * 0.22 + mouseX * 0.30 + scrollRatio * 0.45;
+        const pitch = Math.cos(t * 0.20) * 0.06 - mouseY * 0.16;
         const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
         const cosP = Math.cos(pitch), sinP = Math.sin(pitch);
 
-        // Project 3D canopy + trunk particles with wind wave
-        const projected = [];
-        const pLen = particles.length;
-        for (let i = 0; i < pLen; i++) {
-          const p = particles[i];
-          const wind = Math.sin(t * 1.25 + p.phase + p.x * 2.1 + p.y * 1.4) * (p.kind === 'canopy' ? 0.022 : 0.008);
-          const px = p.x + wind;
-          const py = p.y + wind * 0.45;
-          const pz = p.z;
+        for (let i = 0; i < COUNT; i++) {
+          const pt = particles[i];
+          // Staggered cubic ease with mid-transition 3D wind vortex dispersion ("savrulup birleşme")
+          const localP = Math.max(0, Math.min(1, (morphProgress - pt.delay * 0.65) / (1 - 0.65 * 0.26)));
+          const ease = localP < 0.5 ? 4 * localP * localP * localP : 1 - Math.pow(-2 * localP + 2, 3) / 2;
+          const vortex = Math.sin(localP * Math.PI);
 
-          const x1 = px * cosY - pz * sinY;
-          const z1 = px * sinY + pz * cosY;
-          const y2 = py * cosP - z1 * sinP;
-          const z2 = py * sinP + z1 * cosP;
+          const windAngle = pt.swirlA + vortex * 4.2 + t * 0.35;
+          const bx = pt.sx + (pt.tx - pt.sx) * ease + Math.cos(windAngle) * pt.swirlR * vortex;
+          const by = pt.sy + (pt.ty - pt.sy) * ease + (Math.sin(t * 1.4 + pt.phase) * 0.025) + pt.swirlY * vortex;
+          const bz = pt.sz + (pt.tz - pt.sz) * ease + Math.sin(windAngle) * pt.swirlR * 0.65 * vortex;
 
-          const depth = 3.1 / (3.1 - z2 * 0.65);
-          const sx = centerX + x1 * scale * depth;
-          const sy = centerY + y2 * scale * depth;
+          const x1 = bx * cosY - bz * sinY;
+          const z1 = bx * sinY + bz * cosY;
+          const y2 = by * cosP - z1 * sinP;
+          const z2 = by * sinP + z1 * cosP;
 
-          // Directional lighting + rim glow (bright champagne edges, obsidian shadow folds)
-          let light = 0;
-          if (p.kind === 'canopy') {
-            const distFromCenter = Math.sqrt(px * px + (py + 0.06) * (py + 0.06) + pz * pz);
-            const rim = Math.max(0, Math.min(1, (distFromCenter - 0.52) / 0.55));
-            const dirLight = Math.max(0, -px * 0.48 - py * 0.55 + z2 * 0.58);
-            light = Math.min(1, rim * 0.68 + dirLight * 0.52 + (p.shimmer > 0.85 ? 0.16 : 0));
-          } else {
-            const pulse = 0.5 + 0.5 * Math.sin(t * 2.2 - p.v * 7.5 + p.phase);
-            light = Math.min(1, 0.20 + Math.max(0, z2) * 0.42 + pulse * 0.30 - p.v * 0.18);
+          const depth = 3.2 / (3.2 - Math.max(-1.4, Math.min(1.4, z2 * 0.62)));
+          const sx = viewShiftX + x1 * scale * depth;
+          const sy = viewShiftY + y2 * scale * depth;
+
+          let shade = pt.sShade + (pt.tShade - pt.sShade) * ease;
+          // Volumetric shadow occlusion in interior when forming tree/globe
+          if (currentShape === 'tree' && vortex < 0.2) {
+            const dist3 = Math.sqrt(bx * bx + (by + 0.06) * (by + 0.06) + bz * bz);
+            if (dist3 < 0.62 && by < 0.34) shade *= 0.42;
           }
+          shade = Math.max(0, Math.min(0.99, shade + vortex * 0.22));
 
-          projected.push({
-            sx, sy, z: z2, depth, light,
-            size: p.size * depth,
-            tilt: p.flowTilt + wind * 3.0,
-            kind: p.kind
-          });
+          const pr = projected[i];
+          pr.sx = sx;
+          pr.sy = sy;
+          pr.z = z2;
+          pr.size = (5.2 + 5.6 * (pt.sSize + (pt.tSize - pt.sSize) * ease)) * depth * (0.45 + 0.55);
+          pr.shadeIdx = Math.min(4, Math.floor(shade * 5));
+          pr.alpha = Math.min(1, 0.38 + shade * 0.62);
+          pr.rot = (pt.sTilt + (pt.tTilt - pt.sTilt) * ease) * 0.35 + vortex * (Math.cos(pt.phase) * 1.6) + Math.sin(t * 1.1 + pt.phase) * 0.14;
         }
 
-        // Depth sort back-to-front so outer highlights frame dark interior crevices
+        // Depth sort back-to-front for dramatic 3D Panokod depth
         projected.sort((a, b) => a.z - b.z);
 
-        const logoCx = centerX + mouseX * 10;
-        const logoCy = centerY - scale * 0.06 + mouseY * 6;
-        const logoR = scale * 0.36;
-        let medallionDrawn = false;
-
-        for (let i = 0; i < projected.length; i++) {
-          const item = projected[i];
-          if (!medallionDrawn && item.z >= 0) {
-            drawCoreLogoMedallion(logoCx, logoCy, logoR);
-            medallionDrawn = true;
-          }
-
-          // Smoothly part front-hemisphere glyphs directly over the UNIVA core emblem window
-          const dxL = item.sx - logoCx;
-          const dyL = item.sy - logoCy;
-          const distL = Math.sqrt(dxL * dxL + dyL * dyL);
-          if (item.z >= 0 && distL < logoR * 1.15) {
-            if (distL < logoR * 0.88) continue;
-          }
-
-          const L = item.light;
-
-          // Palette interpolation: Dark obsidian crevice -> Antique metallic gold -> Luminous champagne platinum
-          let r, g, b, alpha;
-          if (L < 0.34) {
-            const k = L / 0.34;
-            r = Math.round(32 + k * 78);
-            g = Math.round(29 + k * 68);
-            b = Math.round(25 + k * 48);
-            alpha = 0.45 + k * 0.30;
-          } else if (L < 0.72) {
-            const k = (L - 0.34) / 0.38;
-            r = Math.round(110 + k * 116);
-            g = Math.round(97 + k * 108);
-            b = Math.round(73 + k * 80);
-            alpha = 0.75 + k * 0.18;
-          } else {
-            const k = (L - 0.72) / 0.28;
-            r = Math.round(226 + k * 29);
-            g = Math.round(205 + k * 46);
-            b = Math.round(153 + k * 82);
-            alpha = 0.92 + k * 0.08;
-          }
-
-          if (item.z >= 0 && distL < logoR * 1.15) {
-            alpha *= (distL - logoR * 0.88) / (logoR * 0.27);
-          }
-
-          ctx.save();
-          ctx.translate(item.sx, item.sy);
-          ctx.rotate(item.tilt);
-          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(2)})`;
-
-          // Sculptural elongated UNIVA diamond/feather micro-glyph
-          const w = item.size * (item.kind === 'trunk' ? 1.15 : 1.0);
-          const h = item.size * (item.kind === 'trunk' ? 0.34 : 0.44);
+        // Self-occlusion shadow core inside tree crown so inner crevices stay deeply obsidian
+        if (currentShape === 'tree' && morphProgress > 0.72) {
+          const coreShade = ctx.createRadialGradient(viewShiftX, viewShiftY - scale * 0.06, scale * 0.05, viewShiftX, viewShiftY - scale * 0.06, scale * 0.85);
+          coreShade.addColorStop(0, `rgba(7, 9, 13, ${(0.88 * (morphProgress - 0.72) / 0.28).toFixed(2)})`);
+          coreShade.addColorStop(1, 'rgba(7, 9, 13, 0)');
+          ctx.fillStyle = coreShade;
           ctx.beginPath();
-          ctx.moveTo(-w, 0);
-          ctx.lineTo(-w * 0.18, -h);
-          ctx.lineTo(w, 0);
-          ctx.lineTo(w * 0.18, h);
-          ctx.closePath();
+          ctx.arc(viewShiftX, viewShiftY - scale * 0.06, scale * 0.85, 0, Math.PI * 2);
           ctx.fill();
-          ctx.restore();
-        }
-        if (!medallionDrawn) {
-          drawCoreLogoMedallion(logoCx, logoCy, logoR);
         }
 
-        // Detached drifting micro-glyph spores around the canopy
-        for (let i = 0; i < spores.length; i++) {
-          const s = spores[i];
-          const driftX = Math.sin(t * s.speed + s.phase) * 0.08;
-          const driftY = Math.cos(t * s.speed * 0.8 + s.phase) * 0.06;
-          const sx = centerX + (s.bx + driftX + mouseX * 0.06) * scale;
-          const sy = centerY + (s.by + driftY + mouseY * 0.04) * scale;
-          const a = 0.32 + 0.45 * (0.5 + 0.5 * Math.sin(t * 1.4 + s.phase));
-          drawWatermarkGlyph(sx, sy, s.size, s.rot + t * 0.12, a * 0.65);
+        for (let i = 0; i < COUNT; i++) {
+          const item = projected[i];
+          const sprite = leafSprites[item.shadeIdx];
+          const half = item.size * 0.65;
+          ctx.save();
+          ctx.globalAlpha = item.alpha;
+          ctx.translate(item.sx, item.sy);
+          ctx.rotate(item.rot);
+          ctx.drawImage(sprite, -half, -half, half * 2, half * 2);
+          ctx.restore();
         }
 
         if (!reduceMotion) {
