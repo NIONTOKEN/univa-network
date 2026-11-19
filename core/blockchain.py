@@ -212,55 +212,201 @@ class Blockchain:
         return {tx.get("tx_id") for block in self.chain for tx in block.transactions if tx.get("tx_id")}
 
     def _account_nonce(self, address: str) -> int:
+        from core.transaction import NONCE_TX_TYPES
         from core.wallet import normalize_address
         norm = normalize_address(address)
-        return sum(1 for block in self.chain for tx in block.transactions
-                   if tx.get("type", "transfer") == "transfer" and normalize_address(tx.get("from", "")) == norm)
+        return sum(
+            1
+            for block in self.chain
+            for tx in block.transactions
+            if tx.get("type", "transfer") in NONCE_TX_TYPES
+            and normalize_address(tx.get("from", "")) == norm
+        )
 
     def _pending_nonce(self, address: str) -> int:
+        from core.transaction import NONCE_TX_TYPES
         from core.wallet import normalize_address
         norm = normalize_address(address)
-        return self._account_nonce(norm) + sum(1 for tx in self.pending_transactions
-            if tx.get("type", "transfer") == "transfer" and normalize_address(tx.get("from", "")) == norm)
+        return self._account_nonce(norm) + sum(
+            1
+            for tx in self.pending_transactions
+            if tx.get("type", "transfer") in NONCE_TX_TYPES
+            and normalize_address(tx.get("from", "")) == norm
+        )
 
     @staticmethod
     def _canonical_tx_message(tx: dict) -> str:
         from core.transaction import canonical_tx_message
         return canonical_tx_message(tx)
 
-    def verify_transaction(self, tx: dict, include_pending: bool = True) -> bool:
-        """Validate a signed transfer. Coinbase/genesis are accepted only in block validation."""
-        if not isinstance(tx, dict) or tx.get("type", "transfer") != "transfer":
+    def get_onchain_reservations(
+        self,
+        include_pending: bool = True,
+        at_timestamp: Optional[float] = None,
+    ) -> dict:
+        """Compute deterministic on-chain offline_reserve / offline_spend / offline_release escrow state."""
+        from core.transaction import derive_reservation_id
+        from core.wallet import normalize_address
+
+        eff_ts = float(
+            at_timestamp
+            if at_timestamp is not None
+            else max(time.time(), self.last_block.timestamp if self.chain else 0.0)
+        )
+        reservations: dict = {}
+
+        def _apply(tx: dict, block_index: Optional[int]):
+            tx_type = tx.get("type", "transfer")
+            if tx_type == "offline_reserve":
+                rid = tx.get("reservation_id") or derive_reservation_id(tx.get("tx_id", ""))
+                reservations[rid] = {
+                    "reservation_id": rid,
+                    "owner": normalize_address(tx.get("from", "")),
+                    "owner_raw": tx.get("from", ""),
+                    "amount": round(float(tx.get("amount", 0.0)), 8),
+                    "spent": 0.0,
+                    "expires_at": int(tx.get("expires_at", 0)),
+                    "released": False,
+                    "confirmed": block_index is not None,
+                    "block_index": block_index,
+                    "tx_id": tx.get("tx_id", ""),
+                    "used_voucher_nonces": set(),
+                    "spend_tx_ids": [],
+                }
+            elif tx_type == "offline_spend":
+                rid = str(tx.get("reservation_id") or "")
+                rec = reservations.get(rid)
+                if rec is not None:
+                    cost = round(float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0)), 8)
+                    rec["spent"] = round(rec["spent"] + cost, 8)
+                    if "voucher_nonce" in tx:
+                        rec["used_voucher_nonces"].add(int(tx["voucher_nonce"]))
+                    if tx.get("tx_id"):
+                        rec["spend_tx_ids"].append(tx["tx_id"])
+            elif tx_type == "offline_release":
+                rid = str(tx.get("reservation_id") or "")
+                rec = reservations.get(rid)
+                if rec is not None:
+                    rec["released"] = True
+
+        for blk in self.chain:
+            for tx in blk.transactions:
+                _apply(tx, blk.index)
+        if include_pending:
+            for tx in self.pending_transactions:
+                _apply(tx, None)
+
+        for rec in reservations.values():
+            rem = round(max(0.0, rec["amount"] - rec["spent"]), 8)
+            rec["remaining"] = rem
+            if rec["released"]:
+                rec["status"] = "released"
+            elif eff_ts >= float(rec["expires_at"]):
+                rec["status"] = "expired"
+            elif rem <= 1e-8:
+                rec["status"] = "exhausted"
+            else:
+                rec["status"] = "active"
+        return reservations
+
+    def verify_transaction(
+        self,
+        tx: dict,
+        include_pending: bool = True,
+        block_timestamp: Optional[float] = None,
+    ) -> bool:
+        """Validate a signed L1 tx (transfer, offline_reserve, offline_spend, offline_release)."""
+        from core.transaction import (
+            SUPPORTED_TX_TYPES,
+            NONCE_TX_TYPES,
+            derive_reservation_id,
+            verify_transaction as stateless_verify_tx,
+        )
+        from core.wallet import normalize_address
+
+        if not isinstance(tx, dict):
             return False
-        required = ("from", "to", "amount", "fee", "nonce", "public_key", "signature", "tx_id")
-        if any(k not in tx for k in required):
+        tx_type = tx.get("type", "transfer")
+        if tx_type not in SUPPORTED_TX_TYPES:
+            return False
+        if not stateless_verify_tx(tx):
             return False
         try:
-            amount, fee = float(tx["amount"]), float(tx["fee"])
-            nonce = tx["nonce"]
-            if not (amount > 0 and fee >= 0 and amount < float("inf") and fee < float("inf")):
+            tx_id = tx["tx_id"]
+            if tx_id in self._confirmed_tx_ids():
                 return False
-            if round(amount, 8) != amount or round(fee, 8) != fee:
-                return False
-            if not isinstance(nonce, int) or isinstance(nonce, bool) or nonce < 0:
-                return False
-            from core.wallet import get_valid_sender_addresses, normalize_address, validate_address, UnivaWallet
-            if not validate_address(tx["from"]) or not validate_address(tx["to"]):
-                return False
-            # Gönderen adresi: L1 (RIPEMD160/SHA256), eski 20-karakter, EVM 0x (büyük/küçük harf duyarsız) veya kayıtlı PWA adresi olabilir
-            if normalize_address(tx["from"]) not in get_valid_sender_addresses(tx["public_key"]):
-                return False
-            message = self._canonical_tx_message(tx)
-            if not UnivaWallet.verify_signature(tx["public_key"], message, tx["signature"]):
-                return False
-            tx_digest = hashlib.sha256(message.encode("utf-8")).hexdigest()
-            if tx["tx_id"] != tx_digest or tx_digest in self._confirmed_tx_ids():
-                return False
-            expected_nonce = self._pending_nonce(tx["from"]) if include_pending else self._account_nonce(tx["from"])
-            if nonce != expected_nonce:
-                return False
-            available = self.get_balance(tx["from"], include_pending_outgoing=include_pending)
-            return available >= amount + fee
+
+            eff_ts = float(
+                block_timestamp
+                if block_timestamp is not None
+                else max(time.time(), self.last_block.timestamp if self.chain else 0.0)
+            )
+            sender_norm = normalize_address(tx["from"])
+
+            if tx_type in NONCE_TX_TYPES:
+                expected_nonce = (
+                    self._pending_nonce(tx["from"]) if include_pending else self._account_nonce(tx["from"])
+                )
+                if tx["nonce"] != expected_nonce:
+                    return False
+
+            if tx_type == "transfer":
+                amount, fee = float(tx["amount"]), float(tx["fee"])
+                available = self.get_balance(
+                    tx["from"], include_pending_outgoing=include_pending, at_timestamp=eff_ts
+                )
+                return available + 1e-8 >= amount + fee
+
+            if tx_type == "offline_reserve":
+                amount, fee = float(tx["amount"]), float(tx["fee"])
+                if int(tx["expires_at"]) <= int(eff_ts):
+                    return False
+                rid = tx.get("reservation_id") or derive_reservation_id(tx_id)
+                existing_res = self.get_onchain_reservations(include_pending=include_pending, at_timestamp=eff_ts)
+                if rid in existing_res:
+                    return False
+                available = self.get_balance(
+                    tx["from"], include_pending_outgoing=include_pending, at_timestamp=eff_ts
+                )
+                return available + 1e-8 >= amount + fee
+
+            if tx_type == "offline_spend":
+                rid = str(tx["reservation_id"])
+                amount, fee = float(tx["amount"]), float(tx["fee"])
+                v_nonce = int(tx["voucher_nonce"])
+                v_exp = int(tx["expires_at"])
+                res_map = self.get_onchain_reservations(include_pending=include_pending, at_timestamp=eff_ts)
+                rec = res_map.get(rid)
+                # Reservation MUST be confirmed on-chain before offline spends can settle against it
+                if rec is None or not rec.get("confirmed"):
+                    return False
+                if rec["owner"] != sender_norm:
+                    return False
+                if rec["released"]:
+                    return False
+                if eff_ts >= float(rec["expires_at"]) or eff_ts >= float(v_exp):
+                    return False
+                if v_nonce in rec["used_voucher_nonces"]:
+                    return False
+                return rec["remaining"] + 1e-8 >= round(amount + fee, 8)
+
+            if tx_type == "offline_release":
+                rid = str(tx["reservation_id"])
+                fee = float(tx["fee"])
+                res_map = self.get_onchain_reservations(include_pending=include_pending, at_timestamp=eff_ts)
+                rec = res_map.get(rid)
+                if rec is None or not rec.get("confirmed"):
+                    return False
+                if rec["owner"] != sender_norm:
+                    return False
+                if rec["released"]:
+                    return False
+                available = self.get_balance(
+                    tx["from"], include_pending_outgoing=include_pending, at_timestamp=eff_ts
+                )
+                return available + 1e-8 >= fee
+
+            return False
         except Exception:
             return False
 
@@ -299,7 +445,7 @@ class Blockchain:
             original_pending = list(self.pending_transactions)
             self.pending_transactions = []
             for tx in original_pending:
-                if self.verify_transaction(tx, include_pending=True):
+                if self.verify_transaction(tx, include_pending=True, block_timestamp=block_ts):
                     self.pending_transactions.append(tx)
                     accepted.append(tx)
                     fees = round(fees + float(tx["fee"]), 8)
@@ -371,7 +517,9 @@ class Blockchain:
                 seen_block_txids = set()
                 for tx in txs:
                     tid = tx.get("tx_id")
-                    if tid in seen_block_txids or not self.verify_transaction(tx, include_pending=True):
+                    if tid in seen_block_txids or not self.verify_transaction(
+                        tx, include_pending=True, block_timestamp=block.timestamp
+                    ):
                         self.pending_transactions = old_pending
                         return False
                     seen_block_txids.add(tid)
@@ -391,11 +539,29 @@ class Blockchain:
 
                 self.chain.append(block)
                 self.total_mined = round(self.total_mined + blk_reward, 8)
+                from core.transaction import NONCE_TX_TYPES
                 confirmed = {tx.get("tx_id") for tx in txs}
-                confirmed_nonces = {(tx.get("from"), tx.get("nonce")) for tx in txs}
+                confirmed_nonces = {
+                    (tx.get("from"), tx.get("nonce"))
+                    for tx in txs
+                    if tx.get("type", "transfer") in NONCE_TX_TYPES
+                }
+                confirmed_vouchers = {
+                    (tx.get("reservation_id"), tx.get("voucher_nonce"))
+                    for tx in txs
+                    if tx.get("type") == "offline_spend"
+                }
                 self.pending_transactions = [
                     tx for tx in old_pending
-                    if tx.get("tx_id") not in confirmed and (tx.get("from"), tx.get("nonce")) not in confirmed_nonces
+                    if tx.get("tx_id") not in confirmed
+                    and not (
+                        tx.get("type", "transfer") in NONCE_TX_TYPES
+                        and (tx.get("from"), tx.get("nonce")) in confirmed_nonces
+                    )
+                    and not (
+                        tx.get("type") == "offline_spend"
+                        and (tx.get("reservation_id"), tx.get("voucher_nonce")) in confirmed_vouchers
+                    )
                 ]
                 self._adjust_difficulty()
                 self.save()
@@ -431,13 +597,23 @@ class Blockchain:
 
     def add_transaction(self, tx: dict) -> bool:
         with self._lock:
+            from core.transaction import NONCE_TX_TYPES
+            from core.wallet import normalize_address
             if not isinstance(tx, dict):
                 return False
             tid = tx.get("tx_id")
-            sender_nonce = (tx.get("from"), tx.get("nonce"))
+            tx_type = tx.get("type", "transfer")
+            sender_norm = normalize_address(tx.get("from", ""))
             for p in self.pending_transactions:
-                if p.get("tx_id") == tid or (p.get("from"), p.get("nonce")) == sender_nonce:
+                if p.get("tx_id") == tid:
                     return False
+                p_type = p.get("type", "transfer")
+                if tx_type in NONCE_TX_TYPES and p_type in NONCE_TX_TYPES:
+                    if normalize_address(p.get("from", "")) == sender_norm and p.get("nonce") == tx.get("nonce"):
+                        return False
+                if tx_type == "offline_spend" and p_type == "offline_spend":
+                    if p.get("reservation_id") == tx.get("reservation_id") and p.get("voucher_nonce") == tx.get("voucher_nonce"):
+                        return False
             if not self.verify_transaction(tx, include_pending=True):
                 return False
             self.pending_transactions.append(dict(tx))
@@ -449,6 +625,7 @@ class Blockchain:
         asset: str = "UNIVA",
         include_pending_outgoing: bool = True,
         include_dex: bool = True,
+        at_timestamp: Optional[float] = None,
     ) -> float:
         if asset != "UNIVA":
             if self.dex_state is not None:
@@ -459,17 +636,37 @@ class Blockchain:
             return self.custom_balances.get((address, asset), 0.0)
         from core.wallet import normalize_address
         norm = normalize_address(address)
+        eff_ts = float(
+            at_timestamp
+            if at_timestamp is not None
+            else max(time.time(), self.last_block.timestamp if self.chain else 0.0)
+        )
         bal = 0.0
         for block in self.chain:
             for tx in block.transactions:
-                if normalize_address(tx.get("to", "")) == norm:
+                ttype = tx.get("type", "transfer")
+                if ttype in ("coinbase", "genesis", "transfer", "offline_spend") and normalize_address(tx.get("to", "")) == norm:
                     bal += float(tx.get("amount", 0.0))
-                if normalize_address(tx.get("from", "")) == norm and tx.get("type") == "transfer":
-                    bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
+                if normalize_address(tx.get("from", "")) == norm:
+                    if ttype in ("transfer", "offline_reserve"):
+                        bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
+                    elif ttype == "offline_release":
+                        bal -= float(tx.get("fee", 0.0))
+
+        # Automatic deterministic refund of unspent expired or released on-chain reservations
+        confirmed_res = self.get_onchain_reservations(include_pending=False, at_timestamp=eff_ts)
+        for rec in confirmed_res.values():
+            if rec["owner"] == norm and (rec["released"] or eff_ts >= float(rec["expires_at"])):
+                bal += rec["remaining"]
+
         if include_pending_outgoing:
             for tx in self.pending_transactions:
-                if normalize_address(tx.get("from", "")) == norm and tx.get("type", "transfer") == "transfer":
-                    bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
+                ttype = tx.get("type", "transfer")
+                if normalize_address(tx.get("from", "")) == norm:
+                    if ttype in ("transfer", "offline_reserve"):
+                        bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
+                    elif ttype == "offline_release":
+                        bal -= float(tx.get("fee", 0.0))
         if (
             include_dex
             and not getattr(self, "_validating_chain", False)
@@ -533,7 +730,9 @@ class Blockchain:
                 seen_block_txids = set()
                 for tx in cur.transactions[1:]:
                     tid = tx.get("tx_id")
-                    if tid in seen_block_txids or not self.verify_transaction(tx, include_pending=True):
+                    if tid in seen_block_txids or not self.verify_transaction(
+                        tx, include_pending=True, block_timestamp=cur.timestamp
+                    ):
                         return False, 0.0, INITIAL_DIFF
                     seen_block_txids.add(tid)
                     self.pending_transactions.append(tx)
@@ -582,10 +781,11 @@ class Blockchain:
                 new_tx_ids = {
                     tx.get("tx_id") for b in candidate for tx in b.transactions if tx.get("tx_id")
                 }
-                # Recover valid transfer transactions from orphaned tail blocks + old mempool
+                # Recover valid L1 transactions (transfer + offline_reserve/spend/release) from orphaned tail blocks + old mempool
+                from core.transaction import SUPPORTED_TX_TYPES
                 orphaned_transfers = [
                     tx for b in self.chain[1:] for tx in b.transactions
-                    if tx.get("type", "transfer") == "transfer" and tx.get("tx_id") not in new_tx_ids
+                    if tx.get("type", "transfer") in SUPPORTED_TX_TYPES and tx.get("tx_id") not in new_tx_ids
                 ]
                 carry_candidates = orphaned_transfers + [
                     tx for tx in self.pending_transactions if tx.get("tx_id") not in new_tx_ids

@@ -1418,10 +1418,10 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">Ethereum (ETH / EVM)</div>
-              <span class="badge badge-live">Tam EVM RPC Aktif</span>
+              <span class="badge badge-native">EVM Ayna + Okuma RPC</span>
             </div>
             <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
-              Tam JSON-RPC uyumu (Zincir ID: 210001). MetaMask, Trust Wallet ve OKX Wallet ile 0x ayna adresleri doğrudan çalışır.
+              0x secp256k1 ayna adresleri ve Chain ID: 210001 Web3 okuma/cüzdan JSON-RPC uyumu. (Solidity EVM sanal makinesi değil, yerel SHA-256 PoW L1'dir.)
             </p>
             <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-eth-h">Mainnet Blok: Yükleniyor...</div>
           </div>
@@ -1468,6 +1468,28 @@
               UNIVA ile aynı secp256k1 imza temelini paylaşır. Canlı TRON Mainnet blok yüksekliği gerçek zamanlı okunur.
             </p>
             <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-trx-h">Mainnet Blok: Yükleniyor...</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">XRP Ledger (XRP)</div>
+              <span class="badge badge-dev">Canlı Ledger Okuyucu</span>
+            </div>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+              XRP Ledger (XRPL) ana ağının kapalı defter indeksi (ledger_closed) çoklu RPC yedeklemesiyle canlı izlenir.
+            </p>
+            <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-xrp-h">XRPL Ledger: Yükleniyor...</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Litecoin (LTC)</div>
+              <span class="badge badge-native">UTXO + secp256k1 Okuyucu</span>
+            </div>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+              secp256k1 imza ailesi ve UTXO mimarisiyle uyumlu Litecoin ana ağı blok yüksekliği canlı olarak doğrulanır.
+            </p>
+            <div class="mono" style="font-size:0.78rem;color:var(--blue);" id="mc-ltc-h">LTC Blok: Yükleniyor...</div>
           </div>
         </div>
 
@@ -3974,7 +3996,9 @@ Block Explorer: https://univa-network-l1.vercel.app
         'mc-bnb-h': fmt(res.chains.bnb, 'BNB Blok'),
         'mc-sol-h': fmt(res.chains.sol, 'SOL Slot'),
         'mc-ton-h': fmt(res.chains.ton, 'TON Seqno'),
-        'mc-trx-h': fmt(res.chains.trx, 'TRON Blok')
+        'mc-trx-h': fmt(res.chains.trx, 'TRON Blok'),
+        'mc-xrp-h': fmt(res.chains.xrp, 'XRPL Ledger'),
+        'mc-ltc-h': fmt(res.chains.ltc, 'LTC Blok')
       };
       for (const [id, txt] of Object.entries(map)) {
         const el = document.getElementById(id);

@@ -177,10 +177,32 @@ class OfflinePayManager:
         with self._lock:
             self.expire_stale_reservations(ts)
             items = [
-                dict(r, remaining=round(max(0.0, float(r["amount"]) - float(r["spent"])), 8))
+                dict(r, consensus=False, remaining=round(max(0.0, float(r["amount"]) - float(r["spent"])), 8))
                 for r in self.reservations.values()
                 if r.get("owner") == norm
             ]
+            # Also include deterministic on-chain consensus reservations (P5-A)
+            onchain_active_reserved = 0.0
+            if hasattr(blockchain, "get_onchain_reservations"):
+                onchain_map = blockchain.get_onchain_reservations(include_pending=True, at_timestamp=ts)
+                for oc in onchain_map.values():
+                    if oc.get("owner") == norm:
+                        if oc.get("status") == "active":
+                            onchain_active_reserved += float(oc.get("remaining", 0.0))
+                        items.append({
+                            "reservation_id": oc["reservation_id"],
+                            "owner": oc["owner"],
+                            "amount": oc["amount"],
+                            "spent": oc["spent"],
+                            "remaining": oc["remaining"],
+                            "expires_at": oc["expires_at"],
+                            "status": oc["status"],
+                            "confirmed": oc["confirmed"],
+                            "block_index": oc["block_index"],
+                            "tx_id": oc["tx_id"],
+                            "consensus": True,
+                            "created_at": oc.get("expires_at", 0),
+                        })
             items.sort(key=lambda x: x.get("created_at", 0), reverse=True)
             active_reserved = self.get_active_reserved(address, now=ts)
             l1_bal = float(blockchain.get_balance(address, "UNIVA"))
@@ -188,6 +210,7 @@ class OfflinePayManager:
                 "address": address,
                 "l1_balance": l1_bal,
                 "active_reserved": active_reserved,
+                "onchain_active_reserved": round(onchain_active_reserved, 8),
                 "unreserved_spendable": round(max(0.0, l1_bal - active_reserved), 8),
                 "offline_nonce": self.get_user_nonce(address),
                 "reservations": items,
@@ -342,11 +365,26 @@ class OfflinePayManager:
             }
 
     def validate_voucher(self, voucher_or_token: Any, now: Optional[float] = None) -> dict:
-        """Pure cryptographic + expiry validation (safe to call without mutating state)."""
+        """Pure cryptographic + expiry validation (supports L1 transfer & consensus offline_spend)."""
         ts = float(now if now is not None else time.time())
         voucher = decode_voucher(voucher_or_token)
         tx = voucher["tx"]
-        required = ("from", "to", "amount", "fee", "nonce", "public_key", "signature", "tx_id")
+        tx_type = tx.get("type", "transfer")
+        if tx_type == "offline_spend":
+            required = (
+                "reservation_id",
+                "from",
+                "to",
+                "amount",
+                "fee",
+                "voucher_nonce",
+                "expires_at",
+                "public_key",
+                "signature",
+                "tx_id",
+            )
+        else:
+            required = ("from", "to", "amount", "fee", "nonce", "public_key", "signature", "tx_id")
         if any(k not in tx for k in required):
             raise OfflinePayError("Eksik islem alanlari", 400, "malformed_tx")
 
@@ -363,8 +401,8 @@ class OfflinePayManager:
             raise OfflinePayError("Kriptografik ECDSA islem imzasi gecersiz", 401, "invalid_signature")
 
         # V2 metadata signature integrity check (prevents stripping reservation_id or extending expires_at)
-        expires_at = int(voucher.get("expires_at") or 0)
-        reservation_id = voucher.get("reservation_id") or ""
+        expires_at = int(voucher.get("expires_at") or tx.get("expires_at") or 0)
+        reservation_id = voucher.get("reservation_id") or tx.get("reservation_id") or ""
         voucher_sig = voucher.get("voucher_sig") or ""
         if voucher_sig:
             meta_msg = canonical_voucher_meta_message(tx["tx_id"], reservation_id, expires_at)
@@ -412,8 +450,13 @@ class OfflinePayManager:
 
             # Reservation / double-spend guard
             backed_by_reservation = False
+            consensus_escrow = tx.get("type") == "offline_spend"
             rec = None
-            if res_id:
+            if consensus_escrow:
+                # On-chain consensus escrow: validated directly by blockchain.add_transaction(tx)
+                res_id = str(tx.get("reservation_id") or res_id)
+                backed_by_reservation = True
+            elif res_id:
                 rec = self.reservations.get(res_id)
                 if not rec:
                     raise OfflinePayError("Bagli rezervasyon bulunamadi", 404, "reservation_not_found")
@@ -453,12 +496,12 @@ class OfflinePayManager:
                         "reserved_funds_protected",
                     )
 
-            # Submit to L1 mempool (full consensus signature, nonce, balance & mempool conflict checks)
+            # Submit to L1 mempool (full consensus signature, nonce/voucher_nonce, escrow, balance & conflict checks)
             if not blockchain.add_transaction(tx):
                 raise OfflinePayError(
-                    "L1 mempool islemi reddetti (yetersiz bakiye, nonce uyusmazligi veya cift harcama)",
-                    400,
-                    "mempool_rejected",
+                    "L1 konsensüs/mempool islemi reddetti (yetersiz rezervasyon/bakiye, sure dolumu, nonce veya cift harcama)",
+                    409 if consensus_escrow else 400,
+                    "consensus_rejected" if consensus_escrow else "mempool_rejected",
                 )
 
             if rec is not None:
@@ -473,14 +516,16 @@ class OfflinePayManager:
 
             v_record = {
                 "tx_id": tx_id,
+                "type": tx.get("type", "transfer"),
                 "from": tx["from"],
                 "to": tx["to"],
                 "amount": float(tx["amount"]),
                 "fee": float(tx["fee"]),
-                "nonce": int(tx["nonce"]),
+                "nonce": int(tx["voucher_nonce"]) if consensus_escrow else int(tx["nonce"]),
                 "reservation_id": res_id,
                 "backed_by_reservation": backed_by_reservation,
-                "expires_at": int(voucher.get("expires_at") or 0),
+                "consensus_escrow": consensus_escrow,
+                "expires_at": int(voucher.get("expires_at") or tx.get("expires_at") or 0),
                 "transport": used_transport,
                 "status": "in_mempool",
                 "finalized": False,

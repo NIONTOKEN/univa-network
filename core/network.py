@@ -1323,12 +1323,50 @@ def offline_voucher_status(tx_id: str):
     return offline_mgr.get_voucher_status(blockchain, tx_id)
 
 
-# ─── INTEROPERABILITY & PROOFS ───────────────────────────────────────────────
+# ─── INTEROPERABILITY & PROOFS (P6) ──────────────────────────────────────────
+
+def _rpc_capabilities() -> dict:
+    return {
+        "network": "UNIVA-L1",
+        "consensus": "SHA-256 Proof-of-Work (BIP-113 MTP)",
+        "chain_id_dec": UNIVA_CHAIN_ID_DEC,
+        "chain_id_hex": UNIVA_CHAIN_ID_HEX,
+        "evm_compatibility": {
+            "mode": "mirror_address_and_read_rpc",
+            "evm_mirror_addresses": True,
+            "evm_read_rpc": True,
+            "evm_bytecode_vm": False,
+            "rlp_eip1559_execution": False,
+            "note": (
+                "UNIVA is an independent SHA-256 PoW Layer-1 with 0x secp256k1 mirror addresses "
+                "and standard Web3 read/wallet JSON-RPC methods (Chain ID 210001). Solidity bytecode "
+                "execution and raw Ethereum RLP transactions are NOT executed; native signed UNIVA "
+                "transactions are submitted via /tx, sendrawtransaction, or hex-encoded UNIVA JSON."
+            ),
+        },
+        "supported_eth_methods": [
+            "eth_chainId", "net_version", "web3_clientVersion", "eth_syncing",
+            "eth_accounts", "eth_blockNumber", "eth_getBalance", "eth_gasPrice",
+            "eth_maxPriorityFeePerGas", "eth_feeHistory", "eth_estimateGas",
+            "eth_call", "eth_getCode", "eth_getStorageAt", "eth_getTransactionCount",
+            "eth_getTransactionByHash", "eth_getTransactionReceipt",
+            "eth_getBlockByNumber", "eth_getBlockByHash", "eth_sendRawTransaction",
+        ],
+        "supported_bitcoin_methods": [
+            "getblockchaininfo", "getblockcount", "getbestblockhash", "getblockhash",
+            "getblock", "getbalance", "getnetworkinfo", "getmininginfo", "sendrawtransaction",
+        ],
+        "supported_univa_methods": ["univa_getCapabilities"],
+        "multichain_readers": ["BTC", "ETH", "BNB", "SOL", "TON", "TRX", "XRP", "LTC"],
+        "jsonrpc_batch_supported": True,
+    }
+
 
 @app.get("/api/v1/interop/chains")
 def interop_chains():
     overview = MultiChainReader.get_all_chains_overview()
-    return {"chains": overview, "univa_height": blockchain.height}
+    return {"chains": overview, "count": len(overview), "univa_height": blockchain.height}
+
 
 @app.get("/api/v1/interop/proof/{tx_id}")
 def interop_proof(tx_id: str):
@@ -1338,22 +1376,48 @@ def interop_proof(tx_id: str):
     return proof
 
 
+@app.post("/api/v1/interop/verify-proof")
+async def interop_verify_proof(request: Request):
+    data = await request.json()
+    return UniversalProofEngine.verify_proof_detailed(data)
+
+
+@app.get("/api/v1/rpc/capabilities")
+def rpc_capabilities_endpoint():
+    return _rpc_capabilities()
+
+
 # ─── BITCOIN CORE COMPATIBLE JSON-RPC 2.0 ────────────────────────────────────
 
 # ─── UNIVA HİBRİT EVM & BITCOIN JSON-RPC ADAPTÖRÜ ─────────────────────────────
-# MetaMask, Trust Wallet ve Web3 cüzdanları için standart EVM metodları (eth_...)
+# MetaMask, Trust Wallet ve Web3 cüzdanları için standart EVM okuma/cüzdan metodları
 # ve borsa/analiz için Bitcoin Core metodları (getblockchaininfo, ...) desteklenir.
 UNIVA_CHAIN_ID_DEC = 210001
 UNIVA_CHAIN_ID_HEX = hex(UNIVA_CHAIN_ID_DEC) # '0x33451'
 
+
+class _RpcError(Exception):
+    def __init__(self, code: int, message: str):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
 def _process_rpc_call(body: dict) -> dict:
+    from decimal import Decimal
+
     method = body.get("method", "")
     params = body.get("params") or []
     req_id = body.get("id", 1)
 
+    if not isinstance(method, str) or not method:
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32600, "message": "Invalid Request: missing method"}}
+
     try:
         # === 1. METAMASK / TRUST WALLET / EVM WEB3 METODLARI ===
-        if method == "eth_chainId":
+        if method == "univa_getCapabilities":
+            result = _rpc_capabilities()
+        elif method == "eth_chainId":
             result = UNIVA_CHAIN_ID_HEX
         elif method == "net_version":
             result = str(UNIVA_CHAIN_ID_DEC)
@@ -1366,11 +1430,12 @@ def _process_rpc_call(body: dict) -> dict:
         elif method == "eth_blockNumber":
             result = hex(blockchain.height)
         elif method == "eth_getBalance":
-            addr = str(params[0]) if params else "0x0"
+            if not params:
+                raise _RpcError(-32602, "eth_getBalance requires address parameter")
+            addr = str(params[0])
             bal = blockchain.get_balance(addr)
-            # 18 decimal Wei formatına çevir (1 UNIVA = 10^18 wei)
-            wei_val = int(bal * 10**18)
-            result = hex(wei_val)
+            wei_val = int((Decimal(str(bal)) * Decimal(10**18)).to_integral_value())
+            result = hex(max(0, wei_val))
         elif method in ("eth_gasPrice", "eth_maxPriorityFeePerGas"):
             result = "0x3b9aca00" # 1 Gwei
         elif method == "eth_feeHistory":
@@ -1397,19 +1462,21 @@ def _process_rpc_call(body: dict) -> dict:
             tx_h = str(params[0]).lower().replace("0x", "") if params else ""
             found_blk = None
             found_tx = None
+            found_tx_idx = 0
             for blk in reversed(blockchain.chain):
-                for t in blk.transactions:
+                for idx_t, t in enumerate(blk.transactions):
                     tid = str(t.get("tx_id") or "").lower().replace("0x", "")
                     if tid and tid == tx_h:
                         found_blk = blk
                         found_tx = t
+                        found_tx_idx = idx_t
                         break
                 if found_blk:
                     break
             if found_blk:
                 result = {
                     "transactionHash": "0x" + tx_h,
-                    "transactionIndex": "0x0",
+                    "transactionIndex": hex(found_tx_idx),
                     "blockHash": found_blk.hash if found_blk.hash.startswith("0x") else "0x" + found_blk.hash,
                     "blockNumber": hex(found_blk.index),
                     "from": str(found_tx.get("from", "0x0000000000000000000000000000000000000000")),
@@ -1429,12 +1496,14 @@ def _process_rpc_call(body: dict) -> dict:
             tx_h = str(params[0]).lower().replace("0x", "") if params else ""
             found_blk = None
             found_tx = None
+            found_tx_idx = 0
             for blk in reversed(blockchain.chain):
-                for t in blk.transactions:
+                for idx_t, t in enumerate(blk.transactions):
                     tid = str(t.get("tx_id") or "").lower().replace("0x", "")
                     if tid and tid == tx_h:
                         found_blk = blk
                         found_tx = t
+                        found_tx_idx = idx_t
                         break
                 if found_blk:
                     break
@@ -1444,10 +1513,10 @@ def _process_rpc_call(body: dict) -> dict:
                     "nonce": hex(int(found_tx.get("nonce", 0))),
                     "blockHash": found_blk.hash if found_blk.hash.startswith("0x") else "0x" + found_blk.hash,
                     "blockNumber": hex(found_blk.index),
-                    "transactionIndex": "0x0",
+                    "transactionIndex": hex(found_tx_idx),
                     "from": str(found_tx.get("from", "0x0000000000000000000000000000000000000000")),
                     "to": str(found_tx.get("to", "0x0000000000000000000000000000000000000000")),
-                    "value": hex(int(float(found_tx.get("amount", 0.0)) * 10**18)),
+                    "value": hex(int((Decimal(str(found_tx.get("amount", 0.0))) * Decimal(10**18)).to_integral_value())),
                     "gas": "0x5208",
                     "gasPrice": "0x3b9aca00",
                     "input": "0x",
@@ -1455,48 +1524,92 @@ def _process_rpc_call(body: dict) -> dict:
             else:
                 result = None
         elif method == "eth_getTransactionCount":
-            # Adresin onaylanmış nonce sayısını döndür
-            addr = str(params[0]) if params else ""
-            nonce = blockchain._account_nonce(addr)
+            if not params:
+                raise _RpcError(-32602, "eth_getTransactionCount requires address parameter")
+            addr = str(params[0])
+            block_tag = str(params[1]).lower() if len(params) > 1 else "latest"
+            nonce = blockchain._pending_nonce(addr) if block_tag == "pending" else blockchain._account_nonce(addr)
             result = hex(nonce)
         elif method in ("eth_getBlockByNumber", "eth_getBlockByHash"):
             tag = params[0] if params else "latest"
+            blk = None
             if method == "eth_getBlockByNumber":
-                idx = blockchain.height if tag in ("latest", "pending", "safe", "finalized") else (
-                    0 if tag == "earliest" else int(str(tag), 16)
-                )
-                idx = max(0, min(idx, blockchain.height))
-                blk = blockchain.chain[idx]
+                if tag in ("latest", "pending", "safe", "finalized"):
+                    blk = blockchain.last_block
+                elif tag == "earliest":
+                    blk = blockchain.chain[0]
+                else:
+                    idx = int(str(tag), 16) if str(tag).startswith("0x") else int(tag)
+                    if 0 <= idx <= blockchain.height:
+                        blk = blockchain.chain[idx]
             else:
                 target_h = str(tag).lower().replace("0x", "")
-                blk = next((b for b in blockchain.chain if b.hash.lower().replace("0x", "") == target_h), blockchain.last_block)
-            result = {
-                "number": hex(blk.index),
-                "hash": blk.hash if blk.hash.startswith("0x") else "0x" + blk.hash,
-                "parentHash": blk.previous_hash if blk.previous_hash.startswith("0x") else "0x" + blk.previous_hash,
-                "nonce": hex(blk.nonce)[2:].zfill(16),
-                "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                "logsBloom": "0x" + "0" * 512,
-                "transactionsRoot": "0x" + blk.merkle_root,
-                "stateRoot": "0x" + blk.merkle_root,
-                "receiptsRoot": "0x" + blk.merkle_root,
-                "miner": "0x" + hashlib.sha256(blk.miner_address.encode()).hexdigest()[:40],
-                "difficulty": hex(blk.difficulty),
-                "totalDifficulty": hex(blk.difficulty * (blk.index + 1)),
-                "extraData": "0x554e495641", # 'UNIVA'
-                "size": hex(1000),
-                "gasLimit": "0x1c9c380", # 30,000,000
-                "gasUsed": "0x5208",
-                "baseFeePerGas": "0x3b9aca00",
-                "timestamp": hex(int(blk.timestamp)),
-                "transactions": [tx.get("tx_id") for tx in blk.transactions if tx.get("tx_id")],
-                "uncles": []
-            }
+                blk = next((b for b in blockchain.chain if b.hash.lower().replace("0x", "") == target_h), None)
+            if blk is None:
+                result = None
+            else:
+                result = {
+                    "number": hex(blk.index),
+                    "hash": blk.hash if blk.hash.startswith("0x") else "0x" + blk.hash,
+                    "parentHash": blk.previous_hash if blk.previous_hash.startswith("0x") else "0x" + blk.previous_hash,
+                    "nonce": hex(blk.nonce)[2:].zfill(16),
+                    "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "logsBloom": "0x" + "0" * 512,
+                    "transactionsRoot": "0x" + blk.merkle_root,
+                    "stateRoot": "0x" + blk.merkle_root,
+                    "receiptsRoot": "0x" + blk.merkle_root,
+                    "miner": "0x" + hashlib.sha256(blk.miner_address.encode()).hexdigest()[:40],
+                    "difficulty": hex(blk.difficulty),
+                    "totalDifficulty": hex(blockchain.calculate_chain_work(blockchain.chain[: blk.index + 1])),
+                    "extraData": "0x554e495641", # 'UNIVA'
+                    "size": hex(len(json.dumps(blk.to_dict()).encode("utf-8"))),
+                    "gasLimit": "0x1c9c380", # 30,000,000
+                    "gasUsed": "0x5208",
+                    "baseFeePerGas": "0x3b9aca00",
+                    "timestamp": hex(int(blk.timestamp)),
+                    "transactions": [
+                        ("0x" + tx["tx_id"]) if not str(tx["tx_id"]).startswith("0x") else tx["tx_id"]
+                        for tx in blk.transactions if tx.get("tx_id")
+                    ],
+                    "uncles": [],
+                }
         elif method == "eth_sendRawTransaction":
-            # Ham işlem alındı bildirimi
-            raw_tx = params[0] if params else ""
-            tx_id = hashlib.sha256(raw_tx.encode()).hexdigest()
-            result = "0x" + tx_id
+            # P6 Honest Execution Guard: NEVER return a fake hash for unverified/unexecuted RLP bytes!
+            if not params:
+                raise _RpcError(-32602, "eth_sendRawTransaction requires raw transaction payload")
+            raw_tx = params[0]
+            parsed_tx = None
+            if isinstance(raw_tx, dict):
+                parsed_tx = raw_tx
+            elif isinstance(raw_tx, str):
+                cleaned = raw_tx.strip()
+                if cleaned.startswith("{"):
+                    try:
+                        parsed_tx = json.loads(cleaned)
+                    except Exception:
+                        parsed_tx = None
+                elif cleaned.startswith("0x") or cleaned.startswith("0X"):
+                    try:
+                        decoded_utf8 = bytes.fromhex(cleaned[2:]).decode("utf-8")
+                        if decoded_utf8.startswith("{"):
+                            parsed_tx = json.loads(decoded_utf8)
+                    except Exception:
+                        parsed_tx = None
+            if not isinstance(parsed_tx, dict):
+                raise _RpcError(
+                    -32000,
+                    "UNIVA is a native SHA-256 PoW Layer-1 (not an EVM RLP execution VM). "
+                    "Submit a secp256k1-signed UNIVA transaction JSON (or hex-encoded UNIVA JSON) via /tx or sendrawtransaction.",
+                )
+            if not blockchain.add_transaction(parsed_tx):
+                raise _RpcError(-32000, "UNIVA L1 mempool rejected transaction (invalid signature, nonce, or balance)")
+            try:
+                from core.p2p import publish_tx_from_thread
+                publish_tx_from_thread(parsed_tx)
+            except Exception:
+                pass
+            tid = str(parsed_tx.get("tx_id") or "")
+            result = tid if tid.startswith("0x") else ("0x" + tid)
 
         # === 2. BITCOIN CORE & NATIVE RPC METODLARI ===
         elif method == "getblockchaininfo":
@@ -1508,33 +1621,59 @@ def _process_rpc_call(body: dict) -> dict:
                 "difficulty": blockchain.difficulty,
                 "mediantime": int(blockchain.get_median_time_past(11)),
                 "verificationprogress": 1.0,
-                "chainwork": hex(blockchain.height),
+                "chainwork": hex(blockchain.calculate_chain_work(blockchain.chain)),
             }
         elif method == "getblockcount":
             result = blockchain.height
         elif method == "getbestblockhash":
             result = blockchain.last_block.hash
         elif method == "getblockhash":
+            if not params:
+                raise _RpcError(-32602, "getblockhash requires block height")
             h = int(params[0])
+            if not (0 <= h <= blockchain.height):
+                raise _RpcError(-32602, f"Block height out of range: {h}")
             result = blockchain.chain[h].hash
         elif method == "getblock":
-            h = int(params[0])
-            result = blockchain.chain[h].to_dict()
+            if not params:
+                raise _RpcError(-32602, "getblock requires block height or hash")
+            if isinstance(params[0], int) or str(params[0]).isdigit():
+                h = int(params[0])
+                if not (0 <= h <= blockchain.height):
+                    raise _RpcError(-32602, f"Block height out of range: {h}")
+                result = blockchain.chain[h].to_dict()
+            else:
+                target_h = str(params[0]).lower().replace("0x", "")
+                blk = next((b for b in blockchain.chain if b.hash.lower().replace("0x", "") == target_h), None)
+                if blk is None:
+                    raise _RpcError(-32602, "Block not found")
+                result = blk.to_dict()
         elif method == "getbalance":
+            if not params:
+                raise _RpcError(-32602, "getbalance requires address")
             result = blockchain.get_balance(str(params[0]))
         elif method == "getnetworkinfo":
-            result = {"network": "UNIVA-L1", "version": "4.0.0", "connections": 1}
+            result = {"network": "UNIVA-L1", "version": "4.0.0", "connections": max(1, blockchain.peer_count)}
         elif method == "getmininginfo":
             result = blockchain.stats()
         elif method == "sendrawtransaction":
+            if not params or not isinstance(params[0], dict):
+                raise _RpcError(-32602, "sendrawtransaction requires signed UNIVA tx object")
             tx = params[0]
             if not blockchain.add_transaction(tx):
-                raise ValueError("Transaction rejected")
+                raise _RpcError(-32000, "Transaction rejected by L1 consensus")
+            try:
+                from core.p2p import publish_tx_from_thread
+                publish_tx_from_thread(tx)
+            except Exception:
+                pass
             result = tx.get("tx_id")
         else:
-            raise ValueError(f"Unknown RPC method: {method}")
+            raise _RpcError(-32601, f"Method not found: {method}")
 
         return {"jsonrpc": "2.0", "id": req_id, "result": result}
+    except _RpcError as re_err:
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": re_err.code, "message": re_err.message}}
     except Exception as exc:
         return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": str(exc)}}
 
@@ -1726,84 +1865,20 @@ async def mystery_solve(request: Request):
     return {"status": "ok", "message": "Tebrikler! Gizem cozuldu ve 50.0 UNIVA odulunuz gonderildi!", **record}
 
 
-# ─── MULTICHAIN LIVE STATE READER (BTC, ETH, BNB, SOL, TRON, TON) ───────────
-
-_MULTICHAIN_CACHE = {"ts": 0.0, "data": None}
-
-def _fetch_json_post(url: str, payload: dict, timeout: float = 3.0):
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "UNIVA-L1-Reader/4.0"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
-
-def _fetch_text_get(url: str, timeout: float = 3.0):
-    req = urllib.request.Request(url, headers={"User-Agent": "UNIVA-L1-Reader/4.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read().decode("utf-8")
+# ─── MULTICHAIN LIVE STATE READER (BTC, ETH, BNB, SOL, TON, TRON, XRP, LTC) ──
 
 @app.get("/api/v1/multichain/status")
-def multichain_live_status():
-    import concurrent.futures
+def multichain_live_status(refresh: bool = False):
     now = time.time()
-    if _MULTICHAIN_CACHE["data"] and (now - _MULTICHAIN_CACHE["ts"] < 45):
-        return _MULTICHAIN_CACHE["data"]
-
-    def get_btc():
-        h = int(_fetch_text_get("https://mempool.space/api/blocks/tip/height").strip())
-        return {"height": h, "online": True}
-
-    def get_eth():
-        r = _fetch_json_post("https://ethereum-rpc.publicnode.com", {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
-        return {"height": int(r["result"], 16), "online": True}
-
-    def get_bnb():
-        r = _fetch_json_post("https://bsc-dataseed.binance.org", {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
-        return {"height": int(r["result"], 16), "online": True}
-
-    def get_sol():
-        r = _fetch_json_post("https://api.mainnet-beta.solana.com", {"jsonrpc": "2.0", "id": 1, "method": "getSlot", "params": []})
-        return {"height": int(r["result"]), "online": True}
-
-    def get_trx():
-        r = _fetch_json_post("https://api.trongrid.io/wallet/getnowblock", {})
-        h = int(r["block_header"]["raw_data"]["number"])
-        return {"height": h, "online": True}
-
-    def get_ton():
-        r = json.loads(_fetch_text_get("https://toncenter.com/api/v2/getMasterchainInfo"))
-        h = int(r["result"]["last"]["seqno"])
-        return {"height": h, "online": True}
-
-    tasks = {"btc": get_btc, "eth": get_eth, "bnb": get_bnb, "sol": get_sol, "trx": get_trx, "ton": get_ton}
-    results = {}
-    ex = concurrent.futures.ThreadPoolExecutor(max_workers=6)
-    futs = {k: ex.submit(fn) for k, fn in tasks.items()}
-    concurrent.futures.wait(futs.values(), timeout=3.5)
-    for k, fut in futs.items():
-        if fut.done():
-            try:
-                results[k] = fut.result(timeout=0)
-            except Exception:
-                results[k] = {"height": None, "online": False}
-        else:
-            fut.cancel()
-            results[k] = {"height": None, "online": False}
-    ex.shutdown(wait=False, cancel_futures=True)
-
-    payload = {
+    results = MultiChainReader.get_all_chains_map(use_cache=not refresh, timeout=5.0)
+    return {
         "status": "ok",
         "univa_height": blockchain.height,
-        "univa_chain_id": 210001,
+        "univa_chain_id": UNIVA_CHAIN_ID_DEC,
         "chains": results,
+        "count": len(results),
         "updated_at": int(now),
     }
-    _MULTICHAIN_CACHE["ts"] = now
-    _MULTICHAIN_CACHE["data"] = payload
-    return payload
 
 
 @app.post("/rpc")
@@ -1815,7 +1890,13 @@ async def rpc(request: Request):
         return {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"Parse error: {exc}"}}
 
     if isinstance(body, list):
-        return [_process_rpc_call(item) for item in body if isinstance(item, dict)]
+        if len(body) == 0:
+            return {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "Invalid Request: empty batch"}}
+        return [
+            _process_rpc_call(item) if isinstance(item, dict)
+            else {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "Invalid Request"}}
+            for item in body
+        ]
     if isinstance(body, dict):
         return _process_rpc_call(body)
     return {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "Invalid Request"}}

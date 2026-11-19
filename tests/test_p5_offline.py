@@ -298,10 +298,111 @@ console.log('NODE_BLE_MOBILE_OK');
     print("[PASS] 5. BLE MTU=20/180 framing, out-of-order reassembly, CRC-8 guard, Android/iOS Capacitor bridge & JS syntax")
 
 
+def test_6_onchain_consensus_offline_escrow_nonce_isolation_expiry_and_reorg():
+    from core.blockchain import INITIAL_DIFF
+    from core.transaction import (
+        build_offline_reserve_tx,
+        build_offline_spend_tx,
+        build_offline_release_tx,
+    )
+
+    orig_bc, orig_mgr = net.blockchain, net.offline_mgr
+    net._RATE_BUCKETS.clear()
+    with tempfile.TemporaryDirectory() as td:
+        bc = Blockchain(auto_load_path=None)
+        bc.difficulty = INITIAL_DIFF
+        mgr = OfflinePayManager(state_path=os.path.join(td, "offline_consensus.json"))
+        alice, bob, charlie, miner = UnivaWallet(), UnivaWallet(), UnivaWallet(), UnivaWallet()
+
+        # Block 1: Alice mines 100.0 UNIVA
+        b1 = bc.mine_pending_transactions(alice.address)
+        assert b1 is not None and bc.get_balance(alice.address) == 100.0
+
+        net.blockchain, net.offline_mgr = bc, mgr
+        client = TestClient(net.app)
+        try:
+            now = int(time.time())
+            exp = now + 3600
+
+            # Block 2: On-chain offline_reserve (40 UNIVA + 0.001 fee)
+            tx_res = build_offline_reserve_tx(alice, amount=40.0, expires_at=exp, fee=0.001, blockchain=bc)
+            r_res = client.post("/tx", json={"tx": tx_res})
+            assert r_res.status_code == 200, r_res.text
+            res_id = tx_res["reservation_id"]
+            b2 = bc.mine_pending_transactions(miner.address)
+            assert b2 is not None
+            assert abs(bc.get_balance(alice.address) - 59.999) < 1e-8
+            assert bc._account_nonce(alice.address) == 1
+
+            # Create an unbroadcast voucher #0 + real voucher #1 (15 UNIVA + 0.001 fee)
+            tx_unbroadcast = build_offline_spend_tx(alice, res_id, bob.address, 5.0, voucher_nonce=0, expires_at=exp, fee=0.001)
+            tx_spend_bob = build_offline_spend_tx(alice, res_id, bob.address, 15.0, voucher_nonce=1, expires_at=exp, fee=0.001)
+
+            # Submit voucher #1 via /api/v1/offline/submit
+            r_sp = client.post("/api/v1/offline/submit", json={"voucher": {"version": 2, "tx": tx_spend_bob, "expires_at": exp, "reservation_id": res_id, "transport": "ble"}})
+            assert r_sp.status_code == 200, r_sp.text
+            assert r_sp.json()["finalized"] is False and r_sp.json()["status"] == "in_mempool"
+
+            # Prove normal transfer works without being blocked by unbroadcast voucher #0 or voucher #1!
+            tx_norm = bc.create_transaction(alice, charlie.address, 10.0, fee=0.001)
+            assert tx_norm["nonce"] == 1
+            assert client.post("/tx", json={"tx": tx_norm}).status_code == 200
+
+            # Consensus double-spend rejection: over-budget (30 > remaining 24.999) & duplicate voucher_nonce=1
+            tx_over = build_offline_spend_tx(alice, res_id, charlie.address, 30.0, voucher_nonce=2, expires_at=exp, fee=0.001)
+            assert bc.add_transaction(tx_over) is False
+            tx_dup_vn = build_offline_spend_tx(alice, res_id, charlie.address, 1.0, voucher_nonce=1, expires_at=exp, fee=0.001)
+            assert bc.add_transaction(tx_dup_vn) is False
+
+            # Block 3: Mine offline_spend + normal transfer
+            b3 = bc.mine_pending_transactions(miner.address)
+            assert b3 is not None
+            assert abs(bc.get_balance(bob.address) - 15.0) < 1e-8
+            assert abs(bc.get_balance(charlie.address) - 10.0) < 1e-8
+            assert abs(bc.get_balance(alice.address) - 49.998) < 1e-8  # 59.999 - 10.001
+
+            # Block 4: Early on-chain offline_release refunds unspent 24.999 UNIVA back to Alice
+            tx_rel = build_offline_release_tx(alice, res_id, fee=0.001, blockchain=bc)
+            assert tx_rel["nonce"] == 2
+            assert client.post("/tx", json={"tx": tx_rel}).status_code == 200
+            b4 = bc.mine_pending_transactions(miner.address)
+            assert b4 is not None
+            # 49.998 + 24.999 - 0.001 = 74.996
+            assert abs(bc.get_balance(alice.address) - 74.996) < 1e-8
+
+            # After release, previously unbroadcast voucher #0 is rejected by consensus!
+            assert bc.add_transaction(tx_unbroadcast) is False
+
+            # Block 5: Short-TTL reservation expires automatically without needing release tx
+            short_exp = int(b4.timestamp) + 2
+            tx_res2 = build_offline_reserve_tx(alice, amount=20.0, expires_at=short_exp, fee=0.001, blockchain=bc)
+            assert bc.add_transaction(tx_res2) is True
+            b5 = bc.mine_pending_transactions(miner.address)
+            assert b5 is not None
+            # At timestamp >= short_exp, unspent 20.0 automatically returns to Alice's spendable balance
+            bal_after_expiry = bc.get_balance(alice.address, at_timestamp=short_exp + 5)
+            assert abs(bal_after_expiry - 74.995) < 1e-8
+            # And an offline_spend attempted after expiry is rejected by consensus
+            tx_late = build_offline_spend_tx(alice, tx_res2["reservation_id"], bob.address, 5.0, voucher_nonce=0, expires_at=short_exp + 100, fee=0.001)
+            assert bc.verify_transaction(tx_late, block_timestamp=short_exp + 5) is False
+
+            # Full chain validation & independent peer node reorg verification
+            assert bc.is_chain_valid() is True
+            peer_bc = Blockchain(auto_load_path=None)
+            assert peer_bc.replace_chain(bc.chain, save_path=os.path.join(td, "peer_chain.json")) is True
+            assert peer_bc.height == bc.height
+            assert abs(peer_bc.get_balance(bob.address) - 15.0) < 1e-8
+            assert abs(peer_bc.get_balance(alice.address, at_timestamp=short_exp + 5) - 74.995) < 1e-8
+        finally:
+            net.blockchain, net.offline_mgr = orig_bc, orig_mgr
+    print("[PASS] 6. On-chain consensus offline_reserve/spend/release, nonce isolation, auto-expiry & peer reorg verified")
+
+
 if __name__ == "__main__":
     test_1_voucher_v2_v1_signing_expiry_and_tamper_guards()
     test_2_signed_reservation_lock_online_guard_and_release()
     test_3_offline_double_spend_budget_and_replay_protection()
     test_4_honest_settlement_lifecycle_and_state_persistence()
     test_5_mobile_bridge_ble_framing_and_pwa_js_validation()
-    print("\nALL P5 OFFLINE PAY & MOBILE BRIDGE TESTS PASSED (5/5)!")
+    test_6_onchain_consensus_offline_escrow_nonce_isolation_expiry_and_reorg()
+    print("\nALL P5 OFFLINE PAY & CONSENSUS ESCROW TESTS PASSED (6/6)!")
