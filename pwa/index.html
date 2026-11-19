@@ -1299,16 +1299,16 @@
             <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Native DEX (AMM)</h2>
             <p style="font-size:0.85rem;color:var(--text-muted);">In-protocol automated market maker state transition engine (x · y = k).</p>
           </div>
-          <span class="badge badge-live">Signed On-Chain AMM Active</span>
+          <span class="badge badge-dev">Signed Node-Local AMM (Consensus Pending)</span>
         </div>
 
-        <div class="card" style="border-color:var(--blue);margin-bottom:24px;">
+        <div class="card" style="border-color:var(--warning);margin-bottom:24px;">
           <div style="display:flex;gap:14px;align-items:flex-start;">
-            <div style="font-size:1.4rem;">⚡</div>
+            <div style="font-size:1.4rem;">⚠️</div>
             <div>
-              <div style="font-weight:700;color:var(--blue);font-size:0.95rem;">L1-Bound ECDSA Signed AMM (Zero Simulation)</div>
+              <div style="font-weight:700;color:var(--warning);font-size:0.95rem;">Protocol Realism Disclosure — Node-Local DEX State</div>
               <p style="font-size:0.85rem;color:var(--text-muted);margin-top:4px;line-height:1.5;">
-                Swaps run directly on the integer base-unit <span class="mono">core/dex.py</span> AMM bound to real spendable L1 UNIVA balances. Every swap requires client-side secp256k1 ECDSA signing with replay-protected nonces and commits to a persisted SHA-256 <span class="mono">state_root</span>.
+                Swaps execute on the integer base-unit <span class="mono">core/dex.py</span> AMM and require client-side secp256k1 ECDSA signatures with replay-protected nonces. DEX state (pool reserves, LP shares, uUSD, UNIVA adjustments) is persisted on this node with a SHA-256 <span class="mono">state_root</span>, but is <strong>NOT yet recorded inside L1 blocks</strong> and is not replicated by other nodes. uUSD is an internal protocol test asset with no external backing. Do not treat DEX results as final on-chain settlement.
               </p>
             </div>
           </div>
@@ -1350,7 +1350,7 @@
               </select>
             </div>
             <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="executeDexSwap()">
-              Swap Tokens (On-Chain Signed AMM)
+              Swap Tokens (Signed Node-Local AMM)
             </button>
             <div id="dex-swap-feedback" style="margin-top:10px;font-size:0.82rem;"></div>
           </div>
@@ -4790,11 +4790,12 @@ Block Explorer: https://univa-network-l1.vercel.app
       'Protocol Swap Fee': 'Protokol Takas Ücreti',
       'Minimum Locked Liquidity': 'Minimum Kilitli Likidite',
       'Token Swap': 'Token Takası',
-      'Swap Tokens (On-Chain Signed AMM)': 'Token Takas Et (İmzalı Zincir AMM)',
+      'Swap Tokens (Signed Node-Local AMM)': 'Token Takas Et (İmzalı Düğüm-İçi AMM)',
       'Pay': 'Öde',
       'Receive (Estimated)': 'Alınacak (Tahmini)',
       'Fee: 0.10% (10 bps)': 'Ücret: %0.10 (10 bps)',
-      'Signed On-Chain AMM Active': 'İmzalı Zincir AMM Aktif',
+      'Signed Node-Local AMM (Consensus Pending)': 'İmzalı Düğüm-İçi AMM (Konsensüs Entegrasyonu Bekliyor)',
+      'Protocol Realism Disclosure — Node-Local DEX State': 'Protokol Gerçekçilik Bildirimi — Düğüm-İçi DEX Durumu',
       'Protocol Realism Disclosure': 'Protokol Gerçekçilik Bildirimi',
       'In accordance with UNIVA Mainnet Integrity Rules, financial swaps will not simulate fake execution. The underlying': 'UNIVA Ana Ağ Bütünlük Kuralları gereği, finansal takaslar sahte işlem simüle etmez. Alttaki',
       'AMM integer base-unit engine is operational locally and is currently being bound to on-chain state transition blocks. Verified liquidity pairs are shown below.': 'AMM tam sayı tabanlı motor yerel olarak çalışmaktadır ve şu anda zincir içi durum geçiş bloklarına bağlanmaktadır. Doğrulanmış likidite çiftleri aşağıda gösterilmiştir.',
