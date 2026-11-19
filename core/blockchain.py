@@ -149,6 +149,7 @@ class Blockchain:
         self.peer_count           = 0
         self.custom_balances      = {} # Token/Asset balances
         self.dex_state            = None # Injected by DEX engine
+        self._validating_chain    = False
 
         # Guvenli Baslatma: Eger diskte zincir varsa ASLA SIFIRLAMA, dogrudan yukle!
         if auto_load_path and os.path.exists(auto_load_path):
@@ -442,8 +443,19 @@ class Blockchain:
             self.pending_transactions.append(dict(tx))
             return True
 
-    def get_balance(self, address: str, asset: str = "UNIVA", include_pending_outgoing: bool = True) -> float:
+    def get_balance(
+        self,
+        address: str,
+        asset: str = "UNIVA",
+        include_pending_outgoing: bool = True,
+        include_dex: bool = True,
+    ) -> float:
         if asset != "UNIVA":
+            if self.dex_state is not None:
+                try:
+                    return round(self.dex_state.get_balance(address, asset) / 100_000_000, 8)
+                except Exception:
+                    pass
             return self.custom_balances.get((address, asset), 0.0)
         from core.wallet import normalize_address
         norm = normalize_address(address)
@@ -458,7 +470,14 @@ class Blockchain:
             for tx in self.pending_transactions:
                 if normalize_address(tx.get("from", "")) == norm and tx.get("type", "transfer") == "transfer":
                     bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
-        return round(bal, 8)
+        if (
+            include_dex
+            and not getattr(self, "_validating_chain", False)
+            and self.dex_state is not None
+            and hasattr(self.dex_state, "get_univa_net_delta_float")
+        ):
+            bal += self.dex_state.get_univa_net_delta_float(norm)
+        return round(max(0.0, bal), 8)
 
     @staticmethod
     def calculate_chain_work(chain_slice: List[Block]) -> int:
@@ -470,7 +489,10 @@ class Blockchain:
         original_chain = self.chain
         original_total = self.total_mined
         original_pending = self.pending_transactions
+        prev_validating = getattr(self, "_validating_chain", False)
+        self._validating_chain = True
         if not candidate_chain or candidate_chain[0].index != 0:
+            self._validating_chain = prev_validating
             return False, 0.0, INITIAL_DIFF
         total_subsidy = 0.0
         expected_difficulty = INITIAL_DIFF
@@ -531,6 +553,7 @@ class Blockchain:
         except Exception:
             return False, 0.0, INITIAL_DIFF
         finally:
+            self._validating_chain = prev_validating
             self.chain = original_chain
             self.total_mined = original_total
             self.pending_transactions = original_pending

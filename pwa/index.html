@@ -1299,16 +1299,16 @@
             <h2 style="font-size:1.6rem;font-weight:800;">UNIVA Native DEX (AMM)</h2>
             <p style="font-size:0.85rem;color:var(--text-muted);">In-protocol automated market maker state transition engine (x · y = k).</p>
           </div>
-          <span class="badge badge-dev">State Transition Engine in Development</span>
+          <span class="badge badge-live">Signed On-Chain AMM Active</span>
         </div>
 
-        <div class="card" style="border-color:var(--warning);margin-bottom:24px;">
+        <div class="card" style="border-color:var(--blue);margin-bottom:24px;">
           <div style="display:flex;gap:14px;align-items:flex-start;">
-            <div style="font-size:1.5rem;">⚠️</div>
+            <div style="font-size:1.4rem;">⚡</div>
             <div>
-              <div style="font-weight:700;color:var(--warning);font-size:0.95rem;">Protocol Realism Disclosure</div>
+              <div style="font-weight:700;color:var(--blue);font-size:0.95rem;">L1-Bound ECDSA Signed AMM (Zero Simulation)</div>
               <p style="font-size:0.85rem;color:var(--text-muted);margin-top:4px;line-height:1.5;">
-                In accordance with UNIVA Mainnet Integrity Rules, financial swaps will not simulate fake execution. The underlying <span class="mono">core/dex.py</span> AMM integer base-unit engine is operational locally and is currently being bound to on-chain state transition blocks. Verified liquidity pairs are shown below.
+                Swaps run directly on the integer base-unit <span class="mono">core/dex.py</span> AMM bound to real spendable L1 UNIVA balances. Every swap requires client-side secp256k1 ECDSA signing with replay-protected nonces and commits to a persisted SHA-256 <span class="mono">state_root</span>.
               </p>
             </div>
           </div>
@@ -1322,22 +1322,37 @@
               <span class="badge badge-native">Fee: 0.10% (10 bps)</span>
             </div>
             <div class="form-group">
-              <label class="form-label">Pay</label>
+              <label class="form-label" style="display:flex;justify-content:space-between;">
+                <span>Pay</span>
+                <span class="mono" id="dex-user-bal" style="font-size:0.75rem;color:var(--text-muted);">Cüzdan bekleniyor</span>
+              </label>
               <div style="display:flex;gap:10px;">
-                <input class="form-input mono" type="number" id="dex-pay-amt" placeholder="0.0" value="10.0">
-                <input class="form-input" value="UNIVA" readonly style="width:110px;text-align:center;font-weight:700;">
+                <input class="form-input mono" type="number" step="0.0001" min="0" id="dex-pay-amt" placeholder="0.0" value="10" oninput="refreshDexQuote()">
+                <input class="form-input" id="dex-pay-asset" value="UNIVA" readonly style="width:110px;text-align:center;font-weight:700;">
               </div>
+            </div>
+            <div style="display:flex;justify-content:center;margin:4px 0 10px;">
+              <button type="button" class="btn btn-metallic btn-sm" onclick="flipDexPair()">⇅ Yönü Çevir (UNIVA ⇄ uUSD)</button>
             </div>
             <div class="form-group">
               <label class="form-label">Receive (Estimated)</label>
               <div style="display:flex;gap:10px;">
-                <input class="form-input mono" type="number" id="dex-recv-amt" placeholder="0.0" value="50.0" readonly>
-                <input class="form-input" value="uUSD" readonly style="width:110px;text-align:center;font-weight:700;">
+                <input class="form-input mono" type="number" id="dex-recv-amt" placeholder="0.0" value="" readonly>
+                <input class="form-input" id="dex-recv-asset" value="uUSD" readonly style="width:110px;text-align:center;font-weight:700;">
               </div>
             </div>
-            <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="triggerDexNotice()">
-              Swap Tokens (Protocol Simulation Mode)
+            <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+              <label class="form-label" style="margin:0;">Maks. Slippage Toleransı</label>
+              <select class="form-input mono" id="dex-slippage-bps" style="width:140px;padding:6px 10px;">
+                <option value="50">0.50% (50 bps)</option>
+                <option value="100" selected>1.00% (100 bps)</option>
+                <option value="300">3.00% (300 bps)</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="executeDexSwap()">
+              Swap Tokens (On-Chain Signed AMM)
             </button>
+            <div id="dex-swap-feedback" style="margin-top:10px;font-size:0.82rem;"></div>
           </div>
 
           <!-- POOL STATISTICS -->
@@ -1349,23 +1364,27 @@
             <div style="display:flex;flex-direction:column;gap:12px;font-size:0.85rem;">
               <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Pool Reserve A</span>
-                <span class="mono">50,000.00000000 UNIVA</span>
+                <span class="mono" id="dex-res-a">50,000.00000000 UNIVA</span>
               </div>
               <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Pool Reserve B</span>
-                <span class="mono">250,000.00000000 uUSD</span>
+                <span class="mono" id="dex-res-b">250,000.00000000 uUSD</span>
               </div>
               <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Spot Price Ratio</span>
-                <span class="mono" style="color:var(--success);">1 UNIVA = 5.00 uUSD</span>
+                <span class="mono" id="dex-spot-price" style="color:var(--success);">1 UNIVA = 5.00 uUSD</span>
               </div>
               <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Minimum Locked Liquidity</span>
                 <span class="mono">1,000 Base Units</span>
               </div>
-              <div style="display:flex;justify-content:space-between;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Protocol Swap Fee</span>
                 <span class="mono">10 bps (0.10%)</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--text-muted);">AMM State Root</span>
+                <span class="mono" id="dex-state-root" style="font-size:0.75rem;">—</span>
               </div>
             </div>
           </div>
@@ -1965,6 +1984,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (typeof window.setHeroSceneView === 'function') window.setHeroSceneView(viewId);
 
       if (viewId === 'multichain') fetchMultichainStatus();
+      if (viewId === 'dex') refreshDexState();
       if (viewId === 'dashboard' || viewId === 'explorer' || viewId === 'network') {
         fetchLiveStats();
       }
@@ -3694,8 +3714,129 @@ Block Explorer: https://univa-network-l1.vercel.app
       }
     }
 
+    function flipDexPair() {
+      const payEl = document.getElementById('dex-pay-asset');
+      const recvEl = document.getElementById('dex-recv-asset');
+      if (!payEl || !recvEl) return;
+      const tmp = payEl.value;
+      payEl.value = recvEl.value;
+      recvEl.value = tmp;
+      refreshDexQuote();
+      refreshDexBalances();
+    }
+
+    async function refreshDexQuote() {
+      const amtEl = document.getElementById('dex-pay-amt');
+      const recvAmtEl = document.getElementById('dex-recv-amt');
+      const payAsset = (document.getElementById('dex-pay-asset')?.value || 'UNIVA').trim();
+      const recvAsset = (document.getElementById('dex-recv-asset')?.value || 'uUSD').trim();
+      const amt = parseFloat(amtEl?.value || '0');
+      if (!recvAmtEl) return null;
+      if (!amt || amt <= 0) {
+        recvAmtEl.value = '';
+        return null;
+      }
+      const q = await apiCall('/api/v1/dex/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asset_in: payAsset, asset_out: recvAsset, amount_in: amt })
+      });
+      if (q && typeof q.amount_out === 'number') {
+        recvAmtEl.value = q.amount_out.toFixed(6);
+      }
+      return q;
+    }
+
+    async function refreshDexBalances() {
+      const balEl = document.getElementById('dex-user-bal');
+      if (!balEl) return null;
+      if (!walletAddr) {
+        balEl.textContent = 'Cüzdan bağlı değil';
+        return null;
+      }
+      const res = await apiCall('/api/v1/dex/balances/' + encodeURIComponent(walletAddr));
+      if (res) {
+        balEl.textContent = `Bakiye: ${Number(res.UNIVA || 0).toFixed(4)} UNIVA · ${Number(res.uUSD || 0).toFixed(4)} uUSD`;
+      }
+      return res;
+    }
+
+    async function refreshDexState() {
+      const poolsRes = await apiCall('/api/v1/dex/pools');
+      if (poolsRes && Array.isArray(poolsRes.pools) && poolsRes.pools.length > 0) {
+        const p = poolsRes.pools[0];
+        const ra = document.getElementById('dex-res-a');
+        const rb = document.getElementById('dex-res-b');
+        const sp = document.getElementById('dex-spot-price');
+        const sr = document.getElementById('dex-state-root');
+        if (ra) ra.textContent = `${Number(p.reserve_a_float || 0).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 8 })} ${p.asset_a}`;
+        if (rb) rb.textContent = `${Number(p.reserve_b_float || 0).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 8 })} ${p.asset_b}`;
+        if (sp) sp.textContent = `1 ${p.asset_a} = ${Number(p.spot_price_a_in_b || 0).toFixed(6)} ${p.asset_b}`;
+        if (sr && poolsRes.state_root) sr.textContent = poolsRes.state_root.slice(0, 18) + '...';
+      }
+      await refreshDexBalances();
+      await refreshDexQuote();
+    }
+
+    async function executeDexSwap() {
+      const fb = document.getElementById('dex-swap-feedback');
+      if (!walletAddr || !walletPrivKey) {
+        if (fb) fb.innerHTML = '<span style="color:var(--error);">Önce Cüzdan Kasası bölümünden cüzdanınızı açın.</span>';
+        showToast('Önce cüzdanınızı açın');
+        return;
+      }
+      const amtIn = parseFloat(document.getElementById('dex-pay-amt')?.value || '0');
+      const assetIn = (document.getElementById('dex-pay-asset')?.value || 'UNIVA').trim();
+      const assetOut = (document.getElementById('dex-recv-asset')?.value || 'uUSD').trim();
+      const slipBps = parseInt(document.getElementById('dex-slippage-bps')?.value || '100', 10);
+      if (!amtIn || amtIn <= 0) {
+        if (fb) fb.innerHTML = '<span style="color:var(--error);">Geçerli bir takas miktarı girin.</span>';
+        return;
+      }
+      try {
+        if (fb) fb.innerHTML = '<span style="color:var(--blue);">Canlı teklif alınıyor ve secp256k1 ile imzalanıyor...</span>';
+        const q = await refreshDexQuote();
+        const balRes = await refreshDexBalances();
+        if (!q || typeof q.amount_out !== 'number') {
+          if (fb) fb.innerHTML = '<span style="color:var(--error);">DEX düğümünden teklif alınamadı.</span>';
+          return;
+        }
+        const nonce = balRes && typeof balRes.dex_nonce === 'number' ? balRes.dex_nonce : 0;
+        const minOut = parseFloat((q.amount_out * (1 - slipBps / 10000)).toFixed(8));
+        const pubKey = getSecp256k1PubKey(walletPrivKey);
+        const signMsg = `UNIVA_DEX|swap|${walletAddr}|${assetIn}|${assetOut}|${amtIn}|${minOut}|${nonce}`;
+        const { signature } = await signSecp256k1Offline(walletPrivKey, signMsg);
+
+        const httpRes = await fetch(NODE_URL + '/api/v1/dex/swap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Univa-Client': CLIENT_SESSION_ID },
+          body: JSON.stringify({
+            user: walletAddr,
+            asset_in: assetIn,
+            asset_out: assetOut,
+            amount_in: amtIn,
+            min_out: minOut,
+            nonce: nonce,
+            public_key: pubKey,
+            signature: signature
+          })
+        });
+        const res = await httpRes.json();
+        if (httpRes.ok && (res.status === 'success' || res.status === 'ok')) {
+          if (fb) fb.innerHTML = `<span style="color:var(--success);font-weight:700;">✓ Takas tamamlandı: ${res.amount_in} ${assetIn} → ${Number(res.amount_out).toFixed(6)} ${assetOut} (OP: ${(res.op_id || '').slice(0, 14)}...)</span>`;
+          showToast(`✓ Takas: +${Number(res.amount_out).toFixed(4)} ${assetOut}`);
+          await refreshDexState();
+          await fetchWalletBalance();
+        } else {
+          if (fb) fb.innerHTML = `<span style="color:var(--error);font-weight:700;">❌ ${res.detail || 'Takas reddedildi.'}</span>`;
+        }
+      } catch (err) {
+        if (fb) fb.innerHTML = `<span style="color:var(--error);font-weight:700;">❌ Takas hatası: ${err.message}</span>`;
+      }
+    }
+
     function triggerDexNotice() {
-      showToast('DEX integer AMM simulated. On-chain consensus binding in progress.');
+      return executeDexSwap();
     }
 
     async function sendRpcTest(method) {
@@ -4649,11 +4790,11 @@ Block Explorer: https://univa-network-l1.vercel.app
       'Protocol Swap Fee': 'Protokol Takas Ücreti',
       'Minimum Locked Liquidity': 'Minimum Kilitli Likidite',
       'Token Swap': 'Token Takası',
-      'Swap Tokens (Protocol Simulation Mode)': 'Token Takas Et (Protokol Simülasyon Modu)',
+      'Swap Tokens (On-Chain Signed AMM)': 'Token Takas Et (İmzalı Zincir AMM)',
       'Pay': 'Öde',
       'Receive (Estimated)': 'Alınacak (Tahmini)',
       'Fee: 0.10% (10 bps)': 'Ücret: %0.10 (10 bps)',
-      'State Transition Engine in Development': 'Durum Geçiş Motoru Geliştirme Aşamasında',
+      'Signed On-Chain AMM Active': 'İmzalı Zincir AMM Aktif',
       'Protocol Realism Disclosure': 'Protokol Gerçekçilik Bildirimi',
       'In accordance with UNIVA Mainnet Integrity Rules, financial swaps will not simulate fake execution. The underlying': 'UNIVA Ana Ağ Bütünlük Kuralları gereği, finansal takaslar sahte işlem simüle etmez. Alttaki',
       'AMM integer base-unit engine is operational locally and is currently being bound to on-chain state transition blocks. Verified liquidity pairs are shown below.': 'AMM tam sayı tabanlı motor yerel olarak çalışmaktadır ve şu anda zincir içi durum geçiş bloklarına bağlanmaktadır. Doğrulanmış likidite çiftleri aşağıda gösterilmiştir.',

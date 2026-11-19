@@ -142,20 +142,24 @@ async def add_pna_and_security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
-# Native AMM instance for testnet quotes and balance checking
-dex_engine = UnivaDEX()
+# Native AMM instance bound directly to Sovereign L1 Blockchain state
+DEX_STATE_PATH = os.environ.get("UNIVA_DEX_STATE_FILE", os.path.join(BASE_DIR, "univa_dex_state.json"))
+dex_engine = UnivaDEX(blockchain=blockchain, state_path=DEX_STATE_PATH)
 try:
-    dex_engine.deposit("univa_genesis_vault", "UNIVA", to_base_units(50_000.0))
-    dex_engine.deposit("univa_genesis_vault", "uUSD", to_base_units(250_000.0))
-    dex_engine.add_liquidity(
-        provider="univa_genesis_vault",
-        asset_a="UNIVA",
-        asset_b="uUSD",
-        amount_a=to_base_units(50_000.0),
-        amount_b=to_base_units(250_000.0),
-    )
-except Exception:
-    pass
+    if dex_engine.get_pool("UNIVA", "uUSD") is None:
+        dex_engine.create_pool("UNIVA", "uUSD", fee_bps=10)
+        dex_engine.deposit("univa_genesis_vault", "UNIVA", to_base_units(50_000.0))
+        dex_engine.deposit("univa_genesis_vault", "uUSD", to_base_units(250_000.0))
+        dex_engine.add_liquidity(
+            provider="univa_genesis_vault",
+            asset_a="UNIVA",
+            asset_b="uUSD",
+            amount_a=to_base_units(50_000.0),
+            amount_b=to_base_units(250_000.0),
+        )
+        dex_engine.save(DEX_STATE_PATH)
+except Exception as e:
+    print(f"[UNIVA] DEX baslatma uyarisi: {e}")
 
 
 class TransactionBody(BaseModel):
@@ -789,13 +793,6 @@ def mine_block(miner_address: str, request: Request, device: str = ""):
     except Exception:
         pass
 
-    # DEX icin test bakiyesi ekle
-    try:
-        dex_engine.deposit(miner_address, "uUSD", to_base_units(500.0))
-        dex_engine.deposit(miner_address, "UNIVA", to_base_units(100.0))
-    except Exception:
-        pass
-
     return {
         "status": "ok",
         "accepted": True,
@@ -849,26 +846,99 @@ def telemetry_nodes():
 
 # ─── NATIVE DEX ENDPOINTLERI ─────────────────────────────────────────────────
 
+def _sync_dex_blockchain():
+    if dex_engine.blockchain is not blockchain:
+        dex_engine.blockchain = blockchain
+        blockchain.dex_state = dex_engine
+    return dex_engine
+
+
+def _float_str_variants(raw_val: Any, fval: float) -> List[str]:
+    candidates = []
+    for item in (
+        str(raw_val) if raw_val is not None else "",
+        f"{fval:g}",
+        str(int(fval)) if float(fval).is_integer() else str(fval),
+        str(float(fval)),
+        f"{fval:.8f}",
+    ):
+        if item and item not in candidates:
+            candidates.append(item)
+    return candidates
+
+
+def _verify_dex_signature(
+    user: str,
+    pub_key: str,
+    sig: str,
+    candidate_messages: List[str],
+    nonce: Optional[int] = None,
+) -> None:
+    from core.wallet import UnivaWallet, get_valid_sender_addresses, normalize_address
+
+    if not user or not pub_key or not sig:
+        raise HTTPException(401, "Takas/likidite islemi icin cuzdan adresi, public_key ve ECDSA imzasi gereklidir")
+    if len(pub_key) != 128:
+        raise HTTPException(401, "Gecersiz public_key uzunlugu (128 hex karakter gereklidir)")
+    if sig in dex_engine.used_signatures:
+        raise HTTPException(409, "DEX imzasi daha once kullanildi (replay engellendi)")
+    if nonce is not None:
+        if isinstance(nonce, bool) or not isinstance(nonce, int) or nonce < 0:
+            raise HTTPException(400, "Gecersiz DEX nonce degeri")
+        expected_nonce = dex_engine.get_user_nonce(user)
+        if nonce != expected_nonce:
+            raise HTTPException(409, f"Gecersiz DEX nonce: beklenen {expected_nonce}, gelen {nonce}")
+    valid_addrs = get_valid_sender_addresses(pub_key)
+    if normalize_address(user) not in valid_addrs:
+        raise HTTPException(403, "Public key bu kullanici adresine ait degil")
+    if not any(UnivaWallet.verify_signature(pub_key, m, sig) for m in candidate_messages):
+        raise HTTPException(401, "Gecersiz DEX ECDSA imzasi")
+
+
 @app.get("/api/v1/dex/pools")
 def dex_pools():
+    _sync_dex_blockchain()
     res = [p.to_dict() for p in dex_engine.pools.values()]
-    return {"pools": res, "count": len(res)}
+    return {
+        "pools": res,
+        "count": len(res),
+        "state_root": dex_engine.calculate_state_root(),
+        "block_height": blockchain.height,
+    }
+
 
 @app.get("/api/v1/dex/balances/{address}")
 def dex_balances(address: str):
-    chain_univa = blockchain.get_balance(address)
-    dex_univa = from_base_units(dex_engine.get_balance(address, "UNIVA"))
+    from core.wallet import normalize_address
+    _sync_dex_blockchain()
+    norm = normalize_address(address)
     return {
-        "UNIVA": round(max(chain_univa, dex_univa), 8),
+        "address": address,
+        "UNIVA": blockchain.get_balance(address, "UNIVA"),
         "uUSD": from_base_units(dex_engine.get_balance(address, "uUSD")),
+        "lp_balances": {
+            pid: from_base_units(p.lp_balances.get(norm, 0))
+            for pid, p in dex_engine.pools.items()
+        },
+        "dex_nonce": dex_engine.get_user_nonce(address),
+        "sandbox_balances": {
+            k: from_base_units(v)
+            for k, v in dex_engine.test_balances.get(norm, {}).items()
+        },
+        "sandbox_isolated": True,
     }
+
 
 @app.post("/api/v1/dex/quote")
 async def dex_quote(request: Request):
+    _sync_dex_blockchain()
     data = await request.json()
     asset_in = data.get("asset_in", "UNIVA")
     asset_out = data.get("asset_out", "uUSD")
-    amount_in_float = float(data.get("amount_in", 0.0))
+    try:
+        amount_in_float = float(data.get("amount_in", 0.0))
+    except Exception:
+        raise HTTPException(400, "Gecersiz miktar")
     if amount_in_float <= 0:
         raise HTTPException(400, "Miktar pozitif olmalidir")
     pool = dex_engine.get_pool(asset_in, asset_out)
@@ -876,71 +946,240 @@ async def dex_quote(request: Request):
         raise HTTPException(404, "Havuz bulunamadi")
     try:
         amt_in_base = to_base_units(amount_in_float)
-        out_base, fee_base = dex_engine.get_amount_out(pool, asset_in, amt_in_base)
+        details = dex_engine.get_quote_details(asset_in, asset_out, amt_in_base)
         return {
-            "asset_in": asset_in,
-            "asset_out": asset_out,
+            "pool_id": details["pool_id"],
+            "asset_in": details["asset_in"],
+            "asset_out": details["asset_out"],
             "amount_in": amount_in_float,
-            "amount_out": from_base_units(out_base),
-            "fee": from_base_units(fee_base),
-            "fee_bps": pool.fee_bps,
+            "amount_out": from_base_units(details["amount_out"]),
+            "fee": from_base_units(details["fee"]),
+            "fee_paid": from_base_units(details["fee"]),
+            "fee_bps": details["fee_bps"],
+            "spot_price_before": details["spot_price_before"],
+            "spot_price_after": details["spot_price_after"],
+            "effective_price": details["effective_price"],
+            "price_impact_pct": details["price_impact_pct"],
         }
     except Exception as e:
         raise HTTPException(400, str(e))
 
+
 @app.post("/api/v1/dex/swap")
 async def dex_swap(request: Request):
-    from core.wallet import UnivaWallet, derive_pwa_address, derive_pwa_evm_address
+    _sync_dex_blockchain()
     data = await request.json()
     user = (data.get("user") or "").strip()
     priv_key = (data.get("private_key") or "").strip()
     pub_key = (data.get("public_key") or "").strip()
     sig = (data.get("signature") or "").strip()
-    asset_in = data.get("asset_in", "UNIVA")
-    asset_out = data.get("asset_out", "uUSD")
-    amount_in_float = float(data.get("amount_in", 0.0))
-    min_out_float = float(data.get("min_out", 0.0))
+    asset_in = (data.get("asset_in") or "UNIVA").strip()
+    asset_out = (data.get("asset_out") or "uUSD").strip()
+    nonce = data.get("nonce")
+    max_slippage_bps = data.get("max_slippage_bps")
 
-    if not user or amount_in_float <= 0:
+    # Guvenlik Politikasi (P0/P4): Ozel anahtar asla sunucuya gonderilemez; istemci imzasi zorunludur
+    if priv_key:
+        raise HTTPException(
+            400,
+            "Guvenlik Politikasi (P0): DEX takasinda ozel anahtar sunucuya gonderilemez; istemci imzasi gereklidir.",
+        )
+
+    try:
+        amount_in_float = float(data.get("amount_in", 0.0))
+        min_out_float = float(data.get("min_out", 0.0))
+    except Exception:
+        raise HTTPException(400, "Gecersiz takas miktari")
+
+    if not user or amount_in_float <= 0 or min_out_float < 0:
         raise HTTPException(400, "Gecersiz istek")
 
-    # Kimlik dogrulamasi: P0 politikasi geregi private_key sunucuya gonderilemez, ECDSA imza zorunludur
-    if priv_key:
-        if os.environ.get("UNIVA_ALLOW_LEGACY_SERVER_SIGN") != "1":
-            raise HTTPException(
-                400,
-                "Guvenlik Politikasi (P0): DEX takasinda ozel anahtar sunucuya gonderilemez; istemci imzasi gereklidir.",
-            )
-    if len(priv_key) == 64:
-        w = UnivaWallet(private_key_hex=priv_key)
-        allowed = {w.address, w.evm_address, derive_pwa_address(priv_key), derive_pwa_evm_address(priv_key)}
-        if user not in allowed:
-            raise HTTPException(403, "Cuzdan yetkisi gecersiz")
-    elif len(pub_key) == 128 and sig:
-        msg = f"UNIVA_DEX|{user}|{asset_in}|{asset_out}|{amount_in_float}"
-        if not UnivaWallet.verify_signature(pub_key, msg, sig):
-            raise HTTPException(403, "DEX ECDSA imza gecersiz")
-    else:
-        raise HTTPException(401, "Takas islemi icin cuzdan imzasi gereklidir")
+    amt_variants = _float_str_variants(data.get("amount_in"), amount_in_float)
+    min_variants = _float_str_variants(data.get("min_out", 0.0), min_out_float)
+    cand_msgs: List[str] = []
+    for a_s in amt_variants:
+        if nonce is not None:
+            for m_s in min_variants:
+                cand_msgs.append(f"UNIVA_DEX|swap|{user}|{asset_in}|{asset_out}|{a_s}|{m_s}|{nonce}")
+            cand_msgs.append(f"UNIVA_DEX|swap|{user}|{asset_in}|{asset_out}|{a_s}|{nonce}")
+        else:
+            cand_msgs.append(f"UNIVA_DEX|{user}|{asset_in}|{asset_out}|{a_s}")
+            for m_s in min_variants:
+                cand_msgs.append(f"UNIVA_DEX|swap|{user}|{asset_in}|{asset_out}|{a_s}|{m_s}")
+
+    _verify_dex_signature(user, pub_key, sig, cand_msgs, nonce=nonce)
+
     try:
         amt_in = to_base_units(amount_in_float)
         min_out = to_base_units(min_out_float)
-        if asset_in == "UNIVA":
-            chain_bal = blockchain.get_balance(user)
-            dex_bal = from_base_units(dex_engine.get_balance(user, "UNIVA"))
-            total_avail = max(chain_bal, dex_bal)
-            if total_avail < amount_in_float:
-                raise HTTPException(400, f"Yetersiz bakiye! Mevcut: {total_avail}, Gerekli: {amount_in_float}")
-            dex_engine.set_balance(user, "UNIVA", to_base_units(total_avail))
-
+        if max_slippage_bps is not None:
+            quote = dex_engine.get_quote_details(asset_in, asset_out, amt_in)
+            if quote["price_impact_pct"] * 100.0 > float(max_slippage_bps):
+                raise ValueError(
+                    f"Slippage/fiyat etkisi ({quote['price_impact_pct']}%) izin verilen limiti asiyor"
+                )
         out_base = dex_engine.swap(user, asset_in, asset_out, amt_in, min_out)
         out_float = from_base_units(out_base)
+        op = dex_engine.record_signed_operation(
+            "swap",
+            user,
+            pub_key,
+            sig,
+            {
+                "asset_in": asset_in,
+                "asset_out": asset_out,
+                "amount_in": amount_in_float,
+                "amount_out": out_float,
+                "min_out": min_out_float,
+            },
+            nonce=nonce,
+        )
         return {
-            "status": "ok",
+            "status": "success",
             "user": user,
+            "asset_in": asset_in,
+            "asset_out": asset_out,
+            "amount_in": amount_in_float,
+            "amount_out": out_float,
             "swapped_in": amount_in_float,
             "received_out": out_float,
-            "asset_out": asset_out,
+            "op_id": op["op_id"],
+            "state_root": dex_engine.calculate_state_root(),
+            "dex_nonce": dex_engine.get_user_nonce(user),
+            "univa_balance": blockchain.get_balance(user, "UNIVA"),
+            "uusd_balance": from_base_units(dex_engine.get_balance(user, "uUSD")),
+        }
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/v1/dex/liquidity/add")
+async def dex_add_liquidity(request: Request):
+    _sync_dex_blockchain()
+    data = await request.json()
+    user = (data.get("user") or "").strip()
+    priv_key = (data.get("private_key") or "").strip()
+    pub_key = (data.get("public_key") or "").strip()
+    sig = (data.get("signature") or "").strip()
+    asset_a = (data.get("asset_a") or "UNIVA").strip()
+    asset_b = (data.get("asset_b") or "uUSD").strip()
+    nonce = data.get("nonce")
+
+    if priv_key:
+        raise HTTPException(400, "Guvenlik Politikasi (P0): Likidite isleminde ozel anahtar gonderilemez")
+
+    try:
+        amount_a_float = float(data.get("amount_a", 0.0))
+        amount_b_float = float(data.get("amount_b", 0.0))
+    except Exception:
+        raise HTTPException(400, "Gecersiz likidite miktari")
+
+    if not user or amount_a_float <= 0 or amount_b_float <= 0:
+        raise HTTPException(400, "Gecersiz likidite parametreleri")
+
+    a_vars = _float_str_variants(data.get("amount_a"), amount_a_float)
+    b_vars = _float_str_variants(data.get("amount_b"), amount_b_float)
+    cand_msgs: List[str] = []
+    for a_s in a_vars:
+        for b_s in b_vars:
+            if nonce is not None:
+                cand_msgs.append(f"UNIVA_DEX|add_liquidity|{user}|{asset_a}|{asset_b}|{a_s}|{b_s}|{nonce}")
+            else:
+                cand_msgs.append(f"UNIVA_DEX|add_liquidity|{user}|{asset_a}|{asset_b}|{a_s}|{b_s}")
+
+    _verify_dex_signature(user, pub_key, sig, cand_msgs, nonce=nonce)
+
+    try:
+        lp_minted = dex_engine.add_liquidity(
+            user, asset_a, asset_b, to_base_units(amount_a_float), to_base_units(amount_b_float)
+        )
+        op = dex_engine.record_signed_operation(
+            "add_liquidity",
+            user,
+            pub_key,
+            sig,
+            {
+                "asset_a": asset_a,
+                "asset_b": asset_b,
+                "amount_a": amount_a_float,
+                "amount_b": amount_b_float,
+                "lp_minted": from_base_units(lp_minted),
+            },
+            nonce=nonce,
+        )
+        return {
+            "status": "success",
+            "user": user,
+            "lp_minted": from_base_units(lp_minted),
+            "op_id": op["op_id"],
+            "state_root": dex_engine.calculate_state_root(),
+            "dex_nonce": dex_engine.get_user_nonce(user),
+        }
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/v1/dex/liquidity/remove")
+async def dex_remove_liquidity(request: Request):
+    _sync_dex_blockchain()
+    data = await request.json()
+    user = (data.get("user") or "").strip()
+    priv_key = (data.get("private_key") or "").strip()
+    pub_key = (data.get("public_key") or "").strip()
+    sig = (data.get("signature") or "").strip()
+    asset_a = (data.get("asset_a") or "UNIVA").strip()
+    asset_b = (data.get("asset_b") or "uUSD").strip()
+    nonce = data.get("nonce")
+
+    if priv_key:
+        raise HTTPException(400, "Guvenlik Politikasi (P0): Likidite cekiminde ozel anahtar gonderilemez")
+
+    try:
+        lp_float = float(data.get("lp_amount", 0.0))
+    except Exception:
+        raise HTTPException(400, "Gecersiz LP miktari")
+
+    if not user or lp_float <= 0:
+        raise HTTPException(400, "Gecersiz LP cekim parametreleri")
+
+    lp_vars = _float_str_variants(data.get("lp_amount"), lp_float)
+    cand_msgs: List[str] = []
+    for lp_s in lp_vars:
+        if nonce is not None:
+            cand_msgs.append(f"UNIVA_DEX|remove_liquidity|{user}|{asset_a}|{asset_b}|{lp_s}|{nonce}")
+        else:
+            cand_msgs.append(f"UNIVA_DEX|remove_liquidity|{user}|{asset_a}|{asset_b}|{lp_s}")
+
+    _verify_dex_signature(user, pub_key, sig, cand_msgs, nonce=nonce)
+
+    try:
+        amt_a_base, amt_b_base = dex_engine.remove_liquidity(
+            user, asset_a, asset_b, to_base_units(lp_float)
+        )
+        op = dex_engine.record_signed_operation(
+            "remove_liquidity",
+            user,
+            pub_key,
+            sig,
+            {
+                "asset_a": asset_a,
+                "asset_b": asset_b,
+                "lp_burned": lp_float,
+                "amount_a": from_base_units(amt_a_base),
+                "amount_b": from_base_units(amt_b_base),
+            },
+            nonce=nonce,
+        )
+        return {
+            "status": "success",
+            "user": user,
+            "asset_a": asset_a,
+            "asset_b": asset_b,
+            "amount_a": from_base_units(amt_a_base),
+            "amount_b": from_base_units(amt_b_base),
+            "op_id": op["op_id"],
+            "state_root": dex_engine.calculate_state_root(),
+            "dex_nonce": dex_engine.get_user_nonce(user),
         }
     except Exception as e:
         raise HTTPException(400, str(e))
