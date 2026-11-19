@@ -1,0 +1,23 @@
+{
+  "appId": "network.univa.wallet",
+  "appName": "UNIVA Network",
+  "webDir": "../pwa",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https",
+    "cleartext": false
+  },
+  "plugins": {
+    "UnivaNFC": {
+      "ndefMimeType": "application/vnd.univa.offline.v2",
+      "allowIsoDepHce": true
+    },
+    "UnivaBLE": {
+      "serviceUuid": "756e6976-6100-4000-8000-000000000001",
+      "txCharUuid": "756e6976-6100-4000-8000-000000000002",
+      "rxCharUuid": "756e6976-6100-4000-8000-000000000003",
+      "defaultMtu": 180
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "univa-mobile-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UNIVA Sovereign Layer-1 Native Android & iOS Mobile Wrapper (QR + NFC + Bidirectional BLE Offline Pay)",
+  "scripts": {
+    "cap:sync": "npx cap sync",
+    "android:add": "npx cap add android",
+    "android:open": "npx cap open android",
+    "ios:add": "npx cap add ios",
+    "ios:open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.0",
+    "@capacitor-community/bluetooth-le": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/cli": "^6.1.0",
+    "@capacitor/ios": "^6.1.0"
+  }
+}

@@ -25,6 +25,15 @@
       }
     },
     {
+      "src": "/offline-transport.js",
+      "dest": "/pwa/offline-transport.js",
+      "headers": {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
       "src": "/assets/(.*)",
       "dest": "/pwa/assets/$1",
       "headers": {
@@ -56,7 +65,7 @@
         "X-Frame-Options": "SAMEORIGIN",
         "X-XSS-Protection": "1; mode=block",
         "Referrer-Policy": "strict-origin-when-cross-origin",
-        "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+        "Permissions-Policy": "camera=(self), microphone=(), geolocation=()"
       }
     }
   ]

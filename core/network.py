@@ -14,6 +14,7 @@ import urllib.request
 
 from core.blockchain import Blockchain
 from core.dex import UnivaDEX, to_base_units, from_base_units
+from core.offline_pay import OfflinePayManager, OfflinePayError, DEFAULT_VOUCHER_TTL
 from core.telemetry import telemetry
 from core.interop import MultiChainReader, UniversalProofEngine
 
@@ -139,11 +140,13 @@ async def add_pna_and_security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=()"
     return response
 
 # Native AMM instance bound directly to Sovereign L1 Blockchain state
 DEX_STATE_PATH = os.environ.get("UNIVA_DEX_STATE_FILE", os.path.join(BASE_DIR, "univa_dex_state.json"))
+OFFLINE_STATE_PATH = os.environ.get("UNIVA_OFFLINE_STATE_FILE", os.path.join(BASE_DIR, "univa_offline_state.json"))
+offline_mgr = OfflinePayManager(state_path=OFFLINE_STATE_PATH)
 dex_engine = UnivaDEX(blockchain=blockchain, state_path=DEX_STATE_PATH)
 try:
     if dex_engine.get_pool("UNIVA", "uUSD") is None:
@@ -199,6 +202,13 @@ def serve_miner_worker():
     if os.path.exists(p):
         return FileResponse(p, media_type="application/javascript")
     raise HTTPException(404, "miner.worker.js not found")
+
+@app.get("/offline-transport.js")
+def serve_offline_transport():
+    p = os.path.join(PWA_DIR, "offline-transport.js")
+    if os.path.exists(p):
+        return FileResponse(p, media_type="application/javascript")
+    raise HTTPException(404, "offline-transport.js not found")
 
 @app.get("/logo.png")
 def serve_root_logo():
@@ -730,6 +740,21 @@ async def submit_transaction(request: Request):
         except Exception as e:
             raise HTTPException(400, f"Imzalama hatasi: {e}")
 
+    # P5 Offline Reservation Guard: aktif cevrimdisi rezervasyonda kilitli fonlar normal /tx ile harcanamaz
+    tx_sender = (tx.get("from") or "").strip()
+    if tx_sender and offline_mgr.get_active_reserved(tx_sender) > 0:
+        try:
+            tx_cost = round(float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0)), 8)
+            if offline_mgr.get_unreserved_spendable(blockchain, tx_sender) + 1e-8 < tx_cost:
+                raise HTTPException(
+                    400,
+                    "Bu fonlar aktif bir cevrimdisi odeme rezervasyonunda kilitli; once rezervasyonu serbest birakin veya /api/v1/offline/submit kullanin.",
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
     if not blockchain.add_transaction(tx):
         raise HTTPException(400, "Gecersiz islem: ECDSA imzasi, nonce, yetersiz bakiye veya adres formati hatali")
 
@@ -1183,6 +1208,119 @@ async def dex_remove_liquidity(request: Request):
         }
     except Exception as e:
         raise HTTPException(400, str(e))
+
+
+# ─── OFFLINE PAY PROTOKOLU (P5: QR + NFC + BLE + REZERVASYON) ───────────────
+
+@app.get("/api/v1/offline/reservations/{address}")
+def offline_list_reservations(address: str):
+    return offline_mgr.list_reservations(blockchain, address)
+
+
+@app.post("/api/v1/offline/reserve")
+async def offline_reserve(request: Request):
+    data = await request.json()
+    if data.get("private_key"):
+        raise HTTPException(400, "Guvenlik Politikasi (P0): Rezervasyon isleminde ozel anahtar sunucuya gonderilemez")
+    owner = (data.get("address") or data.get("user") or "").strip()
+    pub_key = (data.get("public_key") or "").strip()
+    sig = (data.get("signature") or "").strip()
+    nonce = data.get("nonce")
+    try:
+        amount = float(data.get("amount", 0.0))
+        ttl_seconds = int(data.get("ttl_seconds", DEFAULT_VOUCHER_TTL))
+    except Exception:
+        raise HTTPException(400, "Gecersiz rezervasyon tutari veya sure")
+    try:
+        rec = offline_mgr.create_reservation(
+            blockchain=blockchain,
+            owner=owner,
+            amount=amount,
+            ttl_seconds=ttl_seconds,
+            public_key=pub_key,
+            signature=sig,
+            nonce=nonce,
+            raw_amount=data.get("amount"),
+        )
+        return {
+            "status": "ok",
+            "reservation": rec,
+            "offline_nonce": offline_mgr.get_user_nonce(owner),
+            "unreserved_spendable": offline_mgr.get_unreserved_spendable(blockchain, owner),
+        }
+    except OfflinePayError as oe:
+        raise HTTPException(oe.status_code, str(oe))
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/v1/offline/release")
+async def offline_release(request: Request):
+    data = await request.json()
+    if data.get("private_key"):
+        raise HTTPException(400, "Guvenlik Politikasi (P0): Rezervasyon iptalinde ozel anahtar gonderilemez")
+    owner = (data.get("address") or data.get("user") or "").strip()
+    res_id = (data.get("reservation_id") or "").strip()
+    pub_key = (data.get("public_key") or "").strip()
+    sig = (data.get("signature") or "").strip()
+    nonce = data.get("nonce")
+    try:
+        res = offline_mgr.release_reservation(
+            owner=owner,
+            reservation_id=res_id,
+            public_key=pub_key,
+            signature=sig,
+            nonce=nonce,
+        )
+        return {
+            "status": "ok",
+            **res,
+            "unreserved_spendable": offline_mgr.get_unreserved_spendable(blockchain, owner),
+        }
+    except OfflinePayError as oe:
+        raise HTTPException(oe.status_code, str(oe))
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/v1/offline/submit")
+async def offline_submit_voucher(request: Request):
+    data = await request.json()
+    if data.get("private_key"):
+        raise HTTPException(400, "Guvenlik Politikasi (P0): Cevrimdisi fis gonderiminde ozel anahtar kabul edilmez")
+    voucher_payload = data.get("voucher") or data.get("token") or data.get("tx") or data
+    transport = data.get("transport")
+    try:
+        rec = offline_mgr.submit_voucher(
+            blockchain=blockchain,
+            voucher_or_token=voucher_payload,
+            transport=transport,
+        )
+        # Reconstruct signed tx to broadcast to P2P mempool peers
+        try:
+            from core.offline_pay import decode_voucher
+            from core.p2p import publish_tx_from_thread
+            decoded = decode_voucher(voucher_payload)
+            publish_tx_from_thread(decoded["tx"])
+        except Exception:
+            pass
+        return {
+            "status": "in_mempool",
+            "accepted": True,
+            "finalized": False,
+            "voucher": rec,
+            "tx_id": rec["tx_id"],
+            "mempool_size": len(blockchain.pending_transactions),
+        }
+    except OfflinePayError as oe:
+        raise HTTPException(oe.status_code, str(oe))
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/v1/offline/status/{tx_id}")
+def offline_voucher_status(tx_id: str):
+    return offline_mgr.get_voucher_status(blockchain, tx_id)
 
 
 # ─── INTEROPERABILITY & PROOFS ───────────────────────────────────────────────

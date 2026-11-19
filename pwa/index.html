@@ -1492,16 +1492,46 @@
     <!-- 9. OFFLINE PAY PROTOCOL -->
     <section class="view-section" id="view-offline">
       <div class="content-wrap">
-        <div class="card-header" style="margin-bottom:24px;">
+        <div class="card-header" style="margin-bottom:18px;flex-wrap:wrap;gap:12px;">
           <div>
-            <h2 class="univa-sec-title" style="font-size:1.6rem;font-weight:800;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></span><span>UNIVA Çevrimdışı Ödeme Protokolü</span></h2>
-            <p style="font-size:0.85rem;color:var(--text-muted);">İnternet olmadan uçak modunda bile cihazlar arası secp256k1 imzalı QR ödeme fişi üretin, doğrulayın ve bağlantı geldiğinde zincire yayınlayın.</p>
+            <h2 class="univa-sec-title" style="font-size:1.6rem;font-weight:800;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></span><span>UNIVA Çevrimdışı Ödeme Protokolü (V2)</span></h2>
+            <p style="font-size:0.85rem;color:var(--text-muted);">QR, NFC ve Bluetooth LE (Android/iOS yerel köprüsü hazır) ile süreli, rezervasyon korumalı secp256k1 ödeme fişleri.</p>
           </div>
-          <span class="badge badge-native">Air-Gapped Secp256k1</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <span class="badge badge-live" id="off-cap-qr">QR ✓</span>
+            <span class="badge badge-dev" id="off-cap-nfc">NFC Kontrol Ediliyor</span>
+            <span class="badge badge-dev" id="off-cap-ble">BLE Kontrol Ediliyor</span>
+          </div>
+        </div>
+
+        <!-- 0. ONLINE RESERVATION LOCK (DOUBLE-SPEND GUARD) -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header" style="flex-wrap:wrap;gap:8px;">
+            <div class="card-title">0. Çevrimdışı Bütçe Rezervasyonu (Çevrimiçi Ön Kilit)</div>
+            <span class="mono" id="off-res-summary" style="font-size:0.78rem;color:var(--text-muted);">Cüzdan bekleniyor</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Rezerve Tutarı (UNIVA)</label>
+              <input class="form-input mono" type="number" step="0.01" min="0" id="off-res-amt" placeholder="25.0">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Kilit Süresi (TTL)</label>
+              <select class="form-input mono" id="off-res-ttl">
+                <option value="3600">1 Saat</option>
+                <option value="21600">6 Saat</option>
+                <option value="86400" selected>24 Saat</option>
+                <option value="259200">72 Saat</option>
+              </select>
+            </div>
+            <button class="btn btn-metallic" onclick="createOfflineReservation()">🔒 Çevrimdışı Bütçe Kilitle</button>
+          </div>
+          <div id="off-res-feedback" style="margin-top:8px;font-size:0.8rem;"></div>
+          <div id="off-res-list" style="margin-top:10px;font-size:0.78rem;color:var(--text-muted);">Aktif çevrimdışı rezervasyon yok.</div>
         </div>
 
         <div class="grid-2">
-          <!-- LEFT: SENDER (OFFLINE SIGN + QR) -->
+          <!-- LEFT: SENDER (OFFLINE SIGN + QR / NFC / BLE) -->
           <div class="card">
             <div class="card-header">
               <div class="card-title">1. Çevrimdışı Ödeme Oluştur (Gönderen)</div>
@@ -1510,60 +1540,86 @@
               <label class="form-label">Alıcı Adresi (univa... veya 0x...)</label>
               <input class="form-input mono" id="off-to" placeholder="univaf63aua23vxdvcmvkunx66yzh2">
             </div>
-            <div class="form-group">
-              <label class="form-label">Transfer Tutarı (UNIVA)</label>
-              <input class="form-input mono" type="number" step="0.0001" id="off-amt" placeholder="10.0">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="form-group">
+                <label class="form-label">Transfer Tutarı (UNIVA)</label>
+                <input class="form-input mono" type="number" step="0.0001" id="off-amt" placeholder="10.0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fiş Geçerlilik Süresi</label>
+                <select class="form-input mono" id="off-ttl">
+                  <option value="3600">1 Saat</option>
+                  <option value="21600">6 Saat</option>
+                  <option value="86400" selected>24 Saat</option>
+                  <option value="259200">72 Saat</option>
+                </select>
+              </div>
             </div>
-            <button class="btn btn-primary" onclick="generateOfflineProposal()" style="width:100%;">🔐 İmzalı Çevrimdışı QR Oluştur</button>
+            <div class="form-group">
+              <label class="form-label">Bağlı Rezervasyon (Önerilen)</label>
+              <select class="form-input mono" id="off-res-select">
+                <option value="">Rezervasyonsuz (Serbest Bakiye)</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="generateOfflineProposal()" style="width:100%;">🔐 İmzalı V2 Çevrimdışı Fiş Oluştur</button>
             <div id="off-qr-result" style="margin-top:16px;display:none;">
               <div class="card card-accent" style="margin:0;text-align:center;">
-                <div style="font-weight:700;color:var(--success);margin-bottom:10px;">✓ secp256k1 İmzalı Çevrimdışı Fiş Hazır (Özel Anahtar İçermez)</div>
+                <div style="font-weight:700;color:var(--warning);margin-bottom:10px;">🟡 İmzalı V2 Fiş Hazır (Kesinleşmedi — Özel Anahtar İçermez)</div>
                 <canvas id="off-qr-canvas" width="220" height="220" style="background:#fff;padding:10px;border-radius:10px;border:1px solid var(--border);max-width:100%;height:auto;"></canvas>
                 <div id="off-qr-meta" class="mono" style="font-size:0.74rem;color:var(--text-muted);margin-top:8px;"></div>
                 <div style="display:flex;gap:8px;margin-top:10px;">
                   <input class="form-input mono" id="off-qr-token" readonly style="font-size:0.72rem;">
                   <button class="btn btn-metallic btn-sm" onclick="copyElemValue('off-qr-token', 'Çevrimdışı ödeme kodu kopyalandı!')">📋 Kopyala</button>
                 </div>
+                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
+                  <button class="btn btn-metallic btn-sm" onclick="sendOfflineViaNfc()">📶 NFC Gönder</button>
+                  <button class="btn btn-metallic btn-sm" onclick="advertiseOfflineViaBle()">📡 BLE Yayınla (Mobil)</button>
+                  <button class="btn btn-metallic btn-sm" onclick="sendOfflineViaBleCentral()">📲 BLE Alıcıya Gönder</button>
+                </div>
+                <div id="off-transport-feedback" style="margin-top:8px;font-size:0.76rem;color:var(--text-muted);"></div>
               </div>
             </div>
           </div>
 
-          <!-- RIGHT: RECEIVER (SCAN / VERIFY / BROADCAST QUEUE) -->
+          <!-- RIGHT: RECEIVER (SCAN QR / NFC / BLE + VERIFY + HONEST SETTLEMENT QUEUE) -->
           <div class="card">
             <div class="card-header">
-              <div class="card-title">2. Çevrimdışı Ödeme Al ve Ağa Yayınla (Alıcı)</div>
+              <div class="card-title">2. Çevrimdışı Ödeme Al ve Doğrula (Alıcı)</div>
             </div>
             <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-              <button class="btn btn-metallic btn-sm" id="off-scan-btn" onclick="startOfflineQrScanner()">📷 Kamera ile QR Tara</button>
-              <button class="btn btn-danger btn-sm" id="off-scan-stop-btn" onclick="stopOfflineQrScanner()" style="display:none;">⏹️ Kamerayı Kapat</button>
+              <button class="btn btn-metallic btn-sm" id="off-scan-btn" onclick="startOfflineQrScanner()">📷 QR Tara</button>
+              <button class="btn btn-danger btn-sm" id="off-scan-stop-btn" onclick="stopOfflineQrScanner()" style="display:none;">⏹️ Kapat</button>
+              <button class="btn btn-metallic btn-sm" onclick="receiveOfflineViaNfc()">📶 NFC Oku</button>
+              <button class="btn btn-metallic btn-sm" onclick="receiveOfflineViaBle()">📡 BLE Tara & Al</button>
             </div>
             <div id="off-scanner-wrap" style="display:none;margin-bottom:12px;">
               <video id="off-scanner-video" playsinline autoplay muted style="width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border);background:#000;"></video>
             </div>
             <div class="form-group">
-              <label class="form-label">İmzalı Çevrimdışı Ödeme Kodu (UNIVA:OFF:V1:...)</label>
-              <textarea class="form-input mono" id="off-receive-input" rows="2" placeholder="QR tarayın veya göndericinin UNIVA:OFF:V1:... kodunu buraya yapıştırın"></textarea>
+              <label class="form-label">İmzalı Çevrimdışı Ödeme Kodu (UNIVA:OFF:V2:... veya V1)</label>
+              <textarea class="form-input mono" id="off-receive-input" rows="2" placeholder="QR/NFC/BLE ile alın veya göndericinin UNIVA:OFF:V2:... kodunu yapıştırın"></textarea>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="receiveOfflineProposal()" style="width:100%;margin-bottom:16px;">✓ İmzayı Doğrula ve Bekleyenlere Ekle</button>
+            <button class="btn btn-primary btn-sm" onclick="receiveOfflineProposal()" style="width:100%;margin-bottom:16px;">✓ İmzayı ve Süreyi Doğrula (Kesinleşmedi)</button>
 
             <div style="border-top:1px solid var(--border);padding-top:14px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
-                <span style="font-size:0.8rem;font-weight:700;">📡 Bekleyen Çevrimdışı İşlemler (<span id="off-queue-count">0</span>)</span>
-                <button class="btn btn-metallic btn-sm" onclick="syncOfflineQueue()">🚀 Bağlantı Varsa Yayınla</button>
+                <span style="font-size:0.8rem;font-weight:700;">📡 Çevrimdışı İşlem Kuyruğu (<span id="off-queue-count">0</span> bekliyor)</span>
+                <button class="btn btn-metallic btn-sm" onclick="syncOfflineQueue()">🚀 Gönder & Onay Sorgula</button>
               </div>
-              <div id="off-queue-list" style="font-size:0.8rem;color:var(--text-muted);max-height:220px;overflow-y:auto;">
-                Henüz bekleyen çevrimdışı ödeme yok.
+              <div id="off-queue-list" style="font-size:0.8rem;color:var(--text-muted);max-height:240px;overflow-y:auto;">
+                Henüz çevrimdışı ödeme kaydı yok.
               </div>
             </div>
           </div>
         </div>
 
-        <div class="card" style="margin-top:18px;">
+        <div class="card" style="margin-top:18px;border-color:var(--warning);">
           <div class="card-header">
-            <div class="card-title">Protokol Güvenlik Kuralı</div>
+            <div class="card-title">Protokol Güvenlik & Android / iOS Altyapı Bildirimi</div>
           </div>
           <div style="font-size:0.84rem;color:var(--text-muted);line-height:1.6;">
-            <strong style="color:var(--warning);">KRİTİK AYRIM:</strong> Çevrimdışı imzalı ödeme fişi özel anahtarınızı asla içermez; yalnızca alıcı cihazın kriptografik olarak doğrulayabileceği imzalı bir işlemdir. İki cihazdan biri internete bağlandığı anda işlem <strong>UNIVA Mempool</strong> havuzuna gönderilir ve madencilik onayından sonra kalıcı bakiyeye işlenir.
+            <p style="margin-bottom:8px;"><strong style="color:var(--warning);">KESİNLEŞME KURALI:</strong> Çevrimdışı imzalı ödeme fişi özel anahtar içermez; alıcı cihaz imzayı ve son kullanma süresini internetsiz doğrulayabilir ancak bu <strong>kesinleşmiş ödeme değildir</strong>. Ödeme yalnızca internete bağlanıp <strong>UNIVA L1 Mempool</strong> üzerinden madencilik bloğuna (<code>confirmed</code>) girdiğinde kesinleşir.</p>
+            <p id="off-cap-detail" style="margin:0;font-size:0.8rem;"></p>
           </div>
         </div>
       </div>
@@ -1905,6 +1961,8 @@ Block Explorer: https://univa-network-l1.vercel.app
   <!-- TOAST NOTIFICATION -->
   <div id="global-toast">Notification Message</div>
 
+  <!-- UNIVA OFFLINE TRANSPORT (QR + NFC + BLE + NATIVE ANDROID/IOS BRIDGE) -->
+  <script src="offline-transport.js"></script>
   <!-- CLIENT-SIDE ARCHITECTURE JAVASCRIPT -->
   <script>
     'use strict';
@@ -1985,6 +2043,7 @@ Block Explorer: https://univa-network-l1.vercel.app
 
       if (viewId === 'multichain') fetchMultichainStatus();
       if (viewId === 'dex') refreshDexState();
+      if (viewId === 'offline') refreshOfflineView();
       if (viewId === 'dashboard' || viewId === 'explorer' || viewId === 'network') {
         fetchLiveStats();
       }
@@ -3385,7 +3444,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       }
     }
 
-    // ─── OFFLINE PAY PROTOCOL (CREATE + SCAN + VERIFY + BROADCAST QUEUE) ───
+    // ─── OFFLINE PAY PROTOCOL V2 (RESERVATION + QR/NFC/BLE + HONEST SETTLEMENT) ───
     function getOfflineQueue() {
       try { return JSON.parse(localStorage.getItem('univa_offline_queue_v1') || '[]'); } catch (e) { return []; }
     }
@@ -3398,15 +3457,148 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (el) navigator.clipboard.writeText(el.value).then(() => showToast(msg));
     }
 
+    function refreshOfflineCapabilities() {
+      const T = window.UnivaOfflineTransport;
+      const nfcEl = document.getElementById('off-cap-nfc');
+      const bleEl = document.getElementById('off-cap-ble');
+      const detEl = document.getElementById('off-cap-detail');
+      if (!T) return;
+      const caps = T.detectCapabilities();
+      if (nfcEl) {
+        nfcEl.className = 'badge ' + (caps.nfc.supported ? 'badge-live' : 'badge-dev');
+        nfcEl.textContent = caps.nfc.mode === 'native-android-ios' ? 'NFC Native ✓' : (caps.nfc.supported ? 'Web NFC ✓' : 'NFC (Android/iOS App)');
+      }
+      if (bleEl) {
+        bleEl.className = 'badge ' + (caps.ble.peripheral ? 'badge-live' : 'badge-dev');
+        bleEl.textContent = caps.ble.mode === 'native-android-ios' ? 'BLE Çift Yönlü ✓' : (caps.ble.central ? 'Web BLE (İstemci)' : 'BLE (Android/iOS App)');
+      }
+      if (detEl) {
+        detEl.textContent = `Ortam: ${caps.runtime === 'native-mobile' ? 'Yerel Mobil Uygulama' : 'Web Tarayıcı'} · NFC: ${caps.nfc.reason} · BLE: ${caps.ble.reason}`;
+      }
+    }
+
+    async function fetchOfflineReservations() {
+      const sumEl = document.getElementById('off-res-summary');
+      const listEl = document.getElementById('off-res-list');
+      const selEl = document.getElementById('off-res-select');
+      if (!walletAddr) {
+        if (sumEl) sumEl.textContent = 'Cüzdan bağlı değil';
+        return null;
+      }
+      const res = await apiCall('/api/v1/offline/reservations/' + encodeURIComponent(walletAddr));
+      if (!res) return null;
+      if (sumEl) {
+        sumEl.textContent = `Serbest: ${Number(res.unreserved_spendable || 0).toFixed(4)} UNIVA · Kilitli: ${Number(res.active_reserved || 0).toFixed(4)} UNIVA`;
+      }
+      const active = (res.reservations || []).filter(r => r.status === 'active');
+      if (selEl) {
+        const cur = selEl.value;
+        selEl.innerHTML = '<option value="">Rezervasyonsuz (Serbest Bakiye)</option>' +
+          active.map(r => `<option value="${r.reservation_id}">${r.reservation_id.slice(0, 14)}... (Kalan: ${Number(r.remaining).toFixed(4)} UNIVA)</option>`).join('');
+        if (cur && active.some(r => r.reservation_id === cur)) selEl.value = cur;
+      }
+      if (listEl) {
+        if (active.length === 0) {
+          listEl.innerHTML = 'Aktif çevrimdışı rezervasyon yok.';
+        } else {
+          listEl.innerHTML = active.map(r => {
+            const exp = new Date((r.expires_at || 0) * 1000).toLocaleString();
+            return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;flex-wrap:wrap;">
+              <span class="mono"><strong>${r.reservation_id.slice(0, 14)}...</strong> · Kalan ${Number(r.remaining).toFixed(4)} / ${Number(r.amount).toFixed(4)} UNIVA · Bitiş: ${exp}</span>
+              <button class="btn btn-metallic btn-sm" onclick="releaseOfflineReservation('${r.reservation_id}')">🔓 Kilidi Aç</button>
+            </div>`;
+          }).join('');
+        }
+      }
+      return res;
+    }
+
+    async function createOfflineReservation() {
+      const fb = document.getElementById('off-res-feedback');
+      if (!walletAddr || !walletPrivKey) {
+        if (fb) fb.innerHTML = '<span style="color:var(--error);">Önce Cüzdan Kasasını açın.</span>';
+        return;
+      }
+      const amt = parseFloat(document.getElementById('off-res-amt')?.value || '0');
+      const ttl = parseInt(document.getElementById('off-res-ttl')?.value || '86400', 10);
+      if (!amt || amt <= 0) {
+        if (fb) fb.innerHTML = '<span style="color:var(--error);">Geçerli bir rezervasyon tutarı girin.</span>';
+        return;
+      }
+      try {
+        const info = await fetchOfflineReservations();
+        const nonce = info && typeof info.offline_nonce === 'number' ? info.offline_nonce : 0;
+        const pubKey = getSecp256k1PubKey(walletPrivKey);
+        const msg = `UNIVA_OFFLINE|reserve|${walletAddr}|${amt}|${ttl}|${nonce}`;
+        const { signature } = await signSecp256k1Offline(walletPrivKey, msg);
+        const httpRes = await fetch(NODE_URL + '/api/v1/offline/reserve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Univa-Client': CLIENT_SESSION_ID },
+          body: JSON.stringify({ address: walletAddr, amount: amt, ttl_seconds: ttl, nonce, public_key: pubKey, signature })
+        });
+        const data = await httpRes.json();
+        if (httpRes.ok && data.status === 'ok') {
+          if (fb) fb.innerHTML = `<span style="color:var(--success);font-weight:700;">🔒 ${amt} UNIVA çevrimdışı kullanım için kilitlendi (${data.reservation.reservation_id}).</span>`;
+          document.getElementById('off-res-amt').value = '';
+          await fetchOfflineReservations();
+        } else {
+          if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ ${data.detail || 'Rezervasyon oluşturulamadı.'}</span>`;
+        }
+      } catch (e) {
+        if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ Hata: ${e.message}</span>`;
+      }
+    }
+
+    async function releaseOfflineReservation(resId) {
+      const fb = document.getElementById('off-res-feedback');
+      if (!walletAddr || !walletPrivKey) return;
+      try {
+        const info = await fetchOfflineReservations();
+        const nonce = info && typeof info.offline_nonce === 'number' ? info.offline_nonce : 0;
+        const pubKey = getSecp256k1PubKey(walletPrivKey);
+        const msg = `UNIVA_OFFLINE|release|${walletAddr}|${resId}|${nonce}`;
+        const { signature } = await signSecp256k1Offline(walletPrivKey, msg);
+        const httpRes = await fetch(NODE_URL + '/api/v1/offline/release', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Univa-Client': CLIENT_SESSION_ID },
+          body: JSON.stringify({ address: walletAddr, reservation_id: resId, nonce, public_key: pubKey, signature })
+        });
+        const data = await httpRes.json();
+        if (httpRes.ok && data.status === 'ok') {
+          if (fb) fb.innerHTML = `<span style="color:var(--success);">🔓 Kilit açıldı: ${data.released_amount} UNIVA serbest bırakıldı.</span>`;
+          await fetchOfflineReservations();
+        } else {
+          if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ ${data.detail || 'Kilit açılamadı.'}</span>`;
+        }
+      } catch (e) {
+        if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ ${e.message}</span>`;
+      }
+    }
+
+    async function refreshOfflineView() {
+      refreshOfflineCapabilities();
+      await fetchOfflineReservations();
+      await syncOfflineQueue();
+      renderOfflineQueue();
+    }
+
     async function generateOfflineProposal() {
       if (!walletPrivKey || !walletAddr) { alert('Önce Cüzdan Kasasını açmalısınız!'); return; }
       const to = document.getElementById('off-to').value.trim();
       const amt = parseFloat(document.getElementById('off-amt').value);
+      const ttl = parseInt(document.getElementById('off-ttl')?.value || '86400', 10);
+      const resId = (document.getElementById('off-res-select')?.value || '').trim();
       if (!to || (!to.startsWith('univa') && !to.startsWith('0x'))) { alert('Geçerli bir UNIVA (univa...) veya EVM (0x...) alıcı adresi girin.'); return; }
       if (!amt || amt <= 0) { alert('Geçerli bir tutar girin.'); return; }
 
       const nonceKey = 'univa_nonce_' + walletAddr;
       let nextNonce = parseInt(localStorage.getItem(nonceKey) || '0', 10);
+      if (nodeConnected) {
+        const balRes = await apiCall('/api/v1/balance/' + encodeURIComponent(walletAddr));
+        if (balRes && typeof balRes.nonce === 'number' && balRes.nonce > nextNonce) {
+          nextNonce = balRes.nonce;
+        }
+      }
       const pubKey = getSecp256k1PubKey(walletPrivKey);
       const tx = {
         type: 'transfer',
@@ -3423,27 +3615,61 @@ Block Explorer: https://univa-network-l1.vercel.app
       tx.signature = signature;
       localStorage.setItem(nonceKey, String(nextNonce + 1));
 
-      const token = 'UNIVA:OFF:V1:' + btoa(JSON.stringify(tx));
+      const nowSec = Math.floor(Date.now() / 1000);
+      const expiresAt = nowSec + ttl;
+      const metaMsg = `UNIVA_OFFLINE_V2|${tx.tx_id}|${resId}|${expiresAt}`;
+      const { signature: voucherSig } = await signSecp256k1Offline(walletPrivKey, metaMsg);
+
+      const voucherObj = {
+        version: 2,
+        tx,
+        created_at: nowSec,
+        expires_at: expiresAt,
+        reservation_id: resId,
+        transport: 'qr',
+        voucher_sig: voucherSig
+      };
+      const token = 'UNIVA:OFF:V2:' + btoa(JSON.stringify(voucherObj));
       document.getElementById('off-qr-result').style.display = 'block';
       document.getElementById('off-qr-token').value = token;
-      document.getElementById('off-qr-meta').textContent = `Gönderen: ${walletAddr.slice(0,12)}... -> ${amt} UNIVA (Nonce #${nextNonce})`;
+      document.getElementById('off-qr-meta').textContent = `Gönderen: ${walletAddr.slice(0,12)}... -> ${amt} UNIVA (Nonce #${nextNonce} · Bitiş: ${new Date(expiresAt * 1000).toLocaleString()})`;
       drawUnivaQrCanvas(document.getElementById('off-qr-canvas'), token);
 
       const q = getOfflineQueue();
-      q.unshift({ tx, status: 'pending', createdAt: Date.now(), role: 'sender' });
+      q.unshift({ tx, token, voucher: voucherObj, status: 'signed_offline', finalized: false, createdAt: Date.now(), role: 'sender', transport: 'qr' });
       saveOfflineQueue(q);
-      showToast('✓ İmzalı çevrimdışı QR fişi üretildi (Özel anahtar içermez)');
+      showToast('🟡 İmzalı V2 çevrimdışı fiş üretildi (Blok onayına kadar kesinleşmez)');
     }
 
-    async function receiveOfflineProposal(rawOverride) {
+    async function receiveOfflineProposal(rawOverride, transportOverride) {
       const inp = document.getElementById('off-receive-input');
       const raw = (rawOverride || (inp ? inp.value : '')).trim();
-      if (!raw.startsWith('UNIVA:OFF:V1:')) {
-        alert('Geçersiz kod! Kod UNIVA:OFF:V1: ile başlamalıdır.');
+      const isV2 = raw.startsWith('UNIVA:OFF:V2:');
+      const isV1 = raw.startsWith('UNIVA:OFF:V1:');
+      if (!isV2 && !isV1) {
+        alert('Geçersiz kod! Kod UNIVA:OFF:V2: veya UNIVA:OFF:V1: ile başlamalıdır.');
         return;
       }
       try {
-        const tx = JSON.parse(atob(raw.slice('UNIVA:OFF:V1:'.length)));
+        let tx, voucherObj = null;
+        if (isV2) {
+          voucherObj = JSON.parse(atob(raw.slice('UNIVA:OFF:V2:'.length)));
+          tx = voucherObj.tx;
+          if (voucherObj.expires_at && Math.floor(Date.now() / 1000) >= voucherObj.expires_at) {
+            alert('❌ Bu çevrimdışı ödeme fişinin geçerlilik süresi dolmuş (EXPIRED)!');
+            return;
+          }
+          if (voucherObj.voucher_sig) {
+            const metaMsg = `UNIVA_OFFLINE_V2|${tx.tx_id}|${voucherObj.reservation_id || ''}|${voucherObj.expires_at || 0}`;
+            const metaOk = await verifySecp256k1Offline(tx.public_key, metaMsg, voucherObj.voucher_sig);
+            if (!metaOk) {
+              alert('❌ Fiş üstveri imzası bozuk veya değiştirilmiş!');
+              return;
+            }
+          }
+        } else {
+          tx = JSON.parse(atob(raw.slice('UNIVA:OFF:V1:'.length)));
+        }
         const canon = canonicalTxMessageJS(tx);
         const { sha256Hex } = await univaDigestSha1OfSha256(canon);
         if (sha256Hex !== tx.tx_id) {
@@ -3457,14 +3683,82 @@ Block Explorer: https://univa-network-l1.vercel.app
         }
         const q = getOfflineQueue();
         if (!q.some(item => item.tx && item.tx.tx_id === tx.tx_id)) {
-          q.unshift({ tx, status: 'pending', createdAt: Date.now(), role: 'receiver' });
+          q.unshift({
+            tx,
+            token: raw,
+            voucher: voucherObj,
+            status: 'verified_unsettled',
+            finalized: false,
+            createdAt: Date.now(),
+            role: 'receiver',
+            transport: transportOverride || (voucherObj && voucherObj.transport) || 'qr'
+          });
           saveOfflineQueue(q);
         }
         if (inp) inp.value = '';
-        showToast(`✅ İmza doğrulandı: ${tx.amount} UNIVA kuyruğa eklendi!`);
+        showToast(`🟠 İmza doğrulandı (${tx.amount} UNIVA) — Blok onayı olmadan KESİNLEŞMEZ!`);
         if (nodeConnected) syncOfflineQueue();
       } catch (e) {
         alert('Kod çözümlenemedi: ' + e.message);
+      }
+    }
+
+    async function sendOfflineViaNfc() {
+      const fb = document.getElementById('off-transport-feedback');
+      const tok = document.getElementById('off-qr-token')?.value?.trim();
+      if (!tok || !window.UnivaOfflineTransport) return;
+      try {
+        if (fb) fb.textContent = '📶 NFC etiketi veya alıcı cihazı yaklaştırın...';
+        const r = await window.UnivaOfflineTransport.sendViaNfc(tok);
+        if (fb) fb.innerHTML = `<span style="color:var(--success);">✓ NFC ile aktarıldı (${r.mode}).</span>`;
+      } catch (e) {
+        if (fb) fb.innerHTML = `<span style="color:var(--warning);">${e.message}</span>`;
+      }
+    }
+
+    async function receiveOfflineViaNfc() {
+      if (!window.UnivaOfflineTransport) return;
+      try {
+        showToast('📶 NFC okuma aktif — gönderen cihazı yaklaştırın');
+        await window.UnivaOfflineTransport.receiveViaNfc((tok) => receiveOfflineProposal(tok, 'nfc'));
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function advertiseOfflineViaBle() {
+      const fb = document.getElementById('off-transport-feedback');
+      const tok = document.getElementById('off-qr-token')?.value?.trim();
+      if (!tok || !window.UnivaOfflineTransport) return;
+      try {
+        if (fb) fb.textContent = '📡 BLE Peripheral yayını başlatılıyor...';
+        const r = await window.UnivaOfflineTransport.advertiseViaBle(tok);
+        if (fb) fb.innerHTML = `<span style="color:var(--success);">✓ BLE yayını aktif (${r.frameCount} paket · ${r.mode}).</span>`;
+      } catch (e) {
+        if (fb) fb.innerHTML = `<span style="color:var(--warning);">${e.message}</span>`;
+      }
+    }
+
+    async function sendOfflineViaBleCentral() {
+      const fb = document.getElementById('off-transport-feedback');
+      const tok = document.getElementById('off-qr-token')?.value?.trim();
+      if (!tok || !window.UnivaOfflineTransport) return;
+      try {
+        if (fb) fb.textContent = '📲 Yakındaki UNIVA BLE alıcısı aranıyor...';
+        const r = await window.UnivaOfflineTransport.sendViaBleCentral(tok);
+        if (fb) fb.innerHTML = `<span style="color:var(--success);">✓ BLE üzerinden aktarıldı (${r.frameCount} paket).</span>`;
+      } catch (e) {
+        if (fb) fb.innerHTML = `<span style="color:var(--warning);">${e.message}</span>`;
+      }
+    }
+
+    async function receiveOfflineViaBle() {
+      if (!window.UnivaOfflineTransport) return;
+      try {
+        showToast('📡 Yakındaki UNIVA BLE göndericisi taranıyor...');
+        await window.UnivaOfflineTransport.scanViaBle((tok) => receiveOfflineProposal(tok, 'ble'));
+      } catch (e) {
+        alert(e.message);
       }
     }
 
@@ -3487,7 +3781,7 @@ Block Explorer: https://univa-network-l1.vercel.app
             const codes = await detector.detect(video);
             if (codes && codes.length > 0 && codes[0].rawValue) {
               stopOfflineQrScanner();
-              receiveOfflineProposal(codes[0].rawValue);
+              receiveOfflineProposal(codes[0].rawValue, 'qr');
             }
           } catch (e) {}
         }, 450);
@@ -3509,28 +3803,67 @@ Block Explorer: https://univa-network-l1.vercel.app
     async function syncOfflineQueue() {
       if (offSyncRunning || !nodeConnected) return;
       const q = getOfflineQueue();
-      const pending = q.filter(item => item.status === 'pending');
-      if (pending.length === 0) return;
+      if (q.length === 0) return;
       offSyncRunning = true;
       let changed = false;
-      for (const item of pending) {
-        try {
-          const res = await apiCall('/tx', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tx: item.tx })
-          });
-          if (res && res.status === 'ok') {
-            item.status = 'broadcasted';
-            changed = true;
-            showToast(`🚀 Çevrimdışı ödeme ağa işlendi: ${item.tx.amount} UNIVA`);
-          }
-        } catch (e) {}
+      for (const item of q) {
+        if (!item.tx || !item.tx.tx_id) continue;
+        // 1. Unsubmitted offline vouchers -> POST /api/v1/offline/submit
+        if (item.status === 'pending' || item.status === 'signed_offline' || item.status === 'verified_unsettled') {
+          try {
+            const httpRes = await fetch(NODE_URL + '/api/v1/offline/submit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Univa-Client': CLIENT_SESSION_ID },
+              body: JSON.stringify({ token: item.token || undefined, voucher: item.voucher || item.tx, transport: item.transport || 'qr' })
+            });
+            const data = await httpRes.json();
+            if (httpRes.ok && data.accepted) {
+              item.status = 'in_mempool';
+              item.finalized = false;
+              item.error = '';
+              changed = true;
+              showToast(`🔵 Mempool'a eklendi (blok onayı bekleniyor): ${item.tx.amount} UNIVA`);
+            } else if (httpRes.status === 410) {
+              item.status = 'expired';
+              item.error = data.detail || 'Süresi doldu';
+              changed = true;
+            } else if (httpRes.status === 409) {
+              // Query authoritative chain/mempool status before marking replay/confirmed
+              const st = await apiCall('/api/v1/offline/status/' + encodeURIComponent(item.tx.tx_id));
+              if (st && st.status) {
+                item.status = st.status;
+                item.finalized = !!st.finalized;
+                item.block_index = st.block_index;
+                item.confirmations = st.confirmations || 0;
+                changed = true;
+              }
+            } else if (httpRes.status >= 400 && httpRes.status < 500) {
+              item.error = data.detail || 'Reddedildi';
+              changed = true;
+            }
+          } catch (e) {}
+        } else if (item.status === 'in_mempool' || item.status === 'broadcasted') {
+          // 2. Poll real L1 block confirmation status
+          try {
+            const st = await apiCall('/api/v1/offline/status/' + encodeURIComponent(item.tx.tx_id));
+            if (st && st.status === 'confirmed') {
+              item.status = 'confirmed';
+              item.finalized = true;
+              item.block_index = st.block_index;
+              item.confirmations = st.confirmations || 1;
+              changed = true;
+            } else if (st && st.status === 'in_mempool') {
+              item.status = 'in_mempool';
+              item.finalized = false;
+            }
+          } catch (e) {}
+        }
       }
       if (changed) {
         saveOfflineQueue(q);
         fetchWalletBalance();
         fetchLiveHistory();
+        fetchOfflineReservations();
       }
       offSyncRunning = false;
     }
@@ -3539,24 +3872,38 @@ Block Explorer: https://univa-network-l1.vercel.app
       const q = getOfflineQueue();
       const cnt = document.getElementById('off-queue-count');
       const box = document.getElementById('off-queue-list');
-      if (cnt) cnt.textContent = q.filter(x => x.status === 'pending').length;
+      if (cnt) cnt.textContent = q.filter(x => x.status !== 'confirmed' && x.status !== 'expired').length;
       if (!box) return;
       if (q.length === 0) {
-        box.innerHTML = 'Henüz bekleyen çevrimdışı ödeme yok.';
+        box.innerHTML = 'Henüz çevrimdışı ödeme kaydı yok.';
         return;
       }
+      const badgeFor = (item) => {
+        if (item.status === 'confirmed') {
+          return `<span style="color:var(--success);font-weight:700;">🟢 Onaylandı (Blok #${item.block_index ?? '?'})</span>`;
+        }
+        if (item.status === 'in_mempool' || item.status === 'broadcasted') {
+          return '<span style="color:var(--blue);font-weight:700;">🔵 Mempool\'da (Blok Onayı Bekliyor)</span>';
+        }
+        if (item.status === 'expired' || item.status === 'rejected') {
+          return `<span style="color:var(--error);font-weight:700;">🔴 ${item.status === 'expired' ? 'Süresi Doldu' : 'Reddedildi'}</span>`;
+        }
+        if (item.status === 'verified_unsettled') {
+          return '<span style="color:var(--warning);font-weight:700;">🟠 İmza Doğrulandı (Kesinleşmedi)</span>';
+        }
+        return '<span style="color:var(--warning);font-weight:700;">🟡 Çevrimdışı İmzalandı (Kesinleşmedi)</span>';
+      };
       box.innerHTML = q.slice(0, 15).map(item => {
-        const badge = item.status === 'broadcasted'
-          ? '<span style="color:var(--success);font-weight:700;">✅ Ağa Yayınlandı</span>'
-          : '<span style="color:var(--warning);font-weight:700;">⏳ İnternet Bekleniyor</span>';
+        const errHtml = item.error ? `<div style="color:var(--error);font-size:0.7rem;margin-top:3px;">${item.error}</div>` : '';
         return `<div style="padding:8px 10px;margin-bottom:6px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;">
-          <div style="display:flex;justify-content:space-between;"><strong>${item.tx.amount} UNIVA</strong>${badge}</div>
+          <div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;"><strong>${item.tx.amount} UNIVA <small style="color:var(--text-muted);text-transform:uppercase;">[${item.transport || 'qr'}]</small></strong>${badgeFor(item)}</div>
           <div class="mono" style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">${item.tx.from.slice(0,11)}... → ${item.tx.to.slice(0,11)}... (Nonce #${item.tx.nonce})</div>
+          ${errHtml}
         </div>`;
       }).join('');
     }
     window.addEventListener('online', () => setTimeout(syncOfflineQueue, 1200));
-    setTimeout(renderOfflineQueue, 400);
+    setTimeout(() => { refreshOfflineCapabilities(); renderOfflineQueue(); }, 400);
 
     let mystUnlockedCache = false;
     let mystLastCelebratedEpoch = 0;
