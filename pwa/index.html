@@ -1048,7 +1048,7 @@
 
         <div class="card" style="margin-bottom:24px;">
           <div class="form-group" style="display:flex;gap:12px;margin-bottom:0;">
-            <input class="form-input" id="explorer-query" placeholder="Blok No (#1400), Blok Hash, TX Hash, Rezervasyon (res_...) veya Adres (univa... / 0x...)" onkeydown="if(event.key==='Enter')executeExplorerSearch()">
+            <input class="form-input" id="explorer-query" placeholder="Blok No (#10), Blok Hash, İşlem (TX) Hash veya Adres (univa... / 0x...) arayın..." onkeydown="if(event.key==='Enter')executeExplorerSearch()">
             <button class="btn btn-primary" onclick="executeExplorerSearch()" style="flex-shrink:0;">Search Explorer</button>
           </div>
         </div>
@@ -1302,13 +1302,13 @@
           <span class="badge badge-live">On-Chain Consensus AMM Active</span>
         </div>
 
-        <div class="card" style="border-color:var(--blue);margin-bottom:24px;">
+        <div class="card" style="border-color:var(--success);margin-bottom:24px;">
           <div style="display:flex;gap:14px;align-items:flex-start;">
             <div style="font-size:1.4rem;">⚡</div>
             <div>
-              <div style="font-weight:700;color:var(--blue);font-size:0.95rem;">On-Chain Consensus DEX (x · y = k) — Multi-Node Verified</div>
+              <div style="font-weight:700;color:var(--success);font-size:0.95rem;">Blok İçi Konsensüs AMM (Tüm Düğümlerde Deterministik)</div>
               <p style="font-size:0.85rem;color:var(--text-muted);margin-top:4px;line-height:1.5;">
-                Swaps are signed locally as native L1 <span class="mono">dex_swap</span> consensus transactions, broadcast via P2P, and recorded inside UNIVA PoW blocks so every node independently verifies identical reserves, fees (0.10%), and balances. Note: <span class="mono">uUSD</span> is an internal protocol unit (not an externally backed bank USD).
+                Takas ve likidite işlemleri (<span class="mono">dex_swap</span>, <span class="mono">dex_add_liquidity</span>, <span class="mono">dex_remove_liquidity</span>) tarayıcıda secp256k1 ile imzalanarak doğrudan L1 mempool ve bloklarına yazılır. Ağdaki tüm düğümler aynı tam sayı AMM rezervlerini ve <span class="mono">state_root</span> özetini bağımsız olarak doğrular. (Not: <span class="mono">uUSD</span> protokol içi test sabit birimidir.)
               </p>
             </div>
           </div>
@@ -1350,7 +1350,7 @@
               </select>
             </div>
             <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="executeDexSwap()">
-              Swap Tokens (On-Chain Consensus DEX)
+              Takas Et (Blok İçi İmzalı AMM)
             </button>
             <div id="dex-swap-feedback" style="margin-top:10px;font-size:0.82rem;"></div>
           </div>
@@ -1526,37 +1526,45 @@
           </div>
         </div>
 
-        <!-- 0. DUAL WALLET VIEW: CANLI BAKİYE + SOĞUK CEP (ON-CHAIN CONSENSUS ESCROW) -->
+        <!-- 0. 2-WALLET HOT / COLD POCKET VIEW (SINGLE 12-WORD SEED + ON-CHAIN CONSENSUS ESCROW) -->
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div class="card" style="border-color:var(--success);margin:0;">
+            <div class="card-header" style="margin-bottom:8px;">
+              <div class="card-title">🟢 Canlı Bakiye (Ana L1 Hesap)</div>
+              <span class="badge badge-live">On-Chain L1</span>
+            </div>
+            <div class="mono" id="off-hot-bal" style="font-size:1.45rem;font-weight:800;color:var(--success);">— UNIVA</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;">
+              Madencilik, normal transferler ve DEX için serbest L1 bakiyeniz.
+            </div>
+          </div>
+
+          <div class="card" style="border-color:var(--blue);margin:0;">
+            <div class="card-header" style="margin-bottom:8px;">
+              <div class="card-title">❄️ Soğuk Cep (Çevrimdışı Ödeme Cüzdanı)</div>
+              <span class="badge badge-native">Konsensüs Emanet</span>
+            </div>
+            <div class="mono" id="off-cold-avail" style="font-size:1.45rem;font-weight:800;color:var(--blue);">0.0000 UNIVA</div>
+            <div class="mono" style="display:flex;gap:14px;flex-wrap:wrap;font-size:0.75rem;color:var(--text-muted);margin-top:6px;">
+              <span id="off-cold-blocked">🔒 Yerel Blokeli: 0.0000 UNIVA</span>
+              <span id="off-cold-incoming" style="color:var(--warning);">📥 Gelen (Onay Bekliyor): 0.0000 UNIVA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CANLI -> SOGUK AKTARMA (ON-CHAIN offline_reserve) -->
         <div class="card" style="margin-bottom:20px;">
           <div class="card-header" style="flex-wrap:wrap;gap:8px;">
-            <div class="card-title">0. Çift Cüzdan Görünümü: 🟢 Canlı Bakiye + ❄️ Soğuk Cep (Tek 12 Kelime)</div>
+            <div class="card-title">0. Canlı Cüzdandan Soğuk Cebe Aktar (Alıcı Belli Değil · Blok İçi Kilit)</div>
             <span class="mono" id="off-res-summary" style="font-size:0.78rem;color:var(--text-muted);">Cüzdan bekleniyor</span>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;">
-            <div style="padding:10px 12px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border);">
-              <div style="font-size:0.72rem;color:var(--text-muted);">🟢 Canlı Bakiye (Ana L1)</div>
-              <div class="mono" id="off-live-bal" style="font-size:1.05rem;font-weight:800;color:var(--success);margin-top:2px;">0.0000 UNIVA</div>
-            </div>
-            <div style="padding:10px 12px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border);">
-              <div style="font-size:0.72rem;color:var(--text-muted);">❄️ Soğuk Cep (Harcanabilir)</div>
-              <div class="mono" id="off-cold-bal" style="font-size:1.05rem;font-weight:800;color:var(--blue);margin-top:2px;">0.0000 UNIVA</div>
-            </div>
-            <div style="padding:10px 12px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border);">
-              <div style="font-size:0.72rem;color:var(--text-muted);">🔒 Yerel Bloke (Çıkış)</div>
-              <div class="mono" id="off-blocked-bal" style="font-size:1.05rem;font-weight:800;color:var(--warning);margin-top:2px;">0.0000 UNIVA</div>
-            </div>
-            <div style="padding:10px 12px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border);">
-              <div style="font-size:0.72rem;color:var(--text-muted);">📥 Gelen Soğuk (Onay Bekliyor)</div>
-              <div class="mono" id="off-incoming-bal" style="font-size:1.05rem;font-weight:800;color:var(--metallic);margin-top:2px;">0.0000 UNIVA</div>
-            </div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;">
             <div class="form-group" style="margin:0;">
-              <label class="form-label">Canlı → Soğuk Cebe Aktar (UNIVA)</label>
+              <label class="form-label">Soğuk Cebe Aktarılacak Tutar (UNIVA)</label>
               <input class="form-input mono" type="number" step="0.01" min="0" id="off-res-amt" placeholder="25.0">
             </div>
             <div class="form-group" style="margin:0;">
-              <label class="form-label">Kilit Süresi (TTL · En fazla 1 Saat)</label>
+              <label class="form-label">Kilit Süresi (TTL · Süre Bitince Kalan İade Olur)</label>
               <select class="form-input mono" id="off-res-ttl">
                 <option value="60">1 Dakika</option>
                 <option value="300">5 Dakika</option>
@@ -1568,7 +1576,7 @@
             <button class="btn btn-metallic" onclick="createOfflineReservation()">❄️ Canlı → Soğuk Cebe Aktar</button>
           </div>
           <div id="off-res-feedback" style="margin-top:8px;font-size:0.8rem;"></div>
-          <div id="off-res-list" style="margin-top:10px;font-size:0.78rem;color:var(--text-muted);">Aktif soğuk cep kilidi yok.</div>
+          <div id="off-res-list" style="margin-top:10px;font-size:0.78rem;color:var(--text-muted);">Aktif Soğuk Cep kilidi yok.</div>
         </div>
 
         <div class="grid-2">
@@ -2225,26 +2233,49 @@ Block Explorer: https://univa-network-l1.vercel.app
       fetchRecentTransactions();
     }
 
+    function renderExplorerBlockCard(blk) {
+      const txs = Array.isArray(blk.transactions) ? blk.transactions : [];
+      const txHtml = txs.length > 0
+        ? `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+            <strong>Blok İşlemleri (${txs.length}):</strong>
+            <div style="margin-top:6px;max-height:180px;overflow-y:auto;">
+              ${txs.map((t, idx) => {
+                const tid = t.tx_id || (t.type === 'coinbase' ? ('coinbase_blk_' + blk.index) : ('tx_' + idx));
+                return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 8px;margin-bottom:4px;background:var(--bg-secondary);border-radius:6px;font-size:0.78rem;flex-wrap:wrap;">
+                  <span class="mono"><a style="color:var(--blue);cursor:pointer;font-weight:700;" onclick="inspectTxInExplorer('${escapeHtml(tid)}')">${escapeHtml(String(tid).slice(0, 22))}...</a> · <strong>${escapeHtml(t.type || 'transfer')}</strong></span>
+                  <span class="mono" style="color:var(--success);font-weight:700;">${Number(t.amount || t.amount_in || 0).toFixed(4)} UNIVA</span>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>`
+        : '';
+      return `<div class="card card-accent">
+        <div class="card-header">
+          <div class="card-title">Blok #${blk.index} Defter Detayı</div>
+          <button class="btn btn-metallic btn-sm" onclick="this.closest('.card-accent').parentElement.style.display='none'">✕ Kapat</button>
+        </div>
+        <div style="font-size:0.85rem;line-height:1.7;">
+          <div><strong>Hash:</strong> <span class="mono" style="color:var(--blue);word-break:break-all;">${escapeHtml(blk.hash)}</span></div>
+          <div><strong>Önceki Hash:</strong> <span class="mono" style="word-break:break-all;">${escapeHtml(blk.previous_hash)}</span></div>
+          <div><strong>Merkle Kökü:</strong> <span class="mono" style="word-break:break-all;">${escapeHtml(blk.merkle_root)}</span></div>
+          <div><strong>Madenci:</strong> <span class="mono" style="cursor:pointer;color:var(--blue);" onclick="inspectAddressInExplorer('${escapeHtml(blk.miner_address)}')">${escapeHtml(blk.miner_address)}</span></div>
+          <div><strong>Nonce:</strong> <span class="mono">${blk.nonce}</span> | <strong>Zorluk:</strong> <span class="mono">${blk.difficulty}</span></div>
+          <div><strong>Ödül:</strong> <span class="mono" style="color:var(--success);">+${blk.reward} UNIVA</span></div>
+          ${txHtml}
+        </div>
+      </div>`;
+    }
+
     async function inspectBlock(idx) {
-      const b = await apiCall('/block/' + idx);
       const panel = document.getElementById('explorer-inspect-panel');
+      const b = await apiCall('/block/' + encodeURIComponent(String(idx).replace(/^#/, '')));
       if (b && b.block) {
         panel.style.display = 'block';
-        panel.innerHTML = `<div class="card card-accent">
-          <div class="card-header">
-            <div class="card-title">Block #${b.block.index} Ledger Details</div>
-            <button class="btn btn-metallic btn-sm" onclick="this.closest('.card-accent').parentElement.style.display='none'">✕ Close</button>
-          </div>
-          <div style="font-size:0.85rem;line-height:1.7;">
-            <div><strong>Hash:</strong> <span class="mono" style="color:var(--blue);">${b.block.hash}</span></div>
-            <div><strong>Previous Hash:</strong> <span class="mono">${b.block.previous_hash}</span></div>
-            <div><strong>Merkle Root:</strong> <span class="mono">${b.block.merkle_root}</span></div>
-            <div><strong>Miner:</strong> <span class="mono">${b.block.miner_address}</span></div>
-            <div><strong>Nonce:</strong> <span class="mono">${b.block.nonce}</span> | <strong>Difficulty:</strong> <span class="mono">${b.block.difficulty}</span></div>
-            <div><strong>Reward:</strong> <span class="mono" style="color:var(--success);">+${b.block.reward} UNIVA</span></div>
-          </div>
-        </div>`;
+        panel.innerHTML = renderExplorerBlockCard(b.block);
         panel.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        panel.style.display = 'block';
+        panel.innerHTML = `<div class="card" style="border-color:var(--error);"><div style="color:var(--error);font-weight:700;">❌ Blok #${escapeHtml(idx)} bulunamadı veya düğüm çevrimdışı.</div></div>`;
       }
     }
 
@@ -2355,132 +2386,86 @@ Block Explorer: https://univa-network-l1.vercel.app
     async function executeExplorerSearch() {
       const q = document.getElementById('explorer-query').value.trim();
       const panel = document.getElementById('explorer-inspect-panel');
-      if (!q || !panel) return;
+      if (!q) return;
 
       panel.style.display = 'block';
-      panel.innerHTML = `<div class="card card-accent"><div style="color:var(--blue);font-size:0.88rem;">🔍 Blokzincir indeksi taranıyor: <span class="mono">${escapeHtml(q)}</span>...</div></div>`;
+      panel.innerHTML = '<div class="card"><span style="color:var(--blue);">🔍 UNIVA blokzincir indeksinde aranıyor...</span></div>';
 
-      try {
-        const httpRes = await fetch(NODE_URL + '/api/v1/explorer/search?q=' + encodeURIComponent(q), {
-          headers: { 'X-Univa-Client': CLIENT_SESSION_ID }
-        });
-        const data = await httpRes.json().catch(() => null);
+      const res = await apiCall('/api/v1/explorer/search?q=' + encodeURIComponent(q));
+      if (!res) {
+        panel.innerHTML = `<div class="card" style="border-color:var(--error);">
+          <div class="card-header">
+            <div class="card-title" style="color:var(--error);">Sorgu Bulunamadı</div>
+            <button class="btn btn-metallic btn-sm" onclick="this.closest('.card').parentElement.style.display='none'">✕ Kapat</button>
+          </div>
+          <div style="font-size:0.86rem;color:var(--text-muted);">
+            <span class="mono">${escapeHtml(q)}</span> için blok, işlem veya adres kaydı bulunamadı. (Düğüm bağlantısını veya sorgu formatını kontrol edin: Blok No, Blok Hash, TX ID, <code>univa...</code> veya <code>0x...</code>)
+          </div>
+        </div>`;
+        showToast('Sorgu blokzincir indeksinde bulunamadı.');
+        return;
+      }
 
-        if (!httpRes.ok || !data || !data.kind) {
-          const errMsg = (data && data.detail) ? data.detail : 'Sorgu blokzincir indeksinde bulunamadı.';
-          panel.innerHTML = `<div class="card" style="border-color:var(--error);">
-            <div class="card-header">
-              <div class="card-title" style="color:var(--error);">Sorgu Sonucu Bulunamadı</div>
-              <button class="btn btn-metallic btn-sm" onclick="this.closest('.card').parentElement.style.display='none'">✕ Kapat</button>
-            </div>
-            <div style="font-size:0.88rem;color:var(--text-muted);">${escapeHtml(errMsg)}</div>
-          </div>`;
-          showToast(errMsg);
-          return;
+      if (res.type === 'block' && res.block) {
+        panel.innerHTML = renderExplorerBlockCard(res.block);
+        panel.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+
+      if (res.type === 'tx' && res.tx) {
+        const tx = res.tx;
+        panel.innerHTML = `<div class="card card-accent">
+          <div class="card-header">
+            <div class="card-title">UNIVA İşlem (TX) Doğrulama Detayı</div>
+            <button class="btn btn-metallic btn-sm" onclick="this.closest('.card-accent').parentElement.style.display='none'">✕ Kapat</button>
+          </div>
+          <div style="font-size:0.88rem;line-height:1.8;">
+            <div><strong>Durum:</strong> <span class="badge ${res.status === 'confirmed' ? 'badge-live' : 'badge-dev'}">${res.status === 'confirmed' ? 'ONAYLANDI (Blok #' + res.block_index + ')' : 'MEMPOOL (Bekliyor)'}</span></div>
+            <div><strong>İşlem Tipi:</strong> <span class="badge badge-native">${escapeHtml(tx.type || 'transfer')}</span></div>
+            <div><strong>TX Hash:</strong> <span class="mono" style="color:var(--blue);word-break:break-all;">${escapeHtml(tx.tx_id || q)}</span></div>
+            <div><strong>Gönderen:</strong> <span class="mono">${escapeHtml(tx.from || '—')}</span></div>
+            <div><strong>Alıcı:</strong> <span class="mono">${escapeHtml(tx.to || tx.asset_out || '—')}</span></div>
+            <div><strong>Miktar:</strong> <span class="mono" style="color:var(--success);font-weight:800;">${tx.amount ?? tx.amount_in ?? 0} ${escapeHtml(tx.asset_in || 'UNIVA')}</span></div>
+            <div><strong>Ağ Ücreti (Madenciye):</strong> <span class="mono">${tx.fee || 0} UNIVA</span></div>
+          </div>
+        </div>`;
+        panel.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+
+      if (res.type === 'address') {
+        const safeQ = escapeHtml(res.address || q);
+        const txList = Array.isArray(res.history) ? res.history : [];
+        const confirmedBal = Number(res.balance ?? 0).toFixed(8);
+        const uusdBal = Number(res.uusd_balance ?? 0).toFixed(4);
+        let histHtml = '';
+        if (txList.length > 0) {
+          histHtml = '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;"><strong>Zincir İçi Hareketler (' + txList.length + ' TX):</strong><div style="margin-top:8px;max-height:220px;overflow-y:auto;">';
+          txList.slice(0, 20).forEach(tx => {
+            const label = tx.type === 'coinbase' ? ('⛏️ Blok #' + tx.block_index + ' Ödülü') : escapeHtml(tx.type || 'Transfer');
+            histHtml += `<div style="display:flex;justify-content:space-between;padding:8px 10px;margin-bottom:6px;background:var(--bg-secondary);border-radius:6px;font-size:0.8rem;">
+              <span class="mono">${label}</span>
+              <span class="mono" style="color:var(--success);font-weight:700;">${tx.is_incoming === false ? '-' : '+'}${tx.amount} UNIVA</span>
+            </div>`;
+          });
+          histHtml += '</div></div>';
         }
-
-        if (data.kind === 'block' && data.block) {
-          const blk = data.block;
-          const txs = Array.isArray(blk.transactions) ? blk.transactions : [];
-          panel.innerHTML = `<div class="card card-accent">
-            <div class="card-header">
-              <div class="card-title">Blok #${blk.index} Zincir Doğrulama Detayı</div>
-              <button class="btn btn-metallic btn-sm" onclick="this.closest('.card-accent').parentElement.style.display='none'">✕ Kapat</button>
+        panel.innerHTML = `<div class="card card-accent">
+          <div class="card-header">
+            <div class="card-title">UNIVA Adres Defter Doğrulaması</div>
+            <button class="btn btn-metallic btn-sm" onclick="this.closest('.card-accent').parentElement.style.display='none'">✕ Kapat</button>
+          </div>
+          <div style="font-size:0.9rem;line-height:1.7;">
+            <div style="margin-bottom:8px;"><strong>Format Tipi:</strong> <span class="badge badge-native">${escapeHtml(res.address_type || 'UNIVA L1')}</span></div>
+            <div class="addr-bar" style="margin-bottom:12px;">
+              <span id="exp-searched-addr">${safeQ}</span>
+              <button class="copy-icon-btn" onclick="copyElemText('exp-searched-addr', 'Address Copied')">📋 Kopyala</button>
             </div>
-            <div style="font-size:0.86rem;line-height:1.8;">
-              <div><strong>Blok Hash:</strong> <span class="mono" style="color:var(--blue);word-break:break-all;">${escapeHtml(blk.hash || '')}</span></div>
-              <div><strong>Önceki Hash:</strong> <span class="mono" style="word-break:break-all;">${escapeHtml(blk.previous_hash || '')}</span></div>
-              <div><strong>Merkle Kökü:</strong> <span class="mono" style="word-break:break-all;">${escapeHtml(blk.merkle_root || '')}</span></div>
-              <div><strong>Madenci:</strong> <a class="mono" style="color:var(--blue);cursor:pointer;" onclick="inspectAddressInExplorer('${escapeHtml(blk.miner_address || '')}')">${escapeHtml(blk.miner_address || '—')}</a></div>
-              <div><strong>Ödül / Zorluk / Nonce:</strong> <span class="mono" style="color:var(--success);font-weight:700;">${blk.reward} UNIVA</span> · Zorluk: <span class="mono">${blk.difficulty}</span> · Nonce: <span class="mono">${blk.nonce}</span></div>
-              <div><strong>Zaman:</strong> <span class="mono">${new Date((blk.timestamp || 0) * 1000).toLocaleString()}</span> · <strong>İşlem Sayısı:</strong> ${txs.length}</div>
-            </div>
-          </div>`;
-          panel.scrollIntoView({ behavior: 'smooth' });
-          return;
-        }
-
-        if (data.kind === 'transaction' && data.tx) {
-          const tx = data.tx;
-          const tType = tx.type || 'transfer';
-          const amtDisplay = tx.amount !== undefined ? `${tx.amount} UNIVA`
-            : (tx.amount_in !== undefined ? `${tx.amount_in} ${tx.asset_in} → ${tx.asset_out}` : (tx.lp_amount !== undefined ? `${tx.lp_amount} LP` : '—'));
-          panel.innerHTML = `<div class="card card-accent">
-            <div class="card-header">
-              <div class="card-title">UNIVA İşlem (TX) Doğrulama Detayı</div>
-              <button class="btn btn-metallic btn-sm" onclick="this.closest('.card-accent').parentElement.style.display='none'">✕ Kapat</button>
-            </div>
-            <div style="font-size:0.88rem;line-height:1.8;">
-              <div><strong>Durum:</strong> <span class="badge ${data.status === 'confirmed' ? 'badge-live' : 'badge-dev'}">${data.status === 'confirmed' ? 'ONAYLANDI (Blok #' + data.block_index + ')' : 'MEMPOOL (Onay Bekliyor)'}</span> <span class="badge badge-native">${escapeHtml(tType)}</span></div>
-              <div><strong>TX Hash:</strong> <span class="mono" style="color:var(--blue);word-break:break-all;">${escapeHtml(tx.tx_id || q)}</span></div>
-              <div><strong>Gönderen:</strong> <span class="mono">${escapeHtml(tx.from || 'network_mint')}</span></div>
-              <div><strong>Alıcı:</strong> <span class="mono">${escapeHtml(tx.to || tx.reservation_id || '—')}</span></div>
-              <div><strong>Miktar / Detay:</strong> <span class="mono" style="color:var(--success);font-weight:800;">${escapeHtml(amtDisplay)}</span></div>
-              <div><strong>Ağ Ücreti (Madenciye):</strong> <span class="mono">${tx.fee || 0} UNIVA</span></div>
-            </div>
-          </div>`;
-          panel.scrollIntoView({ behavior: 'smooth' });
-          return;
-        }
-
-        if (data.kind === 'reservation' && data.reservation) {
-          const r = data.reservation;
-          panel.innerHTML = `<div class="card card-accent">
-            <div class="card-header">
-              <div class="card-title">❄️ Soğuk Cep / Çevrimdışı Emanet Kaydı</div>
-              <button class="btn btn-metallic btn-sm" onclick="this.closest('.card-accent').parentElement.style.display='none'">✕ Kapat</button>
-            </div>
-            <div style="font-size:0.88rem;line-height:1.8;">
-              <div><strong>Rezervasyon ID:</strong> <span class="mono" style="color:var(--blue);">${escapeHtml(r.reservation_id)}</span> <span class="badge ${r.consensus ? 'badge-live' : 'badge-dev'}">${r.consensus ? 'Blok İçi Konsensüs' : 'Düğüm Kilidi'}</span></div>
-              <div><strong>Sahip:</strong> <span class="mono">${escapeHtml(r.owner_raw || r.owner || '')}</span></div>
-              <div><strong>Durum:</strong> <span class="mono">${escapeHtml(r.status || '')}</span> · <strong>Kalan / Toplam:</strong> <span class="mono" style="color:var(--success);">${Number(r.remaining || 0).toFixed(4)} / ${Number(r.amount || 0).toFixed(4)} UNIVA</span></div>
-              <div><strong>Bitiş Zamanı:</strong> <span class="mono">${new Date((r.expires_at || 0) * 1000).toLocaleString()}</span></div>
-            </div>
-          </div>`;
-          panel.scrollIntoView({ behavior: 'smooth' });
-          return;
-        }
-
-        if (data.kind === 'address') {
-          const safeQ = escapeHtml(data.address || q);
-          const txList = Array.isArray(data.history) ? data.history : [];
-          let histHtml = '';
-          if (txList.length > 0) {
-            histHtml = '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;"><strong>Son Zincir İşlemleri (' + data.tx_count + ' TX):</strong><div style="margin-top:8px;max-height:220px;overflow-y:auto;">';
-            txList.slice(0, 15).forEach(tx => {
-              const sign = tx.is_incoming === false ? '-' : '+';
-              const col = tx.is_incoming === false ? 'var(--error)' : 'var(--success)';
-              histHtml += `<div style="display:flex;justify-content:space-between;padding:8px 10px;margin-bottom:6px;background:var(--bg-secondary);border-radius:6px;font-size:0.8rem;">
-                <span class="mono">${tx.type === 'coinbase' ? '⛏️ Blok #' + tx.block_index + ' Ödülü' : escapeHtml(tx.type || 'Transfer')}</span>
-                <span class="mono" style="color:${col};font-weight:700;">${sign}${tx.amount} UNIVA</span>
-              </div>`;
-            });
-            histHtml += '</div></div>';
-          }
-          panel.innerHTML = `<div class="card card-accent">
-            <div class="card-header">
-              <div class="card-title">UNIVA Adres Defteri Doğrulaması</div>
-              <button class="btn btn-metallic btn-sm" onclick="this.closest('.card-accent').parentElement.style.display='none'">✕ Kapat</button>
-            </div>
-            <div style="font-size:0.9rem;line-height:1.7;">
-              <div style="margin-bottom:8px;"><strong>Format:</strong> <span class="badge badge-native">${escapeHtml(data.address_type || 'UNIVA')}</span></div>
-              <div class="addr-bar" style="margin-bottom:12px;">
-                <span id="exp-searched-addr">${safeQ}</span>
-                <button class="copy-icon-btn" onclick="copyElemText('exp-searched-addr', 'Adres Kopyalandı')">📋 Kopyala</button>
-              </div>
-              <div style="display:flex;gap:18px;flex-wrap:wrap;">
-                <div><strong>🟢 Canlı Bakiye:</strong> <span class="mono" style="color:var(--success);font-size:1.15rem;font-weight:800;">${Number(data.balance || 0).toFixed(8)} UNIVA</span></div>
-                <div><strong>❄️ Soğuk Cep Kilitli:</strong> <span class="mono" style="color:var(--blue);font-weight:700;">${Number(data.cold_pocket_reserved || 0).toFixed(4)} UNIVA</span></div>
-                <div><strong>uUSD:</strong> <span class="mono">${Number(data.uusd_balance || 0).toFixed(4)} uUSD</span></div>
-                <div><strong>Kazılan Blok:</strong> <span class="mono">${data.blocks_mined || 0}</span></div>
-              </div>
-              ${histHtml}
-            </div>
-          </div>`;
-          panel.scrollIntoView({ behavior: 'smooth' });
-        }
-      } catch (err) {
-        panel.innerHTML = `<div class="card" style="border-color:var(--error);"><div style="color:var(--error);font-size:0.86rem;">❌ Düğüm bağlantı hatası: ${escapeHtml(err.message)}</div></div>`;
+            <div><strong>Bakiye:</strong> <span class="mono" style="color:var(--success);font-size:1.25rem;font-weight:800;">${confirmedBal} UNIVA</span> · <span class="mono" style="font-size:0.9rem;color:var(--text-muted);">${uusdBal} uUSD · Nonce #${res.nonce || 0}</span></div>
+            ${histHtml}
+          </div>
+        </div>`;
+        panel.scrollIntoView({ behavior: 'smooth' });
       }
     }
 
@@ -3382,24 +3367,24 @@ Block Explorer: https://univa-network-l1.vercel.app
       const pyF = n => Number.isInteger(n) ? n.toFixed(1) : String(n);
       const t = tx.type || 'transfer';
       if (t === 'offline_reserve') {
-        return `{"amount":${pyF(tx.amount)},"expires_at":${Math.trunc(tx.expires_at)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"nonce":${Math.trunc(tx.nonce)},"public_key":${JSON.stringify(tx.public_key)},"type":"offline_reserve"}`;
+        return `{"amount":${pyF(tx.amount)},"expires_at":${tx.expires_at},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"nonce":${tx.nonce},"public_key":${JSON.stringify(tx.public_key)},"type":"offline_reserve"}`;
       }
       if (t === 'offline_spend') {
-        return `{"amount":${pyF(tx.amount)},"expires_at":${Math.trunc(tx.expires_at)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"public_key":${JSON.stringify(tx.public_key)},"reservation_id":${JSON.stringify(tx.reservation_id)},"to":${JSON.stringify(tx.to)},"type":"offline_spend","voucher_nonce":${Math.trunc(tx.voucher_nonce)}}`;
+        return `{"amount":${pyF(tx.amount)},"expires_at":${tx.expires_at},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"public_key":${JSON.stringify(tx.public_key)},"reservation_id":${JSON.stringify(tx.reservation_id)},"to":${JSON.stringify(tx.to)},"type":"offline_spend","voucher_nonce":${tx.voucher_nonce}}`;
       }
       if (t === 'offline_release') {
-        return `{"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"nonce":${Math.trunc(tx.nonce)},"public_key":${JSON.stringify(tx.public_key)},"reservation_id":${JSON.stringify(tx.reservation_id)},"type":"offline_release"}`;
+        return `{"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"nonce":${tx.nonce},"public_key":${JSON.stringify(tx.public_key)},"reservation_id":${JSON.stringify(tx.reservation_id)},"type":"offline_release"}`;
       }
       if (t === 'dex_swap') {
-        return `{"amount_in":${pyF(tx.amount_in)},"asset_in":${JSON.stringify(tx.asset_in)},"asset_out":${JSON.stringify(tx.asset_out)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"min_out":${pyF(tx.min_out)},"nonce":${Math.trunc(tx.nonce)},"public_key":${JSON.stringify(tx.public_key)},"type":"dex_swap"}`;
+        return `{"amount_in":${pyF(tx.amount_in)},"asset_in":${JSON.stringify(tx.asset_in)},"asset_out":${JSON.stringify(tx.asset_out)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"min_out":${pyF(tx.min_out)},"nonce":${tx.nonce},"public_key":${JSON.stringify(tx.public_key)},"type":"dex_swap"}`;
       }
       if (t === 'dex_add_liquidity') {
-        return `{"amount_a":${pyF(tx.amount_a)},"amount_b":${pyF(tx.amount_b)},"asset_a":${JSON.stringify(tx.asset_a)},"asset_b":${JSON.stringify(tx.asset_b)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"nonce":${Math.trunc(tx.nonce)},"public_key":${JSON.stringify(tx.public_key)},"type":"dex_add_liquidity"}`;
+        return `{"amount_a":${pyF(tx.amount_a)},"amount_b":${pyF(tx.amount_b)},"asset_a":${JSON.stringify(tx.asset_a)},"asset_b":${JSON.stringify(tx.asset_b)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"nonce":${tx.nonce},"public_key":${JSON.stringify(tx.public_key)},"type":"dex_add_liquidity"}`;
       }
       if (t === 'dex_remove_liquidity') {
-        return `{"asset_a":${JSON.stringify(tx.asset_a)},"asset_b":${JSON.stringify(tx.asset_b)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"lp_amount":${pyF(tx.lp_amount)},"nonce":${Math.trunc(tx.nonce)},"public_key":${JSON.stringify(tx.public_key)},"type":"dex_remove_liquidity"}`;
+        return `{"asset_a":${JSON.stringify(tx.asset_a)},"asset_b":${JSON.stringify(tx.asset_b)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"lp_amount":${pyF(tx.lp_amount)},"nonce":${tx.nonce},"public_key":${JSON.stringify(tx.public_key)},"type":"dex_remove_liquidity"}`;
       }
-      return `{"amount":${pyF(tx.amount)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"nonce":${Math.trunc(tx.nonce)},"public_key":${JSON.stringify(tx.public_key)},"to":${JSON.stringify(tx.to)},"type":"transfer"}`;
+      return `{"amount":${pyF(tx.amount)},"fee":${pyF(tx.fee)},"from":${JSON.stringify(tx.from)},"nonce":${tx.nonce},"public_key":${JSON.stringify(tx.public_key)},"to":${JSON.stringify(tx.to)},"type":"transfer"}`;
     }
 
     async function ensurePubkeyBound() {
@@ -3594,29 +3579,40 @@ Block Explorer: https://univa-network-l1.vercel.app
       }
     }
 
-    let cachedOfflineReservations = [];
+    let _lastOfflineResData = null;
 
-    function updateDualWalletMetrics(liveBal, onchainCold) {
+    function updateHotColdPocketDisplay(resData) {
+      if (resData) _lastOfflineResData = resData;
+      const d = _lastOfflineResData || {};
       const q = getOfflineQueue();
       const myAddr = (walletAddr || '').toLowerCase();
-      // Yerel Bloke: bu cihazdan çevrimdışı kesilmiş ama henüz onaylanmamış çıkışlar
-      const localBlocked = q
-        .filter(it => it.role === 'sender' && it.tx && (it.tx.from || '').toLowerCase() === myAddr && (it.status === 'signed_offline' || it.status === 'pending'))
-        .reduce((acc, it) => acc + Number(it.tx.amount || 0) + Number(it.tx.fee || 0), 0);
-      // Gelen Soğuk Bakiye: alıcı olarak doğrulanmış ama henüz blokta onaylanmamış girişler
-      const incomingCold = q
-        .filter(it => it.role === 'receiver' && it.tx && (it.tx.to || '').toLowerCase() === myAddr && (it.status === 'verified_unsettled' || it.status === 'in_mempool' || it.status === 'pending'))
-        .reduce((acc, it) => acc + Number(it.tx.amount || 0), 0);
-      const spendableCold = Math.max(0, Number(onchainCold || 0) - localBlocked);
+      // Locally blocked outbound cold vouchers (created offline/pending confirmation)
+      let localBlocked = 0;
+      let incomingPending = 0;
+      for (const item of q) {
+        if (!item.tx) continue;
+        const st = item.status;
+        const isPending = (st === 'signed_offline' || st === 'verified_unsettled' || st === 'in_mempool' || st === 'pending');
+        if (!isPending) continue;
+        if (item.role === 'sender' && String(item.tx.from || '').toLowerCase() === myAddr) {
+          localBlocked += Number(item.tx.amount || 0) + Number(item.tx.fee || 0);
+        }
+        if (item.role === 'receiver' && String(item.tx.to || '').toLowerCase() === myAddr) {
+          incomingPending += Number(item.tx.amount || 0);
+        }
+      }
+      const hotBal = Number(d.unreserved_spendable ?? d.l1_balance ?? 0);
+      const coldOnchain = Number(d.onchain_active_reserved || 0) + Number(d.active_reserved || 0);
+      const coldAvail = Math.max(0, coldOnchain - localBlocked);
 
-      const liveEl = document.getElementById('off-live-bal');
-      const coldEl = document.getElementById('off-cold-bal');
-      const blkEl  = document.getElementById('off-blocked-bal');
-      const incEl  = document.getElementById('off-incoming-bal');
-      if (liveEl) liveEl.textContent = Number(liveBal || 0).toFixed(4) + ' UNIVA';
-      if (coldEl) coldEl.textContent = spendableCold.toFixed(4) + ' UNIVA';
-      if (blkEl)  blkEl.textContent  = localBlocked.toFixed(4) + ' UNIVA';
-      if (incEl)  incEl.textContent  = incomingCold.toFixed(4) + ' UNIVA';
+      const hotEl = document.getElementById('off-hot-bal');
+      const coldEl = document.getElementById('off-cold-avail');
+      const blkEl = document.getElementById('off-cold-blocked');
+      const incEl = document.getElementById('off-cold-incoming');
+      if (hotEl) hotEl.textContent = walletAddr ? `${hotBal.toFixed(4)} UNIVA` : '— UNIVA';
+      if (coldEl) coldEl.textContent = `${coldAvail.toFixed(4)} UNIVA`;
+      if (blkEl) blkEl.textContent = `🔒 Yerel Blokeli: ${localBlocked.toFixed(4)} UNIVA`;
+      if (incEl) incEl.textContent = `📥 Gelen (Onay Bekliyor): ${incomingPending.toFixed(4)} UNIVA`;
     }
 
     async function fetchOfflineReservations() {
@@ -3625,41 +3621,34 @@ Block Explorer: https://univa-network-l1.vercel.app
       const selEl = document.getElementById('off-res-select');
       if (!walletAddr) {
         if (sumEl) sumEl.textContent = 'Cüzdan bağlı değil';
-        updateDualWalletMetrics(0, 0);
+        updateHotColdPocketDisplay(null);
         return null;
       }
       const res = await apiCall('/api/v1/offline/reservations/' + encodeURIComponent(walletAddr));
-      if (!res) {
-        updateDualWalletMetrics(0, 0);
-        return null;
-      }
-      const totalCold = Number(res.onchain_active_reserved || 0) + Number(res.active_reserved || 0);
-      updateDualWalletMetrics(Number(res.unreserved_spendable || 0), totalCold);
+      if (!res) { updateHotColdPocketDisplay(null); return null; }
+      updateHotColdPocketDisplay(res);
+      const totalLocked = Number(res.onchain_active_reserved || 0) + Number(res.active_reserved || 0);
       if (sumEl) {
-        sumEl.textContent = `Canlı: ${Number(res.unreserved_spendable || 0).toFixed(4)} UNIVA · Soğuk Cep: ${totalCold.toFixed(4)} UNIVA`;
+        sumEl.textContent = `🟢 Canlı: ${Number(res.unreserved_spendable || 0).toFixed(4)} UNIVA · ❄️ Soğuk Cep: ${totalLocked.toFixed(4)} UNIVA`;
       }
       const active = (res.reservations || []).filter(r => r.status === 'active');
-      cachedOfflineReservations = active;
       if (selEl) {
         const cur = selEl.value;
-        selEl.innerHTML = '<option value="">Rezervasyonsuz (Serbest Canlı Bakiye)</option>' +
-          active.map(r => {
-            const tag = r.consensus ? (r.confirmed ? '❄️ Konsensüs Onaylı' : '⏳ Blok Onayı Bekliyor') : '🔒 Düğüm Kilidi';
-            return `<option value="${r.reservation_id}">${r.reservation_id.slice(0, 14)}... [${tag}] (Kalan: ${Number(r.remaining).toFixed(4)} UNIVA)</option>`;
-          }).join('');
+        selEl.innerHTML =
+          active.map(r => `<option value="${r.reservation_id}" data-consensus="${r.consensus ? '1' : '0'}">${r.consensus ? '⛓️ ' : ''}${r.reservation_id.slice(0, 14)}... (Soğuk Cep Kalan: ${Number(r.remaining).toFixed(4)} UNIVA)</option>`).join('') +
+          '<option value="">Soğuk Cepsiz (Doğrudan Canlı Transfer Fişi)</option>';
         if (cur && active.some(r => r.reservation_id === cur)) selEl.value = cur;
-        else if (active.length > 0 && active[0].consensus && active[0].confirmed) selEl.value = active[0].reservation_id;
       }
       if (listEl) {
         if (active.length === 0) {
-          listEl.innerHTML = 'Aktif soğuk cep kilidi yok.';
+          listEl.innerHTML = 'Aktif Soğuk Cep kilidi yok.';
         } else {
           listEl.innerHTML = active.map(r => {
             const exp = new Date((r.expires_at || 0) * 1000).toLocaleString();
-            const modeTag = r.consensus ? (r.confirmed ? '❄️ Blok İçi Onaylı' : '⏳ Mempool (Blok Bekliyor)') : '🔒 Düğüm Kilidi';
+            const tag = r.consensus ? (r.confirmed ? '⛓️ Blok İçi Onaylı' : '🔵 Mempool\'da') : 'Düğüm Kilidi';
             return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;flex-wrap:wrap;">
-              <span class="mono"><strong>${r.reservation_id.slice(0, 14)}...</strong> [${modeTag}] · Kalan ${Number(r.remaining).toFixed(4)} / ${Number(r.amount).toFixed(4)} UNIVA · Bitiş: ${exp}</span>
-              <button class="btn btn-metallic btn-sm" onclick="releaseOfflineReservation('${r.reservation_id}', ${r.consensus ? 'true' : 'false'})">🟢 Soğuk → Canlı Geri Çek</button>
+              <span class="mono"><strong>${r.reservation_id.slice(0, 14)}...</strong> [${tag}] · Kalan ${Number(r.remaining).toFixed(4)} / ${Number(r.amount).toFixed(4)} UNIVA · Bitiş: ${exp}</span>
+              <button class="btn btn-metallic btn-sm" onclick="releaseOfflineReservation('${r.reservation_id}', ${r.consensus ? 'true' : 'false'})">🟢 Canlıya Geri Çek</button>
             </div>`;
           }).join('');
         }
@@ -3677,11 +3666,11 @@ Block Explorer: https://univa-network-l1.vercel.app
       const rawResTtl = parseInt(document.getElementById('off-res-ttl')?.value || '3600', 10);
       const ttl = Math.max(1, Math.min(3600, isNaN(rawResTtl) ? 3600 : rawResTtl));
       if (!amt || amt <= 0) {
-        if (fb) fb.innerHTML = '<span style="color:var(--error);">Geçerli bir aktarım tutarı girin.</span>';
+        if (fb) fb.innerHTML = '<span style="color:var(--error);">Geçerli bir tutar girin.</span>';
         return;
       }
       try {
-        if (fb) fb.innerHTML = '<span style="color:var(--blue);">❄️ Canlı → Soğuk Cep (offline_reserve) blok içi işlemi imzalanıyor...</span>';
+        if (fb) fb.innerHTML = '<span style="color:var(--blue);">⛓️ Blok içi offline_reserve işlemi secp256k1 ile imzalanıyor...</span>';
         const balRes = await apiCall('/api/v1/balance/' + encodeURIComponent(walletAddr));
         const nonce = (balRes && typeof balRes.nonce === 'number') ? balRes.nonce : 0;
         const pubKey = getSecp256k1PubKey(walletPrivKey);
@@ -3708,12 +3697,12 @@ Block Explorer: https://univa-network-l1.vercel.app
         });
         const data = await httpRes.json();
         if (httpRes.ok && data.accepted) {
-          if (fb) fb.innerHTML = `<span style="color:var(--success);font-weight:700;">❄️ ${amt} UNIVA Soğuk Cebe aktarıldı (${tx.reservation_id}) — Blok onayında harcanabilir olacak.</span>`;
+          if (fb) fb.innerHTML = `<span style="color:var(--success);font-weight:700;">❄️ ${amt} UNIVA Soğuk Cebe aktarıldı (${tx.reservation_id}) — Blok onayından sonra çevrimdışı harcanabilir!</span>`;
           document.getElementById('off-res-amt').value = '';
           await fetchOfflineReservations();
           await fetchWalletBalance();
         } else {
-          if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ ${data.detail || 'Soğuk cep aktarımı reddedildi.'}</span>`;
+          if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ ${data.detail || 'Soğuk Cep aktarımı reddedildi.'}</span>`;
         }
       } catch (e) {
         if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ Hata: ${e.message}</span>`;
@@ -3724,10 +3713,10 @@ Block Explorer: https://univa-network-l1.vercel.app
       const fb = document.getElementById('off-res-feedback');
       if (!walletAddr || !walletPrivKey) return;
       try {
-        const pubKey = getSecp256k1PubKey(walletPrivKey);
         if (isConsensus) {
           const balRes = await apiCall('/api/v1/balance/' + encodeURIComponent(walletAddr));
           const nonce = (balRes && typeof balRes.nonce === 'number') ? balRes.nonce : 0;
+          const pubKey = getSecp256k1PubKey(walletPrivKey);
           const tx = {
             type: 'offline_release',
             reservation_id: resId,
@@ -3747,16 +3736,17 @@ Block Explorer: https://univa-network-l1.vercel.app
           });
           const data = await httpRes.json();
           if (httpRes.ok && data.accepted) {
-            if (fb) fb.innerHTML = `<span style="color:var(--success);">🟢 Soğuk → Canlı iade işlemi mempool'a gönderildi (TX: ${tx.tx_id.slice(0,14)}...).</span>`;
+            if (fb) fb.innerHTML = `<span style="color:var(--success);">🟢 Soğuk Cep → Canlı Cüzdan iade işlemi mempool'a gönderildi (${resId.slice(0,14)}...).</span>`;
             await fetchOfflineReservations();
             await fetchWalletBalance();
           } else {
-            if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ ${data.detail || 'Geri çekim reddedildi (rezervasyon henüz blokta onaylanmamış olabilir).'}</span>`;
+            if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ ${data.detail || 'Geri çekme reddedildi.'}</span>`;
           }
           return;
         }
         const info = await fetchOfflineReservations();
         const nonce = info && typeof info.offline_nonce === 'number' ? info.offline_nonce : 0;
+        const pubKey = getSecp256k1PubKey(walletPrivKey);
         const msg = `UNIVA_OFFLINE|release|${walletAddr}|${resId}|${nonce}`;
         const { signature } = await signSecp256k1Offline(walletPrivKey, msg);
         const httpRes = await fetch(NODE_URL + '/api/v1/offline/release', {
@@ -3766,7 +3756,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         });
         const data = await httpRes.json();
         if (httpRes.ok && data.status === 'ok') {
-          if (fb) fb.innerHTML = `<span style="color:var(--success);">🔓 Kilit açıldı: ${data.released_amount} UNIVA canlı bakiyeye döndü.</span>`;
+          if (fb) fb.innerHTML = `<span style="color:var(--success);">🟢 Kilit açıldı: ${data.released_amount} UNIVA Canlı Cüzdana geri döndü.</span>`;
           await fetchOfflineReservations();
         } else {
           if (fb) fb.innerHTML = `<span style="color:var(--error);">❌ ${data.detail || 'Kilit açılamadı.'}</span>`;
@@ -3781,6 +3771,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       await fetchOfflineReservations();
       await syncOfflineQueue();
       renderOfflineQueue();
+      updateHotColdPocketDisplay(null);
     }
 
     async function generateOfflineProposal() {
@@ -3789,20 +3780,22 @@ Block Explorer: https://univa-network-l1.vercel.app
       const amt = parseFloat(document.getElementById('off-amt').value);
       const rawTtl = parseInt(document.getElementById('off-ttl')?.value || '300', 10);
       const ttl = Math.max(1, Math.min(3600, isNaN(rawTtl) ? 300 : rawTtl));
-      const resId = (document.getElementById('off-res-select')?.value || '').trim();
-      if (!to || (!to.startsWith('univa') && !to.startsWith('tuniv') && !to.startsWith('0x'))) { alert('Geçerli bir UNIVA (univa... / tuniv...) veya EVM (0x...) alıcı adresi girin.'); return; }
+      const selEl = document.getElementById('off-res-select');
+      const resId = (selEl?.value || '').trim();
+      const isConsensusRes = selEl?.selectedOptions?.[0]?.getAttribute('data-consensus') === '1';
+      if (!to || (!to.startsWith('univa') && !to.startsWith('tuniva') && !to.startsWith('0x'))) { alert('Geçerli bir UNIVA (univa...) veya EVM (0x...) alıcı adresi girin.'); return; }
       if (!amt || amt <= 0) { alert('Geçerli bir tutar girin.'); return; }
 
-      const pubKey = getSecp256k1PubKey(walletPrivKey);
       const nowSec = Math.floor(Date.now() / 1000);
       const expiresAt = nowSec + ttl;
-      const selectedRes = cachedOfflineReservations.find(r => r.reservation_id === resId);
-      let tx, displayNonce;
+      const pubKey = getSecp256k1PubKey(walletPrivKey);
+      let tx;
+      let labelNonce = '';
 
-      if (selectedRes && selectedRes.consensus && selectedRes.confirmed) {
-        // P5-A On-Chain Consensus Cold Pocket spend (bağımsız voucher_nonce — canlı transferleri asla kilitlemez!)
-        const vKey = 'univa_vnonce_' + resId;
-        const vNonce = parseInt(localStorage.getItem(vKey) || '0', 10);
+      if (resId && isConsensusRes) {
+        // Real P5-A consensus offline_spend (never stalls normal account nonce!)
+        const vnKey = 'univa_vnonce_' + resId;
+        const vNonce = parseInt(localStorage.getItem(vnKey) || '0', 10);
         tx = {
           type: 'offline_spend',
           reservation_id: resId,
@@ -3814,8 +3807,12 @@ Block Explorer: https://univa-network-l1.vercel.app
           expires_at: expiresAt,
           public_key: pubKey
         };
-        localStorage.setItem(vKey, String(vNonce + 1));
-        displayNonce = 'V#' + vNonce;
+        const canon = canonicalTxMessageJS(tx);
+        const { sha256Hex, signature } = await signSecp256k1Offline(walletPrivKey, canon);
+        tx.tx_id = sha256Hex;
+        tx.signature = signature;
+        localStorage.setItem(vnKey, String(vNonce + 1));
+        labelNonce = `Soğuk Fiş #${vNonce}`;
       } else {
         const nonceKey = 'univa_nonce_' + walletAddr;
         let nextNonce = parseInt(localStorage.getItem(nonceKey) || '0', 10);
@@ -3834,14 +3831,13 @@ Block Explorer: https://univa-network-l1.vercel.app
           nonce: nextNonce,
           public_key: pubKey
         };
+        const canon = canonicalTxMessageJS(tx);
+        const { sha256Hex, signature } = await signSecp256k1Offline(walletPrivKey, canon);
+        tx.tx_id = sha256Hex;
+        tx.signature = signature;
         localStorage.setItem(nonceKey, String(nextNonce + 1));
-        displayNonce = '#' + nextNonce;
+        labelNonce = `Nonce #${nextNonce}`;
       }
-
-      const canon = canonicalTxMessageJS(tx);
-      const { sha256Hex, signature } = await signSecp256k1Offline(walletPrivKey, canon);
-      tx.tx_id = sha256Hex;
-      tx.signature = signature;
 
       const metaMsg = `UNIVA_OFFLINE_V2|${tx.tx_id}|${resId}|${expiresAt}`;
       const { signature: voucherSig } = await signSecp256k1Offline(walletPrivKey, metaMsg);
@@ -3858,21 +3854,16 @@ Block Explorer: https://univa-network-l1.vercel.app
       const token = 'UNIVA:OFF:V2:' + btoa(JSON.stringify(voucherObj));
       document.getElementById('off-qr-result').style.display = 'block';
       document.getElementById('off-qr-token').value = token;
-      document.getElementById('off-qr-meta').textContent = `Gönderen: ${walletAddr.slice(0,12)}... -> ${amt} UNIVA (${tx.type} ${displayNonce} · Bitiş: ${new Date(expiresAt * 1000).toLocaleTimeString()})`;
+      document.getElementById('off-qr-meta').textContent = `Gönderen: ${walletAddr.slice(0,12)}... → ${amt} UNIVA (${labelNonce} · Bitiş: ${new Date(expiresAt * 1000).toLocaleTimeString()})`;
       drawUnivaQrCanvas(document.getElementById('off-qr-canvas'), token);
 
       const q = getOfflineQueue();
       q.unshift({ tx, token, voucher: voucherObj, status: 'signed_offline', finalized: false, createdAt: Date.now(), role: 'sender', transport: 'qr' });
       saveOfflineQueue(q);
-      // Gönderici tarafında soğuk cep bakiyesinden anında yerel bloke düşümü!
-      await fetchOfflineReservations();
-      // Sistem çevrimiçiyse anlık ana sisteme gönder; çevrimdışıysa bağlantı gelince otomatik gönderilir
-      if (nodeConnected) {
-        showToast('🔵 Çevrimiçi tespit edildi — fiş ana sisteme iletiliyor...');
-        await syncOfflineQueue();
-      } else {
-        showToast('🟡 Fiş üretildi ve gönderici soğuk cebinde bloke edildi (İnternet gelince senkronize olur)');
-      }
+      updateHotColdPocketDisplay(null);
+      showToast('🔒 Soğuk Cep tutarı yerel olarak bloke edildi ve imzalı fiş hazır!');
+      // Online ise anında ana sisteme ilet
+      if (nodeConnected) syncOfflineQueue();
     }
 
     async function receiveOfflineProposal(rawOverride, transportOverride) {
@@ -4129,12 +4120,14 @@ Block Explorer: https://univa-network-l1.vercel.app
       };
       box.innerHTML = q.slice(0, 15).map(item => {
         const errHtml = item.error ? `<div style="color:var(--error);font-size:0.7rem;margin-top:3px;">${item.error}</div>` : '';
+        const nLabel = item.tx.type === 'offline_spend' ? ('Soğuk Fiş #' + item.tx.voucher_nonce) : ('Nonce #' + (item.tx.nonce ?? 0));
         return `<div style="padding:8px 10px;margin-bottom:6px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;">
           <div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;"><strong>${item.tx.amount} UNIVA <small style="color:var(--text-muted);text-transform:uppercase;">[${item.transport || 'qr'}]</small></strong>${badgeFor(item)}</div>
-          <div class="mono" style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">${item.tx.from.slice(0,11)}... → ${item.tx.to.slice(0,11)}... (Nonce #${item.tx.nonce})</div>
+          <div class="mono" style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">${item.tx.from.slice(0,11)}... → ${item.tx.to.slice(0,11)}... (${nLabel})</div>
           ${errHtml}
         </div>`;
       }).join('');
+      if (typeof updateHotColdPocketDisplay === 'function') updateHotColdPocketDisplay(null);
     }
     window.addEventListener('online', () => setTimeout(syncOfflineQueue, 1200));
     setTimeout(() => { refreshOfflineCapabilities(); renderOfflineQueue(); }, 400);
@@ -4384,7 +4377,7 @@ Block Explorer: https://univa-network-l1.vercel.app
           if (fb) fb.innerHTML = '<span style="color:var(--error);">DEX düğümünden teklif alınamadı.</span>';
           return;
         }
-        const nonce = balRes && typeof balRes.l1_nonce === 'number' ? balRes.l1_nonce : 0;
+        const l1Nonce = balRes && typeof balRes.l1_nonce === 'number' ? balRes.l1_nonce : 0;
         const minOut = parseFloat((q.amount_out * (1 - slipBps / 10000)).toFixed(8));
         const pubKey = getSecp256k1PubKey(walletPrivKey);
         const tx = {
@@ -4395,7 +4388,7 @@ Block Explorer: https://univa-network-l1.vercel.app
           amount_in: parseFloat(amtIn.toFixed(8)),
           min_out: minOut,
           fee: 0.001,
-          nonce: nonce,
+          nonce: l1Nonce,
           public_key: pubKey
         };
         const canon = canonicalTxMessageJS(tx);
@@ -4410,8 +4403,8 @@ Block Explorer: https://univa-network-l1.vercel.app
         });
         const res = await httpRes.json();
         if (httpRes.ok && res.accepted) {
-          if (fb) fb.innerHTML = `<span style="color:var(--success);font-weight:700;">🔵 On-Chain DEX Takas Mempool'a Gönderildi: ${amtIn} ${assetIn} → ~${Number(q.amount_out).toFixed(6)} ${assetOut} (TX: ${(res.tx_id || '').slice(0, 14)}...) — Blok kazıldığında kesinleşecek.</span>`;
-          showToast(`🔵 DEX Takas Mempool'da (${assetIn} → ${assetOut})`);
+          if (fb) fb.innerHTML = `<span style="color:var(--blue);font-weight:700;">🔵 Takas işlemi L1 Mempool'a eklendi (Blok onayı bekleniyor · TX: ${(res.tx_id || '').slice(0, 16)}...)</span>`;
+          showToast(`🔵 Blok içi takas gönderildi: ${amtIn} ${assetIn} → ~${Number(q.amount_out).toFixed(4)} ${assetOut}`);
           await refreshDexState();
           await fetchWalletBalance();
         } else {

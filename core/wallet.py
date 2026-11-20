@@ -94,7 +94,7 @@ except ImportError:
         print("[UNIVA] UYARI: 'ecdsa' veya 'cryptography' paketi eksik.")
 
 PREFIX = "univa"
-TESTNET_PREFIX = "tuniv"
+TESTNET_PREFIX = "tuniva"
 CHARSET = "23456789abcdefghjkmnpqrstuvwxyz"   # 31 karakter
 SECP256K1_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 
@@ -134,27 +134,47 @@ def derive_sha256_pubkey_address(public_key_hex: str) -> str:
     return f"{PREFIX}{''.join(chars)}"
 
 
-def get_valid_sender_addresses(public_key_hex: str) -> set:
+def get_valid_sender_addresses(public_key_hex: str, network: str = "mainnet") -> set:
     """All normalized valid L1 + EVM mirror addresses belonging to public_key_hex."""
     pub = (public_key_hex or "").strip().lower()
     if not pub:
         return set()
-    origins = {
-        derive_univa_address(pub),
-        derive_testnet_address(pub),
-        derive_legacy_20char_address(pub),
-        derive_sha256_pubkey_address(pub),
-        normalize_address(derive_evm_address(pub)),
-    }
+    if network == "testnet":
+        origins = {
+            derive_testnet_address(pub),
+            normalize_address(derive_evm_address(pub)),
+        }
+    else:
+        origins = {
+            derive_univa_address(pub),
+            derive_legacy_20char_address(pub),
+            derive_sha256_pubkey_address(pub),
+            normalize_address(derive_evm_address(pub)),
+        }
     for extra in REGISTERED_PWA_ORIGINS.get(pub, set()):
         origins.add(normalize_address(extra))
     return origins
 
 
+def derive_testnet_address(public_key_hex: str) -> str:
+    """Isolated 30-char UNIVA Testnet native address: 'tuniva' (6) + 24 Base31 chars."""
+    pub_bytes = bytes.fromhex(public_key_hex)
+    sha256 = hashlib.sha256(b"UNIVA_TESTNET:" + pub_bytes).digest()
+    ripemd160 = hashlib.new("ripemd160", sha256).digest()
+    num = int.from_bytes(ripemd160[:15], "big")
+    chars = []
+    for _ in range(24):
+        chars.append(CHARSET[num % 31])
+        num //= 31
+    return f"{TESTNET_PREFIX}{''.join(chars)}"
+
+
 def derive_univa_address(public_key_hex: str) -> str:
     """
-    Public key'den standart UNIVA Mainnet L1 adresi üretir.
+    Public key'den standart UNIVA L1 adresi üretir.
     Format: 'univa' + 25 karakterlik Base31 kriptografik özet (Toplam 30 karakter).
+    Örnek: univaf63aua23vxdvcmvkunx66yzh2
+    Kapasite: 31^25 = 2.48 x 10^37 adet benzersiz adres (tükenemez devasa evren).
     """
     pub_bytes = bytes.fromhex(public_key_hex)
     sha256    = hashlib.sha256(pub_bytes).digest()
@@ -165,22 +185,6 @@ def derive_univa_address(public_key_hex: str) -> str:
         chars.append(CHARSET[num % 31])
         num //= 31
     return f"{PREFIX}{''.join(chars)}"
-
-
-def derive_testnet_address(public_key_hex: str) -> str:
-    """
-    Public key'den 30 karakterlik izole UNIVA Testnet adresi üretir ('tuniv' + 25 Base31).
-    Mainnet adresleriyle asla çakışmaz.
-    """
-    pub_bytes = bytes.fromhex(public_key_hex)
-    sha256    = hashlib.sha256(pub_bytes).digest()
-    ripemd160 = hashlib.new("ripemd160", sha256).digest()
-    num = int.from_bytes(ripemd160[:15], "big")
-    chars = []
-    for _ in range(25):
-        chars.append(CHARSET[num % 31])
-        num //= 31
-    return f"{TESTNET_PREFIX}{''.join(chars)}"
 
 
 def derive_legacy_20char_address(public_key_hex: str) -> str:
@@ -227,49 +231,42 @@ def derive_pwa_evm_address(private_key_hex: str) -> str:
     return "0x" + private_key_hex[:40]
 
 
-def validate_address(address: str, network: str = None) -> bool:
+def validate_address(address: str, network: str = "mainnet") -> bool:
     """
-    Geçerli UNIVA adresi doğrulaması:
-    - Mainnet L1 Formatı: 'univa' + Base31 (30 karakter; eski 20-karakter uyumlu)
-    - Testnet L1 Formatı: 'tuniv' + Base31 (30 karakter; genesis 'tuniv0000000000tuniv')
+    Geçerli UNIVA adresi doğrulaması (Mainnet / Testnet ayrı):
+    - Mainnet L1 Formatı: 'univa' + Base31 (30 karakter standart; eski 20 karakter ve genesis uyumlu)
+    - Testnet L1 Formatı: 'tuniva' + 24 Base31 (30 karakter; mainnet'te reddedilir!)
     - EVM Formatı: 0x... veya 0X... (42 karakter hex)
-    `network='mainnet'` verilirse Testnet 'tuniv...' adresleri reddedilir;
-    `network='testnet'` verilirse Mainnet 'univa...' adresleri reddedilir.
     """
     if not isinstance(address, str) or not address:
         return False
     # EVM adresi doğrulaması (büyük/küçük harf duyarsız)
     if (address.startswith("0x") or address.startswith("0X")) and len(address) == 42:
         return all(c in "0123456789abcdefABCDEF" for c in address[2:])
-
-    net_mode = (network or "").strip().lower()
-    if address.startswith(PREFIX):
-        if net_mode == "testnet":
+    if network == "testnet":
+        if not address.startswith(TESTNET_PREFIX):
             return False
-        if address == "univa0000000000univa":
-            return True
-        body = address[len(PREFIX):]
-        if len(body) < 10 or len(body) > 32:
-            return False
-        if address.endswith("univa") and len(address) == 20:
-            return True
-        return all(c in CHARSET for c in body)
-
-    if address.startswith(TESTNET_PREFIX):
-        if net_mode == "mainnet":
-            return False
-        if address == "tuniv0000000000tuniv":
+        if address == "tuniva222222222222222222tuniva":
             return True
         body = address[len(TESTNET_PREFIX):]
-        if len(body) < 10 or len(body) > 32:
-            return False
-        return all(c in CHARSET for c in body)
-
-    return False
+        return len(address) == 30 and all(c in CHARSET for c in body)
+    # Mainnet UNIVA L1 adresi doğrulaması (tuniva... kesinlikle reddedilir)
+    if not address.startswith(PREFIX):
+        return False
+    if address == "univa0000000000univa":
+        return True
+    body = address[len(PREFIX):]
+    if len(body) < 10 or len(body) > 32:
+        return False
+    # Eski 20 karakterlik testnet adresleri 'univa' ile bittiği için 'i' harfi içerebilir
+    if address.endswith("univa") and len(address) == 20:
+        return True
+    return all(c in CHARSET for c in body)
 
 
 class UnivaWallet:
-    def __init__(self, private_key_hex: str = None):
+    def __init__(self, private_key_hex: str = None, network: str = "mainnet"):
+        self.network = "testnet" if str(network).lower() == "testnet" else "mainnet"
         if ECDSA_AVAILABLE:
             if private_key_hex:
                 self._sk = SigningKey.from_string(bytes.fromhex(private_key_hex), curve=SECP256k1)
@@ -287,7 +284,11 @@ class UnivaWallet:
             self._vk = None
         else:
             raise RuntimeError("Install ecdsa or cryptography: pip install -r requirements.txt")
-        self._address = derive_univa_address(self.public_key)
+        self._address = (
+            derive_testnet_address(self.public_key)
+            if self.network == "testnet"
+            else derive_univa_address(self.public_key)
+        )
         try:
             origins = REGISTERED_PWA_ORIGINS.setdefault(self.public_key, set())
             origins.update({
@@ -314,10 +315,6 @@ class UnivaWallet:
     @property
     def address(self) -> str:
         return self._address
-
-    @property
-    def testnet_address(self) -> str:
-        return derive_testnet_address(self.public_key)
 
     @staticmethod
     def _normalize_low_s(raw_sig: bytes) -> str:

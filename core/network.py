@@ -13,7 +13,7 @@ import time
 import urllib.request
 
 from core.blockchain import Blockchain
-from core.config import get_network_config, PROTOCOL_VERSION
+from core.config import get_network_config, get_locked_protocol_manifest
 from core.dex import UnivaDEX, to_base_units, from_base_units
 from core.offline_pay import OfflinePayManager, OfflinePayError, DEFAULT_VOUCHER_TTL
 from core.telemetry import telemetry
@@ -25,8 +25,8 @@ ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 NET_CFG = get_network_config()
 CHAIN_PATH = os.environ.get("UNIVA_CHAIN_FILE", NET_CFG["default_chain_file"])
 
-blockchain = Blockchain(auto_load_path=CHAIN_PATH, network=NET_CFG["network"])
-app = FastAPI(title="UNIVA L1 Unified Node API", version=PROTOCOL_VERSION)
+blockchain = Blockchain(auto_load_path=CHAIN_PATH, network=NET_CFG["network_id"])
+app = FastAPI(title="UNIVA L1 Unified Node API", version="4.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -322,16 +322,36 @@ def receive_block(block_data: Dict[str, Any]):
         return {"status": "accepted", "height": blockchain.height}
     raise HTTPException(400, "Blok konsensus dogrulamasindan gecemedi")
 
+@app.get("/block/hash/{block_hash}")
+def get_block_by_hash_endpoint(block_hash: str):
+    target = block_hash.strip().lower().replace("0x", "")
+    for blk in reversed(blockchain.chain):
+        bh = blk.hash.lower().replace("0x", "")
+        if bh == target or (len(target) >= 8 and bh.startswith(target)):
+            b_dict = blk.to_dict()
+            return {**b_dict, "block": b_dict}
+    raise HTTPException(404, "Blok hash bulunamadi")
+
+
+@app.get("/api/v1/protocol/manifest")
+def protocol_manifest():
+    m = get_locked_protocol_manifest(blockchain.network)
+    m["genesis_hash"] = blockchain.chain[0].hash if blockchain.chain else ""
+    m["height"] = blockchain.height
+    m["total_mined"] = round(blockchain.total_mined, 8)
+    m["chain_valid"] = blockchain.is_chain_valid()
+    return m
+
+
 def _get_effective_balance(address: str) -> float:
-    """Onaylanmis blok bakiyesi + bekleyen gonderim/alim + konsensus DEX/Offline emanetini hesaplar."""
+    """Onaylanmis blok bakiyesi + mempool'daki bekleyen gonderim/alim farkini hesaplar."""
     from core.wallet import normalize_address
     norm = normalize_address(address)
-    spendable = blockchain.get_balance(norm, "UNIVA", include_pending_outgoing=True)
-    pending_in = 0.0
+    bal = blockchain.get_balance(norm, include_pending_outgoing=True)
     for tx in blockchain.pending_transactions:
         if tx.get("type", "transfer") in ("transfer", "offline_spend") and normalize_address(tx.get("to", "")) == norm:
-            pending_in += float(tx.get("amount", 0.0))
-    return round(max(0.0, spendable + pending_in), 8)
+            bal += float(tx.get("amount", 0.0))
+    return round(max(0.0, bal), 8)
 
 
 @app.get("/balance/{address}")
@@ -395,25 +415,21 @@ def list_all_addresses():
 @app.get("/api/v1/tx/{tx_id}")
 def get_transaction_by_id(tx_id: str):
     clean_id = tx_id.strip().lower()
-    clean_no_0x = clean_id[2:] if clean_id.startswith("0x") else clean_id
-    # Support synthetic coinbase_blk_<N> & genesis_blk_0 links from Explorer tables
-    if clean_id.startswith("coinbase_blk_") or clean_id.startswith("genesis_blk_"):
+    if clean_id.startswith("coinbase_blk_"):
         try:
-            blk_idx = int(clean_id.split("_")[-1])
-            if 0 <= blk_idx <= blockchain.height:
-                block = blockchain.chain[blk_idx]
-                if block.transactions:
-                    cb = dict(block.transactions[0])
-                    cb.setdefault("tx_id", clean_id)
-                    return {
-                        "status": "confirmed",
-                        "block_index": block.index,
-                        "block_hash": block.hash,
-                        "timestamp": block.timestamp,
-                        "tx": cb,
-                    }
+            blk_idx = int(clean_id[len("coinbase_blk_"):])
+            if 0 <= blk_idx <= blockchain.height and blockchain.chain[blk_idx].transactions:
+                blk = blockchain.chain[blk_idx]
+                return {
+                    "status": "confirmed",
+                    "block_index": blk.index,
+                    "block_hash": blk.hash,
+                    "timestamp": blk.timestamp,
+                    "tx": {**blk.transactions[0], "tx_id": f"coinbase_blk_{blk.index}"},
+                }
         except Exception:
             pass
+    clean_no_0x = clean_id[2:] if clean_id.startswith("0x") else clean_id
     for block in reversed(blockchain.chain):
         for tx in block.transactions:
             tid = str(tx.get("tx_id") or "").lower()
@@ -442,71 +458,58 @@ def get_transaction_by_id(tx_id: str):
 
 @app.get("/api/v1/explorer/search")
 def explorer_unified_search(q: str = ""):
-    """Unified Explorer search: Block Height (#N), Block Hash, TX Hash, Coinbase ID, Reservation ID, or Address."""
-    from core.wallet import validate_address, normalize_address
-
+    """Unified Explorer search: block height (#N or N), block hash, tx_id, coinbase_blk_N, L1/EVM address."""
+    from core.wallet import validate_address
     raw = (q or "").strip()
     if not raw:
-        raise HTTPException(400, "Arama terimi bos olamaz")
+        raise HTTPException(400, "Arama sorgusu bos olamaz")
 
-    # 1. Block height (e.g. "1400" or "#1400")
-    height_cand = raw[1:].strip() if raw.startswith("#") else raw
-    if height_cand.isdigit():
-        idx = int(height_cand)
+    # 1. Numeric block height (supports '10' or '#10')
+    num_cand = raw[1:] if raw.startswith("#") else raw
+    if num_cand.isdigit():
+        idx = int(num_cand)
         if 0 <= idx <= blockchain.height:
-            b = blockchain.chain[idx].to_dict()
-            return {"kind": "block", "query": raw, "block": b}
-        raise HTTPException(404, f"Blok #{idx} henuz uretilmedi (mevcut yukseklik: #{blockchain.height})")
+            b_dict = blockchain.chain[idx].to_dict()
+            return {"type": "block", "query": raw, "block": b_dict}
+        raise HTTPException(404, f"Blok #{idx} bulunamadi (Mevcut yukseklik: {blockchain.height})")
 
     low = raw.lower()
+    # 2. Coinbase clickable ID (coinbase_blk_<N>)
+    if low.startswith("coinbase_blk_"):
+        tx_res = get_transaction_by_id(raw)
+        return {"type": "tx", "query": raw, **tx_res}
+
+    # 3. Valid UNIVA L1 / Testnet / EVM 42-char address
+    if validate_address(raw, network=blockchain.network) or (
+        (raw.startswith("0x") or raw.startswith("0X")) and len(raw) == 42 and all(c in "0123456789abcdefABCDEF" for c in raw[2:])
+    ):
+        hist_res = address_history(raw)
+        return {
+            "type": "address",
+            "query": raw,
+            "address": raw,
+            "balance": _get_effective_balance(raw),
+            "confirmed_balance": blockchain.get_balance(raw, include_pending_outgoing=False),
+            "uusd_balance": blockchain.get_balance(raw, "uUSD"),
+            "nonce": blockchain._pending_nonce(raw),
+            "address_type": (
+                "EVM Mirror Address (0x)"
+                if raw.lower().startswith("0x")
+                else ("UNIVA Testnet Address (30-Char)" if raw.startswith("tuniva") else "UNIVA L1 Sovereign Address (30-Char Base31)")
+            ),
+            "history": hist_res.get("history", []),
+            "tx_count": len(hist_res.get("history", [])),
+        }
+
+    # 4. TX ID lookup (exact or 0x-prefixed)
     hex_clean = low[2:] if low.startswith("0x") else low
-
-    # 2. Synthetic coinbase/genesis ID
-    if low.startswith("coinbase_blk_") or low.startswith("genesis_blk_"):
-        try:
-            idx = int(low.split("_")[-1])
-            if 0 <= idx <= blockchain.height and blockchain.chain[idx].transactions:
-                blk = blockchain.chain[idx]
-                tx_obj = dict(blk.transactions[0])
-                tx_obj.setdefault("tx_id", low)
-                return {
-                    "kind": "transaction",
-                    "query": raw,
-                    "status": "confirmed",
-                    "block_index": blk.index,
-                    "block_hash": blk.hash,
-                    "timestamp": blk.timestamp,
-                    "tx": tx_obj,
-                }
-        except Exception:
-            pass
-
-    # 3. Offline reservation ID (res_...)
-    if low.startswith("res_"):
-        onchain_res = blockchain.get_onchain_reservations(include_pending=True)
-        if raw in onchain_res:
-            rec = dict(onchain_res[raw])
-            rec["used_voucher_nonces"] = sorted(rec.get("used_voucher_nonces", set()))
-            rec["consensus"] = True
-            return {"kind": "reservation", "query": raw, "reservation": rec}
-        if raw in offline_mgr.reservations:
-            rec = dict(offline_mgr.reservations[raw])
-            rec["consensus"] = False
-            return {"kind": "reservation", "query": raw, "reservation": rec}
-
-    # 4. Exact or prefix Block Hash / TX Hash (when hex >= 8 chars and NOT a 42-char 0x address)
-    is_evm_addr = (low.startswith("0x") and len(low) == 42 and all(c in "0123456789abcdef" for c in hex_clean))
-    if not is_evm_addr and len(hex_clean) >= 8 and all(c in "0123456789abcdef" for c in hex_clean):
-        for blk in reversed(blockchain.chain):
-            bh = blk.hash.lower().replace("0x", "")
-            if bh == hex_clean or (len(hex_clean) >= 12 and bh.startswith(hex_clean)):
-                return {"kind": "block", "query": raw, "block": blk.to_dict()}
+    if len(hex_clean) >= 8 and all(c in "0123456789abcdef" for c in hex_clean):
         for blk in reversed(blockchain.chain):
             for tx in blk.transactions:
                 tid = str(tx.get("tx_id") or "").lower().replace("0x", "")
-                if tid and (tid == hex_clean or (len(hex_clean) >= 12 and tid.startswith(hex_clean))):
+                if tid and (tid == hex_clean or tid.startswith(hex_clean)):
                     return {
-                        "kind": "transaction",
+                        "type": "tx",
                         "query": raw,
                         "status": "confirmed",
                         "block_index": blk.index,
@@ -516,9 +519,9 @@ def explorer_unified_search(q: str = ""):
                     }
         for tx in blockchain.pending_transactions:
             tid = str(tx.get("tx_id") or "").lower().replace("0x", "")
-            if tid and (tid == hex_clean or (len(hex_clean) >= 12 and tid.startswith(hex_clean))):
+            if tid and (tid == hex_clean or tid.startswith(hex_clean)):
                 return {
-                    "kind": "transaction",
+                    "type": "tx",
                     "query": raw,
                     "status": "pending",
                     "block_index": None,
@@ -526,37 +529,13 @@ def explorer_unified_search(q: str = ""):
                     "timestamp": tx.get("timestamp", time.time()),
                     "tx": tx,
                 }
+        # 5. Block hash lookup (exact or prefix >= 8 hex chars)
+        for blk in reversed(blockchain.chain):
+            bh = blk.hash.lower().replace("0x", "")
+            if bh == hex_clean or bh.startswith(hex_clean):
+                return {"type": "block", "query": raw, "block": blk.to_dict()}
 
-    # 5. Valid UNIVA L1 / Testnet / EVM Address
-    if validate_address(raw):
-        norm = normalize_address(raw)
-        hist = address_history(raw)
-        blocks_mined = sum(1 for b in blockchain.chain if b.index > 0 and normalize_address(b.miner_address) == norm)
-        onchain_res = blockchain.get_onchain_reservations(include_pending=True)
-        cold_reserved = round(
-            sum(r["remaining"] for r in onchain_res.values() if r["owner"] == norm and r["status"] == "active"),
-            8,
-        )
-        return {
-            "kind": "address",
-            "query": raw,
-            "address": raw,
-            "address_type": (
-                "EVM Mirror Address (0x)"
-                if low.startswith("0x")
-                else ("UNIVA Testnet Address (tuniv)" if low.startswith("tuniv") else "UNIVA L1 Sovereign Address (30-Char Base31)")
-            ),
-            "balance": _get_effective_balance(raw),
-            "confirmed_balance": blockchain.get_balance(raw, include_pending_outgoing=False),
-            "cold_pocket_reserved": cold_reserved,
-            "uusd_balance": blockchain.get_balance(raw, "uUSD"),
-            "nonce": blockchain._pending_nonce(raw),
-            "blocks_mined": blocks_mined,
-            "tx_count": hist.get("total", 0),
-            "history": hist.get("history", [])[:25],
-        }
-
-    raise HTTPException(404, f"'{raw}' icin blok, islem, rezervasyon veya adres bulunamadi")
+    raise HTTPException(404, f"Sorgu blokzincir indeksinde bulunamadi: {raw}")
 
 @app.get("/api/v1/transactions")
 def list_recent_transactions(limit: int = 25):
@@ -1057,86 +1036,45 @@ def _verify_dex_signature(
         raise HTTPException(401, "Gecersiz DEX ECDSA imzasi")
 
 
+def _active_dex_view():
+    """Return (dex_instance, is_onchain_consensus) reflecting on-chain dex_* txs when present."""
+    if hasattr(blockchain, "_has_onchain_dex_txs") and blockchain._has_onchain_dex_txs(include_pending=True):
+        sim, _ = blockchain.replay_onchain_dex_state(include_pending=True)
+        return sim, True
+    return _sync_dex_blockchain(), False
+
+
 @app.get("/api/v1/dex/pools")
 def dex_pools():
-    _sync_dex_blockchain()
-    oc_dex = blockchain.get_onchain_dex_state(include_pending=True)
-    # Prefer consensus on-chain pools when on-chain DEX txs exist; always return both for clarity
-    active_dex = oc_dex if blockchain._has_dex_transactions(include_pending=True) else dex_engine
+    active_dex, is_consensus = _active_dex_view()
     res = [p.to_dict() for p in active_dex.pools.values()]
     return {
         "pools": res,
         "count": len(res),
-        "consensus_enabled": True,
-        "onchain_pools": [p.to_dict() for p in oc_dex.pools.values()],
-        "onchain_state_root": oc_dex.calculate_state_root(),
         "state_root": active_dex.calculate_state_root(),
         "block_height": blockchain.height,
-    }
-
-
-@app.get("/api/v1/dex/onchain-pools")
-def dex_onchain_pools():
-    oc_dex = blockchain.get_onchain_dex_state(include_pending=True)
-    res = [p.to_dict() for p in oc_dex.pools.values()]
-    return {
-        "pools": res,
-        "count": len(res),
-        "consensus": True,
-        "state_root": oc_dex.calculate_state_root(),
-        "block_height": blockchain.height,
-    }
-
-
-@app.post("/api/v1/dex/tx")
-async def dex_submit_consensus_tx(request: Request):
-    """Submit a client-signed on-chain consensus DEX tx (dex_swap / dex_add_liquidity / dex_remove_liquidity)."""
-    from core.transaction import DEX_TX_TYPES
-    data = await request.json()
-    tx = data.get("tx") if isinstance(data, dict) and "tx" in data else data
-    if not isinstance(tx, dict):
-        raise HTTPException(400, "Gecersiz DEX islem verisi")
-    if tx.get("private_key") or (isinstance(data, dict) and data.get("private_key")):
-        raise HTTPException(400, "Guvenlik Politikasi (P0): Ozel anahtar sunucuya gonderilemez")
-    if tx.get("type") not in DEX_TX_TYPES:
-        raise HTTPException(400, f"Desteklenen konsensus DEX islem tipleri: {', '.join(DEX_TX_TYPES)}")
-    if not blockchain.add_transaction(tx):
-        raise HTTPException(400, "On-chain DEX islemi konsensus dogrulamasindan gecemedi (imza, nonce, slippage veya bakiye)")
-    try:
-        from core.p2p import publish_tx_from_thread
-        publish_tx_from_thread(tx)
-    except Exception:
-        pass
-    return {
-        "status": "in_mempool",
-        "accepted": True,
-        "consensus": True,
-        "tx_id": tx.get("tx_id"),
-        "type": tx.get("type"),
-        "mempool_size": len(blockchain.pending_transactions),
+        "consensus_backed": True,
+        "onchain_txs_active": is_consensus,
     }
 
 
 @app.get("/api/v1/dex/balances/{address}")
 def dex_balances(address: str):
     from core.wallet import normalize_address
-    _sync_dex_blockchain()
+    active_dex, is_consensus = _active_dex_view()
     norm = normalize_address(address)
-    oc_dex = blockchain.get_onchain_dex_state(include_pending=True)
     return {
         "address": address,
         "UNIVA": blockchain.get_balance(address, "UNIVA"),
         "uUSD": blockchain.get_balance(address, "uUSD"),
         "lp_balances": {
             pid: from_base_units(p.lp_balances.get(norm, 0))
-            for pid, p in dex_engine.pools.items()
-        },
-        "onchain_lp_balances": {
-            pid: from_base_units(p.lp_balances.get(norm, 0))
-            for pid, p in oc_dex.pools.items()
+            for pid, p in active_dex.pools.items()
         },
         "l1_nonce": blockchain._pending_nonce(address),
         "dex_nonce": dex_engine.get_user_nonce(address),
+        "consensus_backed": True,
+        "onchain_txs_active": is_consensus,
         "sandbox_balances": {
             k: from_base_units(v)
             for k, v in dex_engine.test_balances.get(norm, {}).items()
@@ -1145,9 +1083,39 @@ def dex_balances(address: str):
     }
 
 
+@app.post("/api/v1/dex/tx")
+async def dex_submit_consensus_tx(request: Request):
+    """Submit a client-signed on-chain consensus DEX transaction (dex_swap / dex_add_liquidity / dex_remove_liquidity)."""
+    from core.transaction import DEX_TX_TYPES
+    data = await request.json()
+    tx = data.get("tx") if isinstance(data, dict) and "tx" in data else data
+    if not isinstance(tx, dict):
+        raise HTTPException(400, "Gecersiz DEX islem verisi")
+    if tx.get("private_key") or (isinstance(data, dict) and data.get("private_key")):
+        raise HTTPException(400, "Guvenlik Politikasi (P0): Ozel anahtar sunucuya gonderilemez")
+    if tx.get("type") not in DEX_TX_TYPES:
+        raise HTTPException(400, f"Desteklenmeyen DEX islem tipi: {tx.get('type')}")
+    if not blockchain.add_transaction(tx):
+        raise HTTPException(400, "L1 konsensüs DEX islemini reddetti (imza, nonce, bakiye veya slippage hatali)")
+    try:
+        from core.p2p import publish_tx_from_thread
+        publish_tx_from_thread(tx)
+    except Exception:
+        pass
+    return {
+        "status": "in_mempool",
+        "accepted": True,
+        "finalized": False,
+        "type": tx["type"],
+        "tx_id": tx.get("tx_id"),
+        "mempool_size": len(blockchain.pending_transactions),
+        "settlement_note": "DEX islemi L1 mempool'a eklendi; blok kazildiginda tum dugumlerde kesinlesecektir.",
+    }
+
+
 @app.post("/api/v1/dex/quote")
 async def dex_quote(request: Request):
-    _sync_dex_blockchain()
+    active_dex, _ = _active_dex_view()
     data = await request.json()
     asset_in = data.get("asset_in", "UNIVA")
     asset_out = data.get("asset_out", "uUSD")
@@ -1157,12 +1125,12 @@ async def dex_quote(request: Request):
         raise HTTPException(400, "Gecersiz miktar")
     if amount_in_float <= 0:
         raise HTTPException(400, "Miktar pozitif olmalidir")
-    pool = dex_engine.get_pool(asset_in, asset_out)
+    pool = active_dex.get_pool(asset_in, asset_out)
     if not pool:
         raise HTTPException(404, "Havuz bulunamadi")
     try:
         amt_in_base = to_base_units(amount_in_float)
-        details = dex_engine.get_quote_details(asset_in, asset_out, amt_in_base)
+        details = active_dex.get_quote_details(asset_in, asset_out, amt_in_base)
         return {
             "pool_id": details["pool_id"],
             "asset_in": details["asset_in"],
@@ -1583,8 +1551,8 @@ def rpc_capabilities_endpoint():
 # ─── UNIVA HİBRİT EVM & BITCOIN JSON-RPC ADAPTÖRÜ ─────────────────────────────
 # MetaMask, Trust Wallet ve Web3 cüzdanları için standart EVM okuma/cüzdan metodları
 # ve borsa/analiz için Bitcoin Core metodları (getblockchaininfo, ...) desteklenir.
-UNIVA_CHAIN_ID_DEC = 210001
-UNIVA_CHAIN_ID_HEX = hex(UNIVA_CHAIN_ID_DEC) # '0x33451'
+UNIVA_CHAIN_ID_DEC = NET_CFG["chain_id_dec"]
+UNIVA_CHAIN_ID_HEX = NET_CFG["chain_id_hex"]
 
 
 class _RpcError(Exception):
