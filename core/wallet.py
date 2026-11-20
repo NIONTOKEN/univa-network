@@ -94,6 +94,7 @@ except ImportError:
         print("[UNIVA] UYARI: 'ecdsa' veya 'cryptography' paketi eksik.")
 
 PREFIX = "univa"
+TESTNET_PREFIX = "tuniv"
 CHARSET = "23456789abcdefghjkmnpqrstuvwxyz"   # 31 karakter
 SECP256K1_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 
@@ -140,6 +141,7 @@ def get_valid_sender_addresses(public_key_hex: str) -> set:
         return set()
     origins = {
         derive_univa_address(pub),
+        derive_testnet_address(pub),
         derive_legacy_20char_address(pub),
         derive_sha256_pubkey_address(pub),
         normalize_address(derive_evm_address(pub)),
@@ -151,10 +153,8 @@ def get_valid_sender_addresses(public_key_hex: str) -> set:
 
 def derive_univa_address(public_key_hex: str) -> str:
     """
-    Public key'den standart UNIVA L1 adresi üretir.
+    Public key'den standart UNIVA Mainnet L1 adresi üretir.
     Format: 'univa' + 25 karakterlik Base31 kriptografik özet (Toplam 30 karakter).
-    Örnek: univaf63aua23vxdvcmvkunx66yzh2
-    Kapasite: 31^25 = 2.48 x 10^37 adet benzersiz adres (tükenemez devasa evren).
     """
     pub_bytes = bytes.fromhex(public_key_hex)
     sha256    = hashlib.sha256(pub_bytes).digest()
@@ -165,6 +165,22 @@ def derive_univa_address(public_key_hex: str) -> str:
         chars.append(CHARSET[num % 31])
         num //= 31
     return f"{PREFIX}{''.join(chars)}"
+
+
+def derive_testnet_address(public_key_hex: str) -> str:
+    """
+    Public key'den 30 karakterlik izole UNIVA Testnet adresi üretir ('tuniv' + 25 Base31).
+    Mainnet adresleriyle asla çakışmaz.
+    """
+    pub_bytes = bytes.fromhex(public_key_hex)
+    sha256    = hashlib.sha256(pub_bytes).digest()
+    ripemd160 = hashlib.new("ripemd160", sha256).digest()
+    num = int.from_bytes(ripemd160[:15], "big")
+    chars = []
+    for _ in range(25):
+        chars.append(CHARSET[num % 31])
+        num //= 31
+    return f"{TESTNET_PREFIX}{''.join(chars)}"
 
 
 def derive_legacy_20char_address(public_key_hex: str) -> str:
@@ -211,30 +227,45 @@ def derive_pwa_evm_address(private_key_hex: str) -> str:
     return "0x" + private_key_hex[:40]
 
 
-def validate_address(address: str) -> bool:
+def validate_address(address: str, network: str = None) -> bool:
     """
     Geçerli UNIVA adresi doğrulaması:
-    - Yeni L1 Formatı: 'univa' ile başlayan, sonu kısıtlamasız Base31 karakterli adresler (15 ila 37 karakter).
-    - Eski Testnet Uyumluluğu: 'univa...univa' (20 karakter) veya genesis 'univa0000000000univa'
+    - Mainnet L1 Formatı: 'univa' + Base31 (30 karakter; eski 20-karakter uyumlu)
+    - Testnet L1 Formatı: 'tuniv' + Base31 (30 karakter; genesis 'tuniv0000000000tuniv')
     - EVM Formatı: 0x... veya 0X... (42 karakter hex)
+    `network='mainnet'` verilirse Testnet 'tuniv...' adresleri reddedilir;
+    `network='testnet'` verilirse Mainnet 'univa...' adresleri reddedilir.
     """
     if not isinstance(address, str) or not address:
         return False
     # EVM adresi doğrulaması (büyük/küçük harf duyarsız)
     if (address.startswith("0x") or address.startswith("0X")) and len(address) == 42:
         return all(c in "0123456789abcdefABCDEF" for c in address[2:])
-    # UNIVA L1 adresi doğrulaması
-    if not address.startswith(PREFIX):
-        return False
-    if address == "univa0000000000univa":
-        return True
-    body = address[len(PREFIX):]
-    if len(body) < 10 or len(body) > 32:
-        return False
-    # Eski 20 karakterlik testnet adresleri 'univa' ile bittiği için 'i' harfi içerebilir
-    if address.endswith("univa") and len(address) == 20:
-        return True
-    return all(c in CHARSET for c in body)
+
+    net_mode = (network or "").strip().lower()
+    if address.startswith(PREFIX):
+        if net_mode == "testnet":
+            return False
+        if address == "univa0000000000univa":
+            return True
+        body = address[len(PREFIX):]
+        if len(body) < 10 or len(body) > 32:
+            return False
+        if address.endswith("univa") and len(address) == 20:
+            return True
+        return all(c in CHARSET for c in body)
+
+    if address.startswith(TESTNET_PREFIX):
+        if net_mode == "mainnet":
+            return False
+        if address == "tuniv0000000000tuniv":
+            return True
+        body = address[len(TESTNET_PREFIX):]
+        if len(body) < 10 or len(body) > 32:
+            return False
+        return all(c in CHARSET for c in body)
+
+    return False
 
 
 class UnivaWallet:
@@ -283,6 +314,10 @@ class UnivaWallet:
     @property
     def address(self) -> str:
         return self._address
+
+    @property
+    def testnet_address(self) -> str:
+        return derive_testnet_address(self.public_key)
 
     @staticmethod
     def _normalize_low_s(raw_sig: bytes) -> str:

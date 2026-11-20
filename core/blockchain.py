@@ -140,8 +140,15 @@ class Block:
 
 
 class Blockchain:
-    def __init__(self, auto_load_path: str = CHAIN_FILE_PATH):
+    def __init__(self, auto_load_path: str = CHAIN_FILE_PATH, network: Optional[str] = None):
+        from core.config import get_network_config
+        cfg = get_network_config(network)
         self._lock                = threading.RLock()
+        self.network              = cfg["network"]
+        self.chain_id             = cfg["chain_id"]
+        self.genesis_message      = cfg["genesis_message"]
+        self.genesis_time         = cfg["genesis_time"]
+        self.genesis_miner        = cfg["genesis_miner"]
         self.chain: List[Block]   = []
         self.pending_transactions = []
         self.difficulty           = INITIAL_DIFF
@@ -162,19 +169,19 @@ class Blockchain:
     def _create_genesis_block(self):
         genesis_tx = [{
             "type":      "genesis",
-            "message":   GENESIS_MESSAGE,
-            "timestamp": GENESIS_TIME,
-            "to":        GENESIS_MINER,
+            "message":   self.genesis_message,
+            "timestamp": self.genesis_time,
+            "to":        self.genesis_miner,
             "amount":    0.0,
         }]
         genesis = Block(
             index          = 0,
             transactions   = genesis_tx,
             previous_hash  = "0" * 64,
-            timestamp      = GENESIS_TIME,
+            timestamp      = self.genesis_time,
             nonce          = 0,
             difficulty     = 1,
-            miner_address  = GENESIS_MINER,
+            miner_address  = self.genesis_miner,
             reward         = 0.0,
         )
         genesis.hash = genesis.calculate_hash()
@@ -309,16 +316,117 @@ class Blockchain:
                 rec["status"] = "active"
         return reservations
 
+    def _has_dex_transactions(self, include_pending: bool = True) -> bool:
+        from core.transaction import DEX_TX_TYPES
+        for b in self.chain:
+            for tx in b.transactions:
+                if tx.get("type") in DEX_TX_TYPES:
+                    return True
+        if include_pending:
+            for tx in self.pending_transactions:
+                if tx.get("type") in DEX_TX_TYPES:
+                    return True
+        return False
+
+    @staticmethod
+    def _apply_onchain_dex_tx(dex, univa_deltas: dict, tx: dict) -> dict:
+        """Deterministically execute a single consensus DEX tx on a standalone integer UnivaDEX."""
+        from core.dex import to_base_units
+        from core.wallet import normalize_address
+
+        tx_type = tx.get("type")
+        user = normalize_address(tx.get("from", ""))
+        if tx_type == "dex_swap":
+            a_in = dex._asset(tx["asset_in"])
+            a_out = dex._asset(tx["asset_out"])
+            amt_in = to_base_units(tx["amount_in"])
+            min_out = to_base_units(tx.get("min_out", 0.0))
+            if a_in == "UNIVA":
+                dex.deposit(user, "UNIVA", amt_in)
+            out_base = dex.swap(user, a_in, a_out, amt_in, min_out)
+            if a_in == "UNIVA":
+                univa_deltas[user] = univa_deltas.get(user, 0) - amt_in
+            if a_out == "UNIVA":
+                cur_u = dex.get_balance(user, "UNIVA")
+                dex.set_balance(user, "UNIVA", max(0, cur_u - out_base))
+                univa_deltas[user] = univa_deltas.get(user, 0) + out_base
+            return {"amount_out_base": out_base}
+
+        if tx_type == "dex_add_liquidity":
+            a = dex._asset(tx["asset_a"])
+            b = dex._asset(tx["asset_b"])
+            amt_a = to_base_units(tx["amount_a"])
+            amt_b = to_base_units(tx["amount_b"])
+            pre_u = dex.get_balance(user, "UNIVA")
+            dep_u = 0
+            if a == "UNIVA":
+                dex.deposit(user, "UNIVA", amt_a)
+                dep_u = amt_a
+            elif b == "UNIVA":
+                dex.deposit(user, "UNIVA", amt_b)
+                dep_u = amt_b
+            lp_minted = dex.add_liquidity(user, a, b, amt_a, amt_b)
+            if dep_u > 0:
+                rem_u = dex.get_balance(user, "UNIVA") - pre_u
+                used_u = max(0, dep_u - max(0, rem_u))
+                dex.set_balance(user, "UNIVA", pre_u)
+                univa_deltas[user] = univa_deltas.get(user, 0) - used_u
+            return {"lp_minted_base": lp_minted}
+
+        if tx_type == "dex_remove_liquidity":
+            a = dex._asset(tx["asset_a"])
+            b = dex._asset(tx["asset_b"])
+            lp_base = to_base_units(tx["lp_amount"])
+            pre_u = dex.get_balance(user, "UNIVA")
+            out_a, out_b = dex.remove_liquidity(user, a, b, lp_base)
+            post_u = dex.get_balance(user, "UNIVA")
+            if post_u > pre_u:
+                gained_u = post_u - pre_u
+                dex.set_balance(user, "UNIVA", pre_u)
+                univa_deltas[user] = univa_deltas.get(user, 0) + gained_u
+            return {"out_a_base": out_a, "out_b_base": out_b}
+
+        raise ValueError(f"Unsupported DEX tx type: {tx_type}")
+
+    def get_onchain_dex_state(self, include_pending: bool = True):
+        """Deterministic replay of all confirmed (+ optional pending) consensus DEX transactions."""
+        from core.dex import UnivaDEX, to_base_units, GENESIS_POOL_PROVIDER
+        from core.transaction import DEX_TX_TYPES
+
+        dex = UnivaDEX()
+        dex.create_pool("UNIVA", "uUSD", fee_bps=10)
+        dex.deposit(GENESIS_POOL_PROVIDER, "UNIVA", to_base_units(50_000.0))
+        dex.deposit(GENESIS_POOL_PROVIDER, "uUSD", to_base_units(250_000.0))
+        dex.add_liquidity(
+            GENESIS_POOL_PROVIDER,
+            "UNIVA",
+            "uUSD",
+            to_base_units(50_000.0),
+            to_base_units(250_000.0),
+        )
+        univa_deltas: dict = {}
+        for blk in self.chain:
+            for tx in blk.transactions:
+                if tx.get("type") in DEX_TX_TYPES:
+                    self._apply_onchain_dex_tx(dex, univa_deltas, tx)
+        if include_pending:
+            for tx in self.pending_transactions:
+                if tx.get("type") in DEX_TX_TYPES:
+                    self._apply_onchain_dex_tx(dex, univa_deltas, tx)
+        dex.univa_net_deltas = univa_deltas
+        return dex
+
     def verify_transaction(
         self,
         tx: dict,
         include_pending: bool = True,
         block_timestamp: Optional[float] = None,
     ) -> bool:
-        """Validate a signed L1 tx (transfer, offline_reserve, offline_spend, offline_release)."""
+        """Validate a signed L1 tx (transfer, offline escrow, and on-chain DEX)."""
         from core.transaction import (
             SUPPORTED_TX_TYPES,
             NONCE_TX_TYPES,
+            DEX_TX_TYPES,
             derive_reservation_id,
             verify_transaction as stateless_verify_tx,
         )
@@ -329,7 +437,7 @@ class Blockchain:
         tx_type = tx.get("type", "transfer")
         if tx_type not in SUPPORTED_TX_TYPES:
             return False
-        if not stateless_verify_tx(tx):
+        if not stateless_verify_tx(tx, network=self.network):
             return False
         try:
             tx_id = tx["tx_id"]
@@ -406,6 +514,27 @@ class Blockchain:
                 )
                 return available + 1e-8 >= fee
 
+            if tx_type in DEX_TX_TYPES:
+                fee = float(tx["fee"])
+                available_univa = self.get_balance(
+                    tx["from"], "UNIVA", include_pending_outgoing=include_pending, at_timestamp=eff_ts
+                )
+                if available_univa + 1e-8 < fee:
+                    return False
+                dex = self.get_onchain_dex_state(include_pending=include_pending)
+                if tx_type == "dex_swap":
+                    if dex._asset(tx["asset_in"]) == "UNIVA":
+                        if available_univa + 1e-8 < fee + float(tx["amount_in"]):
+                            return False
+                elif tx_type == "dex_add_liquidity":
+                    a, b = dex._asset(tx["asset_a"]), dex._asset(tx["asset_b"])
+                    need_u = float(tx["amount_a"]) if a == "UNIVA" else (float(tx["amount_b"]) if b == "UNIVA" else 0.0)
+                    if available_univa + 1e-8 < fee + need_u:
+                        return False
+                # Dry-run deterministic AMM execution (validates pool, slippage, reserves & LP balance)
+                self._apply_onchain_dex_tx(dex, dict(dex.univa_net_deltas), tx)
+                return True
+
             return False
         except Exception:
             return False
@@ -413,9 +542,10 @@ class Blockchain:
     def create_transaction(self, wallet, to_address: str, amount: float, fee: float = 0.0, from_address: str = None) -> dict:
         """Create a locally signed transfer compatible with verify_transaction()."""
         from core.wallet import validate_address
-        if not validate_address(to_address):
+        if not validate_address(to_address, network=self.network):
             raise ValueError("Invalid recipient address")
-        sender = from_address if (from_address and validate_address(from_address)) else wallet.address
+        default_sender = wallet.testnet_address if self.network == "testnet" else wallet.address
+        sender = from_address if (from_address and validate_address(from_address, network=self.network)) else default_sender
         amount, fee = round(float(amount), 8), round(float(fee), 8)
         if amount <= 0 or fee < 0:
             raise ValueError("Amount must be positive and fee non-negative")
@@ -430,7 +560,7 @@ class Blockchain:
     def mine_pending_transactions(self, miner_address: str, stop_event=None, on_progress=None, reward_override: Optional[float] = None) -> Optional[Block]:
         with self._lock:
             from core.wallet import validate_address
-            if not validate_address(miner_address):
+            if not validate_address(miner_address, network=self.network):
                 raise ValueError("Invalid miner address")
             index = self.height + 1
             base_subsidy = self.get_current_reward(index)
@@ -494,7 +624,7 @@ class Blockchain:
                     return False
                 if block.timestamp <= self.get_median_time_past(11) or block.timestamp > time.time() + 7200:
                     return False
-                if not validate_address(block.miner_address):
+                if not validate_address(block.miner_address, network=self.network):
                     return False
                 if not block.transactions or block.transactions[0].get("type") != "coinbase":
                     return False
@@ -627,15 +757,27 @@ class Blockchain:
         include_dex: bool = True,
         at_timestamp: Optional[float] = None,
     ) -> float:
-        if asset != "UNIVA":
-            if self.dex_state is not None:
-                try:
-                    return round(self.dex_state.get_balance(address, asset) / 100_000_000, 8)
-                except Exception:
-                    pass
-            return self.custom_balances.get((address, asset), 0.0)
+        from core.transaction import DEX_TX_TYPES
         from core.wallet import normalize_address
         norm = normalize_address(address)
+
+        if asset != "UNIVA":
+            total_asset = 0.0
+            if self._has_dex_transactions(include_pending=include_pending_outgoing):
+                try:
+                    oc_dex = self.get_onchain_dex_state(include_pending=include_pending_outgoing)
+                    total_asset += oc_dex.get_balance(norm, asset) / 100_000_000
+                except Exception:
+                    pass
+            if not getattr(self, "_validating_chain", False) and self.dex_state is not None:
+                try:
+                    total_asset += self.dex_state.get_balance(address, asset) / 100_000_000
+                except Exception:
+                    pass
+            if total_asset > 0:
+                return round(total_asset, 8)
+            return self.custom_balances.get((address, asset), 0.0)
+
         eff_ts = float(
             at_timestamp
             if at_timestamp is not None
@@ -650,7 +792,7 @@ class Blockchain:
                 if normalize_address(tx.get("from", "")) == norm:
                     if ttype in ("transfer", "offline_reserve"):
                         bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
-                    elif ttype == "offline_release":
+                    elif ttype in ("offline_release",) or ttype in DEX_TX_TYPES:
                         bal -= float(tx.get("fee", 0.0))
 
         # Automatic deterministic refund of unspent expired or released on-chain reservations
@@ -659,13 +801,21 @@ class Blockchain:
             if rec["owner"] == norm and (rec["released"] or eff_ts >= float(rec["expires_at"])):
                 bal += rec["remaining"]
 
+        # Deterministic on-chain consensus DEX UNIVA balance delta
+        if self._has_dex_transactions(include_pending=include_pending_outgoing):
+            try:
+                oc_dex = self.get_onchain_dex_state(include_pending=include_pending_outgoing)
+                bal += oc_dex.get_univa_net_delta_float(norm)
+            except Exception:
+                pass
+
         if include_pending_outgoing:
             for tx in self.pending_transactions:
                 ttype = tx.get("type", "transfer")
                 if normalize_address(tx.get("from", "")) == norm:
                     if ttype in ("transfer", "offline_reserve"):
                         bal -= float(tx.get("amount", 0.0)) + float(tx.get("fee", 0.0))
-                    elif ttype == "offline_release":
+                    elif ttype in ("offline_release",) or ttype in DEX_TX_TYPES:
                         bal -= float(tx.get("fee", 0.0))
         if (
             include_dex
@@ -710,7 +860,7 @@ class Blockchain:
                     return False, 0.0, INITIAL_DIFF
                 if cur.timestamp <= self._median_for_chain(candidate_chain[:i], 11):
                     return False, 0.0, INITIAL_DIFF
-                if not validate_address(cur.miner_address):
+                if not validate_address(cur.miner_address, network=self.network):
                     return False, 0.0, INITIAL_DIFF
                 if not cur.transactions or cur.transactions[0].get("type") != "coinbase":
                     return False, 0.0, INITIAL_DIFF
@@ -819,6 +969,9 @@ class Blockchain:
         next_halving   = HALVING_INTERVAL - (self.height % HALVING_INTERVAL)
         return {
             "network":         NETWORK_NAME,
+            "network_mode":    self.network,
+            "chain_id":        self.chain_id,
+            "genesis_hash":    self.chain[0].hash if self.chain else "",
             "ticker":          TICKER,
             "version":         VERSION,
             "height":          self.height,

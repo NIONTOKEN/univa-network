@@ -24,7 +24,7 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 P2P_PORT             = 5051
-P2P_VERSION          = "UNIVA/2.1.0"
+P2P_VERSION          = "UNIVA/4.1.0"
 MAX_PEERS            = 64
 MAX_INBOUND_PEERS    = 48
 MAX_OUTBOUND_PEERS   = 16
@@ -250,6 +250,8 @@ def _build_handshake_msg() -> str:
         "height":       our_height,
         "p2p_port":     P2P_PORT,
         "network":      "UNIVA Network",
+        "network_mode": getattr(_blockchain_ref, "network", "mainnet") if _blockchain_ref else "mainnet",
+        "chain_id":     getattr(_blockchain_ref, "chain_id", 210001) if _blockchain_ref else 210001,
         "genesis_hash": genesis_hash,
         "chain_work":   chain_work,
         "best_hash":    best_hash,
@@ -316,6 +318,18 @@ async def handle_handshake(ws, peer_id: str, payload: dict):
             record_peer_misbehavior(peer_id, 100, "genesis_mismatch")
             try:
                 await ws.close(code=1008, reason="Genesis block mismatch")
+            except Exception:
+                pass
+            return
+
+    raw_ver = payload.get("version")
+    if raw_ver and str(raw_ver) != "?":
+        from core.config import is_protocol_version_compatible
+        clean_ver = str(raw_ver).split("/")[-1]
+        if not is_protocol_version_compatible(clean_ver):
+            record_peer_misbehavior(peer_id, 50, "outdated_protocol_version")
+            try:
+                await ws.close(code=1008, reason="Upgrade required: UNIVA protocol >= 4.0.0")
             except Exception:
                 pass
             return
