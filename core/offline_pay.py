@@ -30,9 +30,11 @@ from core.wallet import UnivaWallet, get_valid_sender_addresses, normalize_addre
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OFFLINE_STATE_FILE = os.path.join(_BASE_DIR, "univa_offline_state.json")
 
-MIN_RESERVATION_TTL = 60          # 1 minute
-MAX_RESERVATION_TTL = 30 * 86400  # 30 days
-DEFAULT_VOUCHER_TTL = 24 * 3600   # 24 hours
+MIN_RESERVATION_TTL = 1           # 1 second
+MAX_RESERVATION_TTL = 3600        # 1 hour max
+MIN_VOUCHER_TTL = 1               # 1 second
+MAX_VOUCHER_TTL = 3600            # 1 hour max
+DEFAULT_VOUCHER_TTL = 300         # 5 minutes default
 
 VOUCHER_PREFIX_V2 = "UNIVA:OFF:V2:"
 VOUCHER_PREFIX_V1 = "UNIVA:OFF:V1:"
@@ -411,6 +413,19 @@ class OfflinePayManager:
 
         if expires_at > 0 and ts >= expires_at:
             raise OfflinePayError("Cevrimdisi odeme fisinin suresi dolmus (expired)", 410, "voucher_expired")
+        created_at = int(voucher.get("created_at") or 0)
+        if expires_at > 0 and created_at > 0 and (expires_at - created_at) > MAX_VOUCHER_TTL:
+            raise OfflinePayError(
+                f"Cevrimdisi fis gecerlilik suresi en fazla {MAX_VOUCHER_TTL} saniye (1 saat) olabilir",
+                400,
+                "voucher_ttl_exceeded",
+            )
+        if expires_at > 0 and (expires_at - ts) > MAX_VOUCHER_TTL + 10:
+            raise OfflinePayError(
+                f"Cevrimdisi fis gecerlilik suresi en fazla {MAX_VOUCHER_TTL} saniye (1 saat) olabilir",
+                400,
+                "voucher_ttl_exceeded",
+            )
 
         return voucher
 

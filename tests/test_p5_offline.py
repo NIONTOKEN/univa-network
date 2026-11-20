@@ -65,6 +65,16 @@ def test_1_voucher_v2_v1_signing_expiry_and_tamper_guards():
     except OfflinePayError as oe:
         assert oe.status_code == 410 and oe.code == "voucher_expired"
 
+    # 1-second voucher accepted & >1 hour (3600s) voucher rejected (400)
+    _, one_sec_tok = _make_v2_voucher(bc, alice, bob.address, 1.0, expires_at=now + 1)
+    assert mgr.validate_voucher(one_sec_tok, now=now)["version"] == 2
+    _, too_long_tok = _make_v2_voucher(bc, alice, bob.address, 1.0, expires_at=now + 7200)
+    try:
+        mgr.validate_voucher(too_long_tok, now=now)
+        assert False, "Voucher > 1 hour should have been rejected"
+    except OfflinePayError as oe:
+        assert oe.status_code == 400 and oe.code == "voucher_ttl_exceeded"
+
     # Backward-compatible V1 voucher validates cleanly
     import base64
     v1_tok = "UNIVA:OFF:V1:" + base64.b64encode(json.dumps(tx).encode()).decode()
@@ -374,7 +384,7 @@ def test_6_onchain_consensus_offline_escrow_nonce_isolation_expiry_and_reorg():
             assert bc.add_transaction(tx_unbroadcast) is False
 
             # Block 5: Short-TTL reservation expires automatically without needing release tx
-            short_exp = int(b4.timestamp) + 2
+            short_exp = max(int(b4.timestamp), int(time.time())) + 10
             tx_res2 = build_offline_reserve_tx(alice, amount=20.0, expires_at=short_exp, fee=0.001, blockchain=bc)
             assert bc.add_transaction(tx_res2) is True
             b5 = bc.mine_pending_transactions(miner.address)
