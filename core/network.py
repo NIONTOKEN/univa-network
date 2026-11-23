@@ -18,6 +18,7 @@ from core.dex import UnivaDEX, to_base_units, from_base_units
 from core.offline_pay import OfflinePayManager, OfflinePayError, DEFAULT_VOUCHER_TTL
 from core.telemetry import telemetry
 from core.interop import MultiChainReader, UniversalProofEngine
+from core.trc20 import TRC20Gateway, TronAddress
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PWA_DIR = os.path.join(BASE_DIR, "pwa")
@@ -2038,6 +2039,78 @@ def multichain_live_status(refresh: bool = False):
         "count": len(results),
         "updated_at": int(now),
     }
+
+
+# ─── TRC-20 (TRON USDT) GATEWAY & HOT WALLET ENDPOINTS ───────────────────
+
+trc20_gateway = TRC20Gateway(network=os.environ.get("UNIVA_TRON_NET", "mainnet"))
+
+
+class TRC20RegisterDepositRequest(BaseModel):
+    tx_id: str
+    univa_user: str
+    amount_usdt: float
+    from_address: str
+
+
+class TRC20WithdrawalRequest(BaseModel):
+    univa_user: str
+    destination_tron: str
+    amount_usdt: float
+
+
+@app.get("/api/v1/bridge/trc20/status")
+def trc20_status():
+    return {
+        "status": "ok",
+        "gateway": trc20_gateway.get_stats(),
+        "vault_address": trc20_gateway.get_vault_address(),
+        "usdt_contract": trc20_gateway.usdt_contract,
+    }
+
+
+@app.get("/api/v1/bridge/trc20/account/{address}")
+def trc20_account(address: str):
+    res = trc20_gateway.get_account_overview(address)
+    if not res.get("valid"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Geçersiz TRON adresi"))
+    return res
+
+
+@app.post("/api/v1/bridge/trc20/check-deposits")
+def trc20_check_deposits():
+    new_deposits = trc20_gateway.poll_and_process_deposits()
+    return {
+        "status": "ok",
+        "new_deposits_count": len(new_deposits),
+        "new_deposits": new_deposits,
+        "total_stats": trc20_gateway.get_stats(),
+    }
+
+
+@app.post("/api/v1/bridge/trc20/register-deposit")
+def trc20_register_deposit(req: TRC20RegisterDepositRequest):
+    res = trc20_gateway.register_user_deposit(
+        tx_id=req.tx_id,
+        univa_user=req.univa_user,
+        amount_usdt=req.amount_usdt,
+        from_address=req.from_address,
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Kayıt başarısız"))
+    return {"status": "ok", "deposit": res.get("deposit")}
+
+
+@app.post("/api/v1/bridge/trc20/request-withdrawal")
+def trc20_request_withdrawal(req: TRC20WithdrawalRequest):
+    res = trc20_gateway.request_withdrawal(
+        univa_user=req.univa_user,
+        destination_tron_address=req.destination_tron,
+        amount_usdt=req.amount_usdt,
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Çekim başarısız"))
+    return {"status": "ok", "withdrawal": res.get("withdrawal")}
 
 
 @app.post("/rpc")
