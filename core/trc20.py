@@ -471,3 +471,97 @@ class TRC20Gateway:
             "pending_withdrawals_count": len(self.state.get("pending_withdrawals", {})),
             "stats": self.state.get("stats", {})
         }
+
+    def verify_and_credit_tx(self, tx_id: str, univa_user: str) -> Dict[str, Any]:
+        """
+        Directly queries the TRON blockchain for any transaction hash (TRX transfer or TRC-20 USDT transfer),
+        verifies its on-chain SUCCESS status, and credits it to the specified univa_user.
+        Replay protected.
+        """
+        clean_id = tx_id.strip().lower()
+        if clean_id in self.state["processed_deposits"]:
+            return {
+                "success": False,
+                "error": "Bu işlem hash'i daha önce zaten onaylanıp bakiyeye eklendi (tekrar korumalı).",
+                "deposit": self.state["processed_deposits"][clean_id]
+            }
+
+        payload = {"value": clean_id}
+        res = self._request_json(f"{self.endpoints[0]}/wallet/gettransactionbyid", post_data=payload)
+        if not res or not res.get("txID"):
+            if len(self.endpoints) > 1:
+                res = self._request_json(f"{self.endpoints[1]}/wallet/gettransactionbyid", post_data=payload)
+
+        if not res or not res.get("txID"):
+            return {
+                "success": False,
+                "error": "İşlem TRON blokzincirinde bulunamadı. Lütfen işlem hash'ini (TX ID) kontrol edin."
+            }
+
+        ret = res.get("ret", [{}])[0]
+        code = ret.get("contractRet", "SUCCESS")
+        if code != "SUCCESS":
+            return {"success": False, "error": f"İşlem TRON ağında başarısız sonuçlanmış: {code}"}
+
+        raw = res.get("raw_data", {})
+        contract = raw.get("contract", [{}])[0]
+        c_type = contract.get("type", "")
+        param = contract.get("parameter", {}).get("value", {})
+        ts = raw.get("timestamp", int(time.time() * 1000)) / 1000.0
+
+        if c_type == "TransferContract":
+            amt_trx = param.get("amount", 0) / 1_000_000.0
+            from_hex = param.get("owner_address", "")
+            to_hex = param.get("to_address", "")
+            from_tron = TronAddress.from_hex(from_hex) if from_hex else ""
+            to_tron = TronAddress.from_hex(to_hex) if to_hex else ""
+
+            record = {
+                "tx_id": clean_id,
+                "univa_user": univa_user,
+                "asset": "TRX",
+                "amount": amt_trx,
+                "from_tron": from_tron,
+                "to_tron": to_tron,
+                "timestamp": ts,
+                "credited_at": time.time(),
+                "status": "CONFIRMED",
+                "credited_univa": True
+            }
+            self.state["processed_deposits"][clean_id] = record
+            self.state["stats"]["deposit_count"] += 1
+            self._save_state()
+            return {"success": True, "deposit": record}
+
+        elif c_type == "TriggerSmartContract":
+            data_hex = param.get("data", "")
+            c_addr = param.get("contract_address", "")
+            from_addr = TronAddress.from_hex(param.get("owner_address", ""))
+            amt_usdt = 0.0
+            to_tron = ""
+            if data_hex.startswith("a9059cbb") and len(data_hex) >= 72:
+                to_hex = data_hex[8:72].lstrip("0")
+                val_hex = data_hex[72:]
+                to_tron = TronAddress.from_hex(to_hex) if to_hex else ""
+                amt_usdt = int(val_hex, 16) / 10**6
+
+            record = {
+                "tx_id": clean_id,
+                "univa_user": univa_user,
+                "asset": "USDT",
+                "amount": amt_usdt,
+                "from_tron": from_addr,
+                "to_tron": to_tron,
+                "contract": TronAddress.from_hex(c_addr) if c_addr else self.usdt_contract,
+                "timestamp": ts,
+                "credited_at": time.time(),
+                "status": "CONFIRMED",
+                "credited_univa": True
+            }
+            self.state["processed_deposits"][clean_id] = record
+            self.state["stats"]["total_deposited_usdt"] += amt_usdt
+            self.state["stats"]["deposit_count"] += 1
+            self._save_state()
+            return {"success": True, "deposit": record}
+
+        return {"success": False, "error": f"Desteklenmeyen TRON işlem tipi: {c_type}"}

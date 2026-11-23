@@ -2059,6 +2059,11 @@ class TRC20WithdrawalRequest(BaseModel):
     amount_usdt: float
 
 
+class TRC20VerifyTxRequest(BaseModel):
+    tx_id: str
+    univa_user: str
+
+
 @app.get("/api/v1/bridge/trc20/status")
 def trc20_status():
     return {
@@ -2111,6 +2116,17 @@ def trc20_request_withdrawal(req: TRC20WithdrawalRequest):
     if not res.get("success"):
         raise HTTPException(status_code=400, detail=res.get("error", "Çekim başarısız"))
     return {"status": "ok", "withdrawal": res.get("withdrawal")}
+
+
+@app.post("/api/v1/bridge/trc20/verify-tx")
+def trc20_verify_tx(req: TRC20VerifyTxRequest):
+    res = trc20_gateway.verify_and_credit_tx(
+        tx_id=req.tx_id,
+        univa_user=req.univa_user,
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "İşlem doğrulanamadı"))
+    return {"status": "ok", "deposit": res.get("deposit")}
 
 
 @app.post("/rpc")
