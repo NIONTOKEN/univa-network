@@ -520,16 +520,67 @@
       .net-indicator { padding: 4px 8px; font-size: 0.68rem; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .lang-select { padding: 4px 6px; font-size: 0.7rem; }
       .mobile-drawer { inset: 62px 0 0 0; }
-      .content-wrap { padding: 20px 14px; max-width: 100vw; overflow-x: hidden; }
-      .card { padding: 16px; }
+      /* CENTERED CLEAN MOBILE APP VIEWPORT (PREVENTS FULL-SCREEN STRETCH) */
+      main.app-main {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
+      }
+      .view-section {
+        width: 100% !important;
+      }
+      .view-section.active {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
+      }
+      .content-wrap {
+        width: 100% !important;
+        max-width: 480px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding: 16px 12px 84px 12px !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden;
+      }
+      .univa-hero {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        padding: 28px 12px !important;
+        min-height: auto !important;
+      }
+      .univa-hero-inner {
+        max-width: 480px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        justify-content: center !important;
+        display: flex !important;
+        padding: 0 !important;
+      }
+      .hero-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        text-align: center !important;
+        padding: 22px 16px !important;
+      }
+      .hero-actions {
+        justify-content: center !important;
+      }
+      .hero-stats-row {
+        justify-content: center !important;
+      }
+      .card { padding: 16px; border-radius: 16px; }
       .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 14px; }
       .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
       .stat-box { padding: 14px 12px; }
       .stat-num { font-size: 1.2rem; word-break: break-word; }
       .stat-label { font-size: 0.68rem; }
-      .hero-content { padding: 18px; }
-      .hero-title { font-size: clamp(1.75rem, 6.5vw, 2.35rem); }
-      .hero-desc { font-size: 0.92rem; margin-bottom: 20px; }
+      .hero-title { font-size: clamp(1.65rem, 6vw, 2.15rem); }
+      .hero-desc { font-size: 0.90rem; margin-bottom: 18px; }
     }
 
     /* TABLES */
@@ -1241,7 +1292,7 @@
               </div>
               <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
                 <span style="color:var(--text-muted);">Block Subsidy</span>
-                <span class="mono">100.0 UNIVA (PC) / 10.0 UNIVA (Mobile)</span>
+                <span class="mono">100.0 UNIVA (PC) / 0.00001 UNIVA (Mobil)</span>
               </div>
               <div style="display:flex;justify-content:space-between;">
                 <span style="color:var(--text-muted);">Next Halving</span>
@@ -1531,7 +1582,7 @@
           <div class="stat-box">
             <div class="stat-label">Earned Block Rewards</div>
             <div class="stat-num" style="color:var(--success);"><span id="mining-reward-val">0.00</span> <small style="font-size:0.8rem">UNIVA</small></div>
-            <div class="stat-sub" id="mining-tier-sub">PC CPU: 100.0 UNIVA · Mobil: 10.0 UNIVA / Blok</div>
+            <div class="stat-sub" id="mining-tier-sub">PC CPU: 100.0 UNIVA · Mobil: 0.00001 UNIVA / Blok</div>
           </div>
         </div>
 
@@ -2667,7 +2718,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       blocks.forEach(b => {
         const timeStr = new Date(b.timestamp * 1000).toLocaleTimeString();
         const rew = (b.reward !== null && b.reward !== undefined) ? Number(b.reward) : 100.0;
-        const tierTag = rew <= 10.0 ? '<span class="badge badge-native" style="margin-left:6px;font-size:0.68rem;">📱 Mobile</span>' : '<span class="badge" style="margin-left:6px;font-size:0.68rem;background:#EEF2F7;color:#20242B;">🖥️ PC</span>';
+        const tierTag = rew < 100.0 ? '<span class="badge badge-native" style="margin-left:6px;font-size:0.68rem;">📱 Mobil</span>' : '<span class="badge" style="margin-left:6px;font-size:0.68rem;background:#EEF2F7;color:#20242B;">🖥️ PC</span>';
         dashRows += `<tr>
           <td class="mono" style="font-weight:700;color:var(--blue);">#${b.index}</td>
           <td class="mono" style="font-size:0.75rem;">${b.hash.substring(0, 20)}...</td>
@@ -3941,7 +3992,7 @@ Block Explorer: https://univa-network-l1.vercel.app
         previous_hash: (stats && stats.last_hash) ? stats.last_hash : '0'.repeat(64),
         difficulty: diff,
         miner_address: targetAddr,
-        reward: (/android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 10.0 : 100.0),
+        reward: (/android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 0.00001 : 100.0),
         startNonce: Math.floor(Math.random() * 100000),
         minFoundTimeMs: Date.now() + waitMs
       };
@@ -3975,15 +4026,16 @@ Block Explorer: https://univa-network-l1.vercel.app
           }
         }
         sessionMinedBlocks++;
-        const defaultRew = /android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 10.0 : 100.0;
+        const defaultRew = /android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 0.00001 : 100.0;
         const rewardAmt = minedBlockInfo ? (minedBlockInfo.reward ?? defaultRew) : defaultRew;
+        const rewDisplay = (rewardAmt < 0.01) ? rewardAmt.toFixed(5) : rewardAmt;
         sessionMinedRewards += rewardAmt;
         document.getElementById('mining-blocks-val').textContent = sessionMinedBlocks;
-        document.getElementById('mining-reward-val').textContent = sessionMinedRewards.toFixed(2);
+        document.getElementById('mining-reward-val').textContent = (sessionMinedRewards < 0.01) ? sessionMinedRewards.toFixed(5) : sessionMinedRewards.toFixed(2);
 
         const logEl = document.getElementById('mining-log-msg');
         if (minedBlockInfo) {
-          logEl.innerHTML = `<span style="color:var(--success);">✓ Block #${minedBlockInfo.index} Mined & Verified! Hash: <span class="mono">${minedBlockInfo.hash.substring(0, 20)}...</span> (+${rewardAmt} UNIVA)</span>`;
+          logEl.innerHTML = `<span style="color:var(--success);">✓ Block #${minedBlockInfo.index} Mined & Verified! Hash: <span class="mono">${minedBlockInfo.hash.substring(0, 20)}...</span> (+${rewDisplay} UNIVA)</span>`;
           showToast('🎉 BLOCK #' + minedBlockInfo.index + ' MINED! +' + rewardAmt + ' UNIVA');
         } else {
           const mobIdx = (msg.blockData && msg.blockData.index) ? msg.blockData.index : (60 + sessionMinedBlocks);
@@ -3994,7 +4046,7 @@ Block Explorer: https://univa-network-l1.vercel.app
             reward: rewardAmt,
             timestamp: Math.floor(Date.now() / 1000)
           });
-          logEl.innerHTML = `<span style="color:var(--success);">✓ Block #${mobIdx} Mined on Device! Nonce: ${msg.nonce} | Hash: <span class="mono">${msg.hash.substring(0, 20)}...</span> (+${rewardAmt} UNIVA)</span>`;
+          logEl.innerHTML = `<span style="color:var(--success);">✓ Block #${mobIdx} Mined on Device! Nonce: ${msg.nonce} | Hash: <span class="mono">${msg.hash.substring(0, 20)}...</span> (+${rewDisplay} UNIVA)</span>`;
           showToast('🎉 BLOCK #' + mobIdx + ' MINED! +' + rewardAmt + ' UNIVA');
         }
 
@@ -4020,7 +4072,7 @@ Block Explorer: https://univa-network-l1.vercel.app
             await new Promise(r => setTimeout(r, 1000));
           }
           if (!isMining) break;
-          const mobRew = /android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 10.0 : 100.0;
+          const mobRew = /android|iphone|ipad|mobile/i.test(navigator.userAgent || '') ? 0.00001 : 100.0;
           sessionMinedBlocks++;
           sessionMinedRewards += mobRew;
           const mobIdx = 60 + getMobileMinedBlocks().length + 1;
@@ -4028,8 +4080,8 @@ Block Explorer: https://univa-network-l1.vercel.app
           const digestHex = '0000' + Array.from(new Uint8Array(digestBuf)).map(b => b.toString(16).padStart(2, '0')).join('').substring(4);
           recordMobileMinedBlock({ index: mobIdx, hash: digestHex, nonce: Math.floor(Math.random() * 900000), reward: mobRew, timestamp: Math.floor(Date.now() / 1000) });
           document.getElementById('mining-blocks-val').textContent = sessionMinedBlocks;
-          document.getElementById('mining-reward-val').textContent = sessionMinedRewards.toFixed(2);
-          document.getElementById('mining-log-msg').innerHTML = `<span style="color:var(--success);">✓ Block #${mobIdx} Mined! Hash: <span class="mono">${digestHex.substring(0, 20)}...</span> (+${mobRew} UNIVA)</span>`;
+          document.getElementById('mining-reward-val').textContent = (sessionMinedRewards < 0.01) ? sessionMinedRewards.toFixed(5) : sessionMinedRewards.toFixed(2);
+          document.getElementById('mining-log-msg').innerHTML = `<span style="color:var(--success);">✓ Block #${mobIdx} Mined! Hash: <span class="mono">${digestHex.substring(0, 20)}...</span> (+${mobRew < 0.01 ? mobRew.toFixed(5) : mobRew} UNIVA)</span>`;
           showToast('🎉 BLOCK #' + mobIdx + ' MINED! +' + mobRew + ' UNIVA');
           await fetchWalletBalance();
           await fetchLiveHistory();
@@ -4045,7 +4097,7 @@ Block Explorer: https://univa-network-l1.vercel.app
           sessionMinedBlocks++;
           sessionMinedRewards += (res.block.reward || 100.0);
           document.getElementById('mining-blocks-val').textContent = sessionMinedBlocks;
-          document.getElementById('mining-reward-val').textContent = sessionMinedRewards.toFixed(2);
+          document.getElementById('mining-reward-val').textContent = (sessionMinedRewards < 0.01) ? sessionMinedRewards.toFixed(5) : sessionMinedRewards.toFixed(2);
           showToast('🎉 Block #' + res.block.index + ' Appended to Chain! +' + res.block.reward + ' UNIVA');
           fetchLiveStats();
           fetchWalletBalance();

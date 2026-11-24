@@ -913,8 +913,8 @@ def mine_block(miner_address: str, request: Request, device: str = ""):
 
     ua = (request.headers.get("user-agent") or "").lower()
     is_mobile = (device.lower() == "mobile") or any(k in ua for k in ("android", "iphone", "ipad", "mobile"))
-    reward_override = 10.0 if is_mobile else None
-    miner_tier = "Mobil Light Miner (10 UNIVA)" if is_mobile else "PC Full CPU Miner (100 UNIVA)"
+    reward_override = 0.00001 if is_mobile else None
+    miner_tier = "Mobil Light Miner (0.00001 UNIVA)" if is_mobile else "PC Full CPU Miner (100 UNIVA)"
 
     block = blockchain.mine_pending_transactions(miner_address, reward_override=reward_override)
     if block is None:
