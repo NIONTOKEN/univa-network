@@ -9,6 +9,8 @@ from typing import Any, Dict, Optional, List
 import hashlib
 import json
 import os
+import sys
+import threading
 import time
 import urllib.request
 
@@ -355,10 +357,38 @@ def _get_effective_balance(address: str) -> float:
     return round(max(0.0, bal), 8)
 
 
+def _resolve_default_miner_address() -> str:
+    wallet_path = os.path.join(BASE_DIR, "univa_wallet.json")
+    try:
+        if os.path.exists(wallet_path):
+            with open(wallet_path, "r", encoding="utf-8") as wf:
+                wdata = json.load(wf)
+            addr = (wdata.get("address") or "").strip()
+            if addr.startswith("univa"):
+                return addr
+    except Exception:
+        pass
+    return "univaf63aua23vxdvcmvkunx66yzh2"
+
+
+MINER_LOCK = threading.Lock()
+MINER_DAEMON_STATE: Dict[str, Any] = {
+    "enabled": True,
+    "running": False,
+    "miner_address": _resolve_default_miner_address(),
+    "blocks_mined": 0,
+    "last_mined_height": 0,
+    "last_mined_at": 0.0,
+}
+
+
 @app.get("/balance/{address}")
 @app.get("/api/v1/balance/{address}")
 def balance(address: str):
     from core.wallet import validate_address
+    is_valid = validate_address(address)
+    if is_valid and address.startswith("univa"):
+        MINER_DAEMON_STATE["miner_address"] = address
     bal = _get_effective_balance(address)
     return {
         "address": address,
@@ -366,7 +396,7 @@ def balance(address: str):
         "confirmed_balance": blockchain.get_balance(address, include_pending_outgoing=False),
         "nonce": blockchain._pending_nonce(address),
         "ticker": "UNIVA",
-        "valid_format": validate_address(address),
+        "valid_format": is_valid,
     }
 
 @app.get("/addresses")
@@ -889,7 +919,90 @@ async def submit_transaction(request: Request):
     }
 
 
-# ─── MADENCILIK ENDPOINTI ────────────────────────────────────────────────────
+# ─── MADENCILIK ENDPOINTI & 7/24 ARKA PLAN KAZIM DAEMONU ─────────────────────
+
+def _commit_mined_block(block) -> None:
+    """Persist a newly mined block to chain file, P2P peers, and SQLite index."""
+    blockchain.save(CHAIN_PATH)
+    try:
+        from core.p2p import publish_block_from_thread
+        publish_block_from_thread(block.to_dict())
+    except Exception:
+        pass
+    try:
+        from core.database import insert_block, insert_transactions
+        insert_block(block.to_dict())
+        insert_transactions(block.to_dict())
+    except Exception:
+        pass
+
+
+class MinerDaemonUpdateRequest(BaseModel):
+    enabled: Optional[bool] = None
+    miner_address: Optional[str] = None
+
+
+@app.get("/api/v1/miner/daemon")
+def get_miner_daemon_status():
+    from core.blockchain import TARGET_BLOCK_TIME
+    elapsed = (time.time() - blockchain.last_block.timestamp) if blockchain.height >= 1 else TARGET_BLOCK_TIME
+    remaining = max(0.0, round(TARGET_BLOCK_TIME - elapsed, 1)) if blockchain.height >= 1 else 0.0
+    return {
+        **MINER_DAEMON_STATE,
+        "current_height": blockchain.height,
+        "target_block_time": TARGET_BLOCK_TIME,
+        "seconds_until_next_block": remaining,
+    }
+
+
+@app.post("/api/v1/miner/daemon")
+def update_miner_daemon(req: MinerDaemonUpdateRequest):
+    from core.wallet import validate_address
+    if req.miner_address is not None:
+        addr = req.miner_address.strip()
+        if not validate_address(addr):
+            raise HTTPException(400, f"Gecersiz UNIVA adresi: {addr}")
+        MINER_DAEMON_STATE["miner_address"] = addr
+    if req.enabled is not None:
+        MINER_DAEMON_STATE["enabled"] = bool(req.enabled)
+    return {"status": "ok", **MINER_DAEMON_STATE}
+
+
+def _node_auto_miner_loop() -> None:
+    """Background PC Full Node daemon that mines a block every TARGET_BLOCK_TIME seconds even when browser is closed."""
+    from core.blockchain import TARGET_BLOCK_TIME
+    MINER_DAEMON_STATE["running"] = True
+    time.sleep(3.0)
+    while True:
+        try:
+            if MINER_DAEMON_STATE.get("enabled", True):
+                with MINER_LOCK:
+                    should_mine = (
+                        blockchain.height < 1
+                        or (time.time() - blockchain.last_block.timestamp) >= TARGET_BLOCK_TIME
+                    )
+                    if should_mine:
+                        target_addr = MINER_DAEMON_STATE.get("miner_address") or _resolve_default_miner_address()
+                        block = blockchain.mine_pending_transactions(target_addr, reward_override=None)
+                        if block is not None:
+                            _commit_mined_block(block)
+                            MINER_DAEMON_STATE["blocks_mined"] += 1
+                            MINER_DAEMON_STATE["last_mined_height"] = block.index
+                            MINER_DAEMON_STATE["last_mined_at"] = time.time()
+        except Exception as exc:
+            print(f"[AUTO-MINER] Hata: {exc}")
+        time.sleep(2.0)
+
+
+@app.on_event("startup")
+def _start_auto_miner_on_startup():
+    if any(m in sys.modules for m in ("pytest", "unittest")) or os.environ.get("UNIVA_NO_AUTO_MINER") == "1":
+        return
+    if not MINER_DAEMON_STATE.get("running"):
+        t = threading.Thread(target=_node_auto_miner_loop, daemon=True, name="UNIVA-AutoMiner-Daemon")
+        t.start()
+        print(f"[AUTO-MINER] 7/24 Arka Plan PC Madencisi aktif -> {MINER_DAEMON_STATE['miner_address']}")
+
 
 @app.post("/mine/{miner_address}")
 @app.post("/api/v1/faucet/{miner_address}")
@@ -899,41 +1012,31 @@ def mine_block(miner_address: str, request: Request, device: str = ""):
     if not validate_address(miner_address):
         raise HTTPException(400, f"Gecersiz UNIVA adresi: {miner_address}")
 
-    # 60 saniye hedef blok suresi korumasi (Mainnet Arz Disiplini)
-    if blockchain.height >= 1:
-        elapsed = time.time() - blockchain.last_block.timestamp
-        if elapsed < TARGET_BLOCK_TIME:
-            remaining = round(TARGET_BLOCK_TIME - elapsed, 1)
-            return {
-                "status": "cooldown",
-                "wait_seconds": remaining,
-                "height": blockchain.height,
-                "message": f"Hedef blok suresi {TARGET_BLOCK_TIME}s. Sonraki blok icin {remaining}s kaldi.",
-            }
+    if miner_address.startswith("univa"):
+        MINER_DAEMON_STATE["miner_address"] = miner_address
 
-    ua = (request.headers.get("user-agent") or "").lower()
-    is_mobile = (device.lower() == "mobile") or any(k in ua for k in ("android", "iphone", "ipad", "mobile"))
-    reward_override = 0.00001 if is_mobile else None
-    miner_tier = "Mobil Light Miner (0.00001 UNIVA)" if is_mobile else "PC Full CPU Miner (100 UNIVA)"
+    with MINER_LOCK:
+        # 60 saniye hedef blok suresi korumasi (Mainnet Arz Disiplini)
+        if blockchain.height >= 1:
+            elapsed = time.time() - blockchain.last_block.timestamp
+            if elapsed < TARGET_BLOCK_TIME:
+                remaining = round(TARGET_BLOCK_TIME - elapsed, 1)
+                return {
+                    "status": "cooldown",
+                    "wait_seconds": remaining,
+                    "height": blockchain.height,
+                    "message": f"Hedef blok suresi {TARGET_BLOCK_TIME}s. Sonraki blok icin {remaining}s kaldi.",
+                }
 
-    block = blockchain.mine_pending_transactions(miner_address, reward_override=reward_override)
-    if block is None:
-        raise HTTPException(409, "Maksimum arza ulasildi veya madencilik basarisiz")
-    
-    blockchain.save(CHAIN_PATH)
+        ua = (request.headers.get("user-agent") or "").lower()
+        is_mobile = (device.lower() == "mobile") or any(k in ua for k in ("android", "iphone", "ipad", "mobile"))
+        reward_override = 0.00001 if is_mobile else None
 
-    try:
-        from core.p2p import publish_block_from_thread
-        publish_block_from_thread(block.to_dict())
-    except Exception:
-        pass
+        block = blockchain.mine_pending_transactions(miner_address, reward_override=reward_override)
+        if block is None:
+            raise HTTPException(409, "Maksimum arza ulasildi veya madencilik basarisiz")
 
-    try:
-        from core.database import insert_block, insert_transactions
-        insert_block(block.to_dict())
-        insert_transactions(block.to_dict())
-    except Exception:
-        pass
+        _commit_mined_block(block)
 
     return {
         "status": "ok",

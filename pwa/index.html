@@ -1948,6 +1948,9 @@
           <div id="mining-log-msg" style="margin-top:14px;font-size:0.82rem;color:var(--text-muted);">
             Engine ready. Click start to begin hashing real blocks against current difficulty.
           </div>
+          <div id="mining-daemon-banner" style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#F0FDF4;border:1px solid #BBF7D0;font-size:0.78rem;color:#166534;font-weight:700;">
+            🖥️ 7/24 PC Arka Plan Düğüm Kazımı Aktif: Bilgisayar açık olduğu sürece tarayıcı sekmesini kapatsanız bile her 60 saniyede bir otomatik blok üretilir.
+          </div>
         </div>
       </div>
     </section>
@@ -4659,14 +4662,20 @@ Block Explorer: https://univa-network-l1.vercel.app
       const btn = document.getElementById('mining-action-btn');
       const badge = document.getElementById('mining-status-badge');
       const msg = document.getElementById('mining-log-msg');
+      localStorage.setItem('univa_auto_mining_enabled', isMining ? 'true' : 'false');
 
       if (isMining) {
         await ensureMinerAddress();
-        btn.textContent = '🛑 STOP MINING';
-        btn.classList.add('btn-danger');
-        badge.textContent = 'HASHING LIVE';
-        badge.className = 'badge badge-live';
-        msg.innerHTML = '<span style="color:var(--success);">SHA-256 Multi-threaded worker active. Hashing candidates for ' + walletAddr + '...</span>';
+        try {
+          apiCall('/api/v1/miner/daemon', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: true, miner_address: walletAddr })
+          });
+        } catch (_) {}
+        if (btn) { btn.textContent = '🛑 STOP MINING'; btn.classList.add('btn-danger'); }
+        if (badge) { badge.textContent = 'HASHING LIVE'; badge.className = 'badge badge-live'; }
+        if (msg) msg.innerHTML = '<span style="color:var(--success);">SHA-256 Multi-threaded worker active + 7/24 PC Arka Plan Düğüm Kazımı senkronize (' + walletAddr + ')...</span>';
 
         if (window.Worker) {
           try {
@@ -4686,13 +4695,13 @@ Block Explorer: https://univa-network-l1.vercel.app
           runNodeMiningFallback();
         }
       } else {
-        btn.textContent = '⛏️ START SHA-256 MINING';
-        btn.classList.remove('btn-danger');
-        badge.textContent = 'STANDBY';
-        badge.className = 'badge badge-dev';
-        msg.textContent = 'Mining stopped.';
-        document.getElementById('mining-hashrate-val').textContent = '0';
-        document.getElementById('dash-hashrate').textContent = '0 H/s';
+        if (btn) { btn.textContent = '⛏️ START SHA-256 MINING'; btn.classList.remove('btn-danger'); }
+        if (badge) { badge.textContent = 'STANDBY'; badge.className = 'badge badge-dev'; }
+        if (msg) msg.textContent = 'Tarayıcı madenciliği duraklatıldı (PC Arka Plan Düğümünü kapatmak istemiyorsanız düğüm arka planda devam edebilir).';
+        const hv = document.getElementById('mining-hashrate-val');
+        const dh = document.getElementById('dash-hashrate');
+        if (hv) hv.textContent = '0';
+        if (dh) dh.textContent = '0 H/s';
         if (miningWorker) miningWorker.postMessage({ type: 'STOP' });
       }
     }
@@ -6869,18 +6878,17 @@ Block Explorer: https://univa-network-l1.vercel.app
         [255, 248, 225]   // 4: blazing platinum highlight
       ];
 
-      // RENDER CRISP, HIGH-DEFINITION 72x72 UNIVA LOGO EMBLEM SPRITES (CLEAR GAP & SOVEREIGN CRESCENT)
+      // RENDER CRISP, HIGH-DEFINITION 96x96 UNIVA VECTOR EMBLEM SPRITES (CLEAR GAP & RAZOR EDGES)
       function buildVectorSprites() {
         return SHADE_PALETTE.map(([r, g, b], idx) => {
           const off = document.createElement('canvas');
-          off.width = 72; off.height = 72;
+          off.width = 96; off.height = 96;
           const octx = off.getContext('2d');
-          octx.translate(36, 36);
+          octx.translate(48, 48);
 
-          // Subtle metallic glow on higher tiers
           if (idx >= 3) {
-            octx.shadowColor = `rgba(${r},${g},${b},0.4)`;
-            octx.shadowBlur = 8;
+            octx.shadowColor = `rgba(${r},${g},${b},0.35)`;
+            octx.shadowBlur = 7;
           }
 
           octx.strokeStyle = `rgb(${r},${g},${b})`;
@@ -6888,88 +6896,39 @@ Block Explorer: https://univa-network-l1.vercel.app
           octx.lineJoin = 'round';
 
           // Outer U arc — razor sharp
-          octx.lineWidth = 5.2;
+          octx.lineWidth = 6.4;
           octx.beginPath();
-          octx.moveTo(-18, -17);
-          octx.lineTo(-18, 2);
-          octx.arc(0, 2, 18, Math.PI, 0, true);
-          octx.lineTo(18, -17);
+          octx.moveTo(-24, -22);
+          octx.lineTo(-24, 3);
+          octx.arc(0, 3, 24, Math.PI, 0, true);
+          octx.lineTo(24, -22);
           octx.stroke();
 
           // Inner U arc — crisp definition
-          octx.lineWidth = 4.2;
+          octx.lineWidth = 5.2;
           octx.beginPath();
-          octx.moveTo(-9, -17);
-          octx.lineTo(-9, 2);
-          octx.arc(0, 2, 9, Math.PI, 0, true);
-          octx.lineTo(9, -17);
+          octx.moveTo(-12, -22);
+          octx.lineTo(-12, 3);
+          octx.arc(0, 3, 12, Math.PI, 0, true);
+          octx.lineTo(12, -22);
           octx.stroke();
 
           // Sovereign base crescent arc — clear gap
-          octx.lineWidth = 3.6;
+          octx.lineWidth = 4.4;
           octx.beginPath();
-          octx.arc(0, 24, 12, Math.PI * 1.18, Math.PI * 1.82, false);
+          octx.arc(0, 31, 16, Math.PI * 1.18, Math.PI * 1.82, false);
           octx.stroke();
 
           return off;
         });
       }
 
-      let leafSprites = buildVectorSprites();
-
-      // Upgrade leaf sprites using the actual /logo.png luminance alpha silhouette (black background removed cleanly)
-      (function loadLogoSprites() {
-        const img = new Image();
-        img.src = '/logo.png';
-        img.onload = () => {
-          try {
-            const probe = document.createElement('canvas');
-            probe.width = 64; probe.height = 64;
-            const pctx = probe.getContext('2d');
-            pctx.drawImage(img, 0, 0, 64, 64);
-            const raw = pctx.getImageData(0, 0, 64, 64);
-            const d = raw.data;
-            let visiblePx = 0;
-            // Detect outer circle rim and strip dark backdrop pixels so ONLY the UNIVA emblem remains
-            for (let y = 0; y < 64; y++) {
-              for (let x = 0; x < 64; x++) {
-                const idx = (y * 64 + x) * 4;
-                const lum = 0.299 * d[idx] + 0.587 * d[idx + 1] + 0.114 * d[idx + 2];
-                const dx = (x - 32) / 32, dy = (y - 32) / 32;
-                const radial = Math.sqrt(dx * dx + dy * dy);
-                if (radial > 0.88) {
-                  d[idx + 3] = 0;
-                } else {
-                  const a = lum > 68 ? Math.min(255, Math.round((lum - 68) * 1.65)) : 0;
-                  d[idx + 3] = a;
-                  if (a > 40) visiblePx++;
-                }
-              }
-            }
-            if (visiblePx < 80) return; // keep vector sprites if unexpected image
-            leafSprites = SHADE_PALETTE.map(([r, g, b]) => {
-              const tinted = new ImageData(new Uint8ClampedArray(d), 64, 64);
-              const td = tinted.data;
-              for (let k = 0; k < td.length; k += 4) {
-                if (td[k + 3] > 0) {
-                  td[k] = r; td[k + 1] = g; td[k + 2] = b;
-                }
-              }
-              const off = document.createElement('canvas');
-              off.width = 64; off.height = 64;
-              off.getContext('2d').putImageData(tinted, 0, 0);
-              return off;
-            });
-          } catch (_) {
-            // Keep crisp vector UNIVA U-emblem sprites on any read error
-          }
-        };
-      })();
+      const leafSprites = buildVectorSprites();
 
       const isMobileInit = window.innerWidth <= 768;
-      // REDUCED DENSITY (~68% fewer particles) FOR RAZOR-SHARP UNIVA LOGO RESOLUTION & BREATHABILITY
-      const COUNT = isMobileInit ? 520 : 980;
-      const BG_GLYPHS = isMobileInit ? 14 : 24;
+      // MINIMALIST RAZOR-SHARP DENSITY (PREVENTS BLURRY OVERLAPS & DECLUTTERS LOGO)
+      const COUNT = isMobileInit ? 150 : 260;
+      const BG_GLYPHS = 0;
 
       // Tree Canopy Lobes (Panokod-style voluminous multi-lobed organic silhouette)
       const TREE_LOBES = [
@@ -7353,7 +7312,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       }
 
       const projected = new Array(COUNT);
-      for (let i = 0; i < COUNT; i++) projected[i] = { sx: 0, sy: 0, z: 0, size: 1, shadeIdx: 0, alpha: 1, rot: 0 };
+      for (let i = 0; i < COUNT; i++) projected[i] = { sx: 0, sy: 0, z: 0, size: 1, shadeIdx: 0, alpha: 1, rot: 0, isEmblem: (i % 4 === 0) };
 
       function draw() {
         const now = performance.now();
@@ -7373,12 +7332,12 @@ Block Explorer: https://univa-network-l1.vercel.app
         }
 
         const isMob = width <= 768;
-        // On landing hero top, place sculptural focal point nicely right-center; when scrolled or in subpages, center-right gracefully
-        const viewShiftX = currentViewId === 'landing'
-          ? (isMob ? width * 0.54 : width * (0.67 - scrollRatio * 0.14))
-          : (isMob ? width * 0.50 : width * 0.56);
+        // Shift 3D golden sculpture cleanly to the RIGHT viewport side on desktop so cards on the left never collide
+        const viewShiftX = isMob
+          ? (currentViewId === 'landing' ? width * 0.52 : width * 0.50)
+          : (currentViewId === 'landing' ? width * (0.77 - scrollRatio * 0.03) : width * 0.77);
         const viewShiftY = height * (isMob ? 0.46 : 0.49);
-        const scale = Math.min(width, height) * (isMob ? 0.34 : 0.39);
+        const scale = Math.min(width, height) * (isMob ? 0.30 : 0.34);
 
         // Soft ambient volumetric glow anchoring the sculpture
         const halo = ctx.createRadialGradient(viewShiftX, viewShiftY - scale * 0.08, scale * 0.08, viewShiftX, viewShiftY, scale * 1.95);
@@ -7442,8 +7401,9 @@ Block Explorer: https://univa-network-l1.vercel.app
           pr.sx = sx;
           pr.sy = sy;
           pr.z = z2;
-          // LARGER & CRISPER EMBLEM SIZING WITH CLEAN SPACING
-          pr.size = (9.2 + 8.4 * (pt.sSize + (pt.tSize - pt.sSize) * ease)) * depth;
+          pr.isEmblem = (i % 4 === 0);
+          // CLEAN SPACING & CRISP SIZING
+          pr.size = (6.5 + 5.0 * (pt.sSize + (pt.tSize - pt.sSize) * ease)) * depth;
           pr.shadeIdx = Math.min(4, Math.floor(shade * 5));
           pr.alpha = Math.min(1, 0.44 + shade * 0.56);
           pr.rot = (pt.sTilt + (pt.tTilt - pt.sTilt) * ease) * 0.35 + vortex * (Math.cos(pt.phase) * 1.6) + Math.sin(t * 1.1 + pt.phase) * 0.14;
@@ -7465,13 +7425,20 @@ Block Explorer: https://univa-network-l1.vercel.app
 
         for (let i = 0; i < COUNT; i++) {
           const item = projected[i];
-          const sprite = leafSprites[item.shadeIdx];
-          const half = item.size * 0.95;
+          const half = item.size * 0.92;
           ctx.save();
           ctx.globalAlpha = item.alpha;
           ctx.translate(item.sx, item.sy);
-          ctx.rotate(item.rot);
-          ctx.drawImage(sprite, -half, -half, half * 2, half * 2);
+          if (item.isEmblem) {
+            ctx.rotate(item.rot);
+            ctx.drawImage(leafSprites[item.shadeIdx], -half, -half, half * 2, half * 2);
+          } else {
+            const [r, g, b] = SHADE_PALETTE[item.shadeIdx];
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, Math.max(1.6, half * 0.24), 0, Math.PI * 2);
+            ctx.fill();
+          }
           ctx.restore();
         }
 
@@ -8084,6 +8051,18 @@ Block Explorer: https://univa-network-l1.vercel.app
       fetchLiveStats();
       fetchMysteryStatus();
       setInterval(() => { fetchLiveStats(); fetchMysteryStatus(); }, 6000);
+
+      // Auto-start persistent SHA-256 block searching on PC (or resumed mobile sessions)
+      setTimeout(() => {
+        try {
+          const isMobDev = /android|iphone|ipad|mobile/i.test(navigator.userAgent || '');
+          const savedMine = localStorage.getItem('univa_auto_mining_enabled');
+          const shouldAutoMine = isMobDev ? (savedMine === 'true') : (savedMine !== 'false');
+          if (shouldAutoMine && !isMining) {
+            toggleMiningOperation();
+          }
+        } catch (_) {}
+      }, 1200);
 
       // Deep-link router for Trust Wallet / OKX Wallet Explorer URLs (/tx/..., /address/..., /block/...)
       try {
