@@ -18,7 +18,7 @@ from core.dex import UnivaDEX, to_base_units, from_base_units
 from core.offline_pay import OfflinePayManager, OfflinePayError, DEFAULT_VOUCHER_TTL
 from core.telemetry import telemetry
 from core.interop import MultiChainReader, UniversalProofEngine
-from core.trc20 import TRC20Gateway, TronAddress
+from core.trc20 import TRC20Gateway, TronAddress, MultiChainAddress
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PWA_DIR = os.path.join(BASE_DIR, "pwa")
@@ -2122,6 +2122,37 @@ def trc20_request_withdrawal(req: TRC20WithdrawalRequest):
 def trc20_verify_tx(req: TRC20VerifyTxRequest):
     res = trc20_gateway.verify_and_credit_tx(
         tx_id=req.tx_id,
+        univa_user=req.univa_user,
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "İşlem doğrulanamadı"))
+    return {"status": "ok", "deposit": res.get("deposit")}
+
+
+class MultiChainVerifyTxRequest(BaseModel):
+    tx_id: str
+    chain: str = "AUTO"
+    univa_user: str = "Sovereign User"
+
+
+@app.get("/api/v1/bridge/multichain/addresses/{evm_address}")
+def multichain_addresses(evm_address: str, univa_address: str = "", pub_key_hex: str = ""):
+    try:
+        addrs = MultiChainAddress.derive_all_addresses(
+            evm_address=evm_address,
+            univa_address=univa_address,
+            pub_key_hex=pub_key_hex,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "ok", "addresses": addrs}
+
+
+@app.post("/api/v1/bridge/multichain/verify-tx")
+def multichain_verify_tx(req: MultiChainVerifyTxRequest):
+    res = trc20_gateway.verify_multichain_tx(
+        tx_id=req.tx_id,
+        chain=req.chain,
         univa_user=req.univa_user,
     )
     if not res.get("success"):

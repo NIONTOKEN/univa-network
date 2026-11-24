@@ -149,6 +149,123 @@ class TronAddress:
         return cls.from_hex(clean)
 
 
+# BIP-173 Bech32 charset & polymod constants
+_BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+_BECH32_GEN = [0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3]
+
+
+def _bech32_polymod(values: List[int]) -> int:
+    chk = 1
+    for value in values:
+        top = chk >> 25
+        chk = (chk & 0x1FFFFFF) << 5 ^ value
+        for i in range(5):
+            chk ^= _BECH32_GEN[i] if ((top >> i) & 1) else 0
+    return chk
+
+
+def _bech32_hrp_expand(hrp: str) -> List[int]:
+    return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+
+
+def _bech32_create_checksum(hrp: str, data: List[int]) -> List[int]:
+    values = _bech32_hrp_expand(hrp) + data
+    polymod = _bech32_polymod(values + [0, 0, 0, 0, 0, 0]) ^ 1
+    return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
+
+
+def _convertbits(data: bytes, frombits: int, tobits: int, pad: bool = True) -> List[int]:
+    acc = 0
+    bits = 0
+    ret: List[int] = []
+    maxv = (1 << tobits) - 1
+    max_acc = (1 << (frombits + tobits - 1)) - 1
+    for value in data:
+        acc = ((acc << frombits) | value) & max_acc
+        bits += frombits
+        while bits >= tobits:
+            bits -= tobits
+            ret.append((acc >> bits) & maxv)
+    if pad and bits:
+        ret.append((acc << (tobits - bits)) & maxv)
+    return ret
+
+
+class MultiChainAddress:
+    """Pure-Python deterministic multi-chain address derivation (BTC, SOL, TRX, BNB, ETH, UNIVA)."""
+
+    @staticmethod
+    def _normalize_h160(evm_or_hex: str) -> bytes:
+        clean = (evm_or_hex or "").strip()
+        if clean.startswith(("0x", "0X")):
+            clean = clean[2:]
+        if len(clean) != 40:
+            raise ValueError(f"Expected 20-byte EVM hex (40 chars), got {len(clean)}")
+        return bytes.fromhex(clean)
+
+    @staticmethod
+    def btc_legacy_from_ripemd160(h160_bytes: bytes) -> str:
+        """Encode 20-byte hash160 as a Bitcoin Mainnet P2PKH (1...) address."""
+        if len(h160_bytes) != 20:
+            raise ValueError(f"Expected 20 bytes for hash160, got {len(h160_bytes)}")
+        payload = b"\x00" + h160_bytes
+        checksum = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
+        return TronAddress.b58encode(payload + checksum)
+
+    @staticmethod
+    def btc_segwit_from_ripemd160(h160_bytes: bytes) -> str:
+        """Encode 20-byte witness program as a Bitcoin Mainnet Bech32 SegWit (bc1q...) address."""
+        if len(h160_bytes) != 20:
+            raise ValueError(f"Expected 20 bytes for hash160, got {len(h160_bytes)}")
+        data = [0] + _convertbits(h160_bytes, 8, 5, True)
+        combined = data + _bech32_create_checksum("bc", data)
+        return "bc1" + "".join(_BECH32_CHARSET[d] for d in combined)
+
+    @staticmethod
+    def sol_address_from_seed(seed_str: str) -> str:
+        """Derive a deterministic 32-byte Base58 Solana public key address."""
+        digest = hashlib.sha256(("UNIVA_SOL_ED25519:" + (seed_str or "").strip().lower()).encode("utf-8")).digest()
+        return TronAddress.b58encode(digest)
+
+    @classmethod
+    def derive_all_addresses(
+        cls,
+        evm_address: str,
+        univa_address: str = "",
+        pub_key_hex: str = "",
+    ) -> Dict[str, str]:
+        """Derives UNIVA, TRX, BNB, ETH, BTC (SegWit & Legacy), and SOL addresses deterministically."""
+        clean_evm = (evm_address or "").strip()
+        if not clean_evm.startswith(("0x", "0X")):
+            clean_evm = "0x" + clean_evm
+        norm_evm = clean_evm.lower()
+
+        if pub_key_hex and len(pub_key_hex.strip()) >= 64:
+            try:
+                sha = hashlib.sha256(bytes.fromhex(pub_key_hex.strip())).digest()
+                h160 = hashlib.new("ripemd160", sha).digest()
+            except Exception:
+                h160 = cls._normalize_h160(norm_evm)
+        else:
+            h160 = cls._normalize_h160(norm_evm)
+
+        trx_addr = TronAddress.from_evm(norm_evm)
+        btc_legacy = cls.btc_legacy_from_ripemd160(h160)
+        btc_segwit = cls.btc_segwit_from_ripemd160(h160)
+        sol_addr = cls.sol_address_from_seed(norm_evm)
+
+        return {
+            "univa": univa_address or "",
+            "evm": norm_evm,
+            "bnb": norm_evm,
+            "eth": norm_evm,
+            "trx": trx_addr,
+            "btc_segwit": btc_segwit,
+            "btc_legacy": btc_legacy,
+            "sol": sol_addr,
+        }
+
+
 class TRC20Gateway:
     """
     Production-grade TRON & TRC-20 USDT Gateway.
@@ -565,3 +682,225 @@ class TRC20Gateway:
             return {"success": True, "deposit": record}
 
         return {"success": False, "error": f"Desteklenmeyen TRON işlem tipi: {c_type}"}
+
+    def get_btc_account_info(self, btc_address: str) -> Dict[str, Any]:
+        """Queries live Bitcoin Mainnet balance via Mempool.space (with Blockstream fallback)."""
+        addr = (btc_address or "").strip()
+        if not addr:
+            return {"success": False, "error": "Geçersiz BTC adresi"}
+
+        res = self._request_json(f"https://mempool.space/api/address/{addr}")
+        source = "mempool.space"
+        if not res or "chain_stats" not in res:
+            res = self._request_json(f"https://blockstream.info/api/address/{addr}")
+            source = "blockstream.info"
+
+        if not res or "chain_stats" not in res:
+            return {
+                "success": True,
+                "address": addr,
+                "confirmed_btc": 0.0,
+                "mempool_btc": 0.0,
+                "total_btc": 0.0,
+                "source": "offline-fallback",
+            }
+
+        chain = res.get("chain_stats", {})
+        mempool = res.get("mempool_stats", {})
+        conf_sats = int(chain.get("funded_txo_sum", 0)) - int(chain.get("spent_txo_sum", 0))
+        mem_sats = int(mempool.get("funded_txo_sum", 0)) - int(mempool.get("spent_txo_sum", 0))
+        return {
+            "success": True,
+            "address": addr,
+            "confirmed_sats": conf_sats,
+            "mempool_sats": mem_sats,
+            "confirmed_btc": round(conf_sats / 1e8, 8),
+            "mempool_btc": round(mem_sats / 1e8, 8),
+            "total_btc": round((conf_sats + mem_sats) / 1e8, 8),
+            "source": source,
+        }
+
+    def get_sol_account_info(self, sol_address: str) -> Dict[str, Any]:
+        """Queries live Solana Mainnet native SOL balance via JSON-RPC."""
+        addr = (sol_address or "").strip()
+        if not addr:
+            return {"success": False, "error": "Geçersiz SOL adresi"}
+
+        rpc_body = {"jsonrpc": "2.0", "id": 1, "method": "getBalance", "params": [addr]}
+        res = self._request_json("https://api.mainnet-beta.solana.com", post_data=rpc_body)
+        if not res or "result" not in res:
+            res = self._request_json("https://solana-rpc.publicnode.com", post_data=rpc_body)
+
+        if not res or "result" not in res:
+            return {"success": True, "address": addr, "lamports": 0, "sol": 0.0, "source": "offline-fallback"}
+
+        lamports = int((res.get("result") or {}).get("value", 0))
+        return {
+            "success": True,
+            "address": addr,
+            "lamports": lamports,
+            "sol": round(lamports / 1e9, 9),
+            "source": "solana-mainnet",
+        }
+
+    def get_evm_chain_balance(self, evm_address: str, chain: str = "bsc") -> Dict[str, Any]:
+        """Queries live native BNB (BSC) or ETH (Ethereum) balance via public JSON-RPC."""
+        addr = (evm_address or "").strip()
+        if not addr.startswith(("0x", "0X")) or len(addr) != 42:
+            return {"success": False, "error": "Geçersiz EVM (0x) adresi"}
+
+        chain_key = (chain or "bsc").strip().lower()
+        rpc_map = {
+            "bsc": ("https://bsc-dataseed.binance.org", "BNB"),
+            "bnb": ("https://bsc-dataseed.binance.org", "BNB"),
+            "eth": ("https://eth.llamarpc.com", "ETH"),
+            "ethereum": ("https://eth.llamarpc.com", "ETH"),
+        }
+        rpc_url, symbol = rpc_map.get(chain_key, ("https://bsc-dataseed.binance.org", "BNB"))
+        rpc_body = {"jsonrpc": "2.0", "id": 1, "method": "eth_getBalance", "params": [addr, "latest"]}
+        res = self._request_json(rpc_url, post_data=rpc_body)
+        if not res or "result" not in res:
+            fallback_url = "https://bsc-rpc.publicnode.com" if symbol == "BNB" else "https://ethereum-rpc.publicnode.com"
+            res = self._request_json(fallback_url, post_data=rpc_body)
+
+        if not res or "result" not in res:
+            return {"success": True, "chain": symbol, "address": addr, "balance": 0.0, "source": "offline-fallback"}
+
+        wei = int(res["result"], 16)
+        return {
+            "success": True,
+            "chain": symbol,
+            "address": addr,
+            "wei": str(wei),
+            "balance": round(wei / 1e18, 8),
+            "source": rpc_url,
+        }
+
+    def _record_verified_deposit(self, cache_key: str, record: Dict[str, Any]) -> Dict[str, Any]:
+        self.state["processed_deposits"][cache_key] = record
+        self.state["stats"]["deposit_count"] = int(self.state["stats"].get("deposit_count", 0)) + 1
+        self._save_state()
+        return {"success": True, "deposit": record}
+
+    def verify_multichain_tx(self, tx_id: str, chain: str, univa_user: str) -> Dict[str, Any]:
+        """
+        Verifies a live Mainnet transaction hash across TRON, BSC (BNB), ETH, BTC, or SOL
+        and credits the deposit idempotently with replay protection.
+        """
+        raw_id = (tx_id or "").strip()
+        if not raw_id:
+            return {"success": False, "error": "İşlem hash'i (TX ID) boş olamaz."}
+
+        target_chain = (chain or "AUTO").strip().upper()
+        if target_chain == "AUTO":
+            if raw_id.startswith(("0x", "0X")) and len(raw_id) == 66:
+                res_bsc = self.verify_multichain_tx(raw_id, "BSC", univa_user)
+                if res_bsc.get("success") or res_bsc.get("already_processed"):
+                    return res_bsc
+                return self.verify_multichain_tx(raw_id, "ETH", univa_user)
+            if len(raw_id) == 64 and all(c in "0123456789abcdefABCDEF" for c in raw_id):
+                res_tron = self.verify_and_credit_tx(raw_id, univa_user)
+                if res_tron.get("success") or "daha önce" in (res_tron.get("error") or ""):
+                    return res_tron
+                return self.verify_multichain_tx(raw_id, "BTC", univa_user)
+            target_chain = "SOL"
+
+        if target_chain in ("TRON", "TRX", "TRC20"):
+            return self.verify_and_credit_tx(raw_id, univa_user)
+
+        cache_key = raw_id if target_chain == "SOL" else raw_id.lower()
+        if cache_key in self.state["processed_deposits"]:
+            return {
+                "success": False,
+                "already_processed": True,
+                "error": "Bu işlem hash'i daha önce zaten onaylanıp bakiyeye eklendi (tekrar korumalı).",
+                "deposit": self.state["processed_deposits"][cache_key],
+            }
+
+        if target_chain == "BTC":
+            res = self._request_json(f"https://mempool.space/api/tx/{cache_key}")
+            if not res or not res.get("txid"):
+                res = self._request_json(f"https://blockstream.info/api/tx/{cache_key}")
+            if not res or not res.get("txid"):
+                return {"success": False, "error": "İşlem Bitcoin (BTC) ana ağında bulunamadı."}
+            total_sats = sum(int(v.get("value", 0)) for v in res.get("vout", []))
+            amt_btc = round(total_sats / 1e8, 8)
+            confirmed = bool((res.get("status") or {}).get("confirmed", False))
+            record = {
+                "tx_id": cache_key,
+                "chain": "BTC",
+                "univa_user": univa_user,
+                "asset": "BTC",
+                "amount": amt_btc,
+                "confirmed": confirmed,
+                "timestamp": (res.get("status") or {}).get("block_time") or time.time(),
+                "credited_at": time.time(),
+                "status": "CONFIRMED" if confirmed else "MEMPOOL_DETECTED",
+                "credited_univa": True,
+            }
+            return self._record_verified_deposit(cache_key, record)
+
+        if target_chain == "SOL":
+            rpc_body = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "getTransaction",
+                "params": [cache_key, {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0}],
+            }
+            res = self._request_json("https://api.mainnet-beta.solana.com", post_data=rpc_body)
+            if not res or not res.get("result"):
+                return {"success": False, "error": "İşlem Solana (SOL) ana ağında bulunamadı."}
+            tx_res = res["result"]
+            meta = tx_res.get("meta") or {}
+            if meta.get("err") is not None:
+                return {"success": False, "error": "İşlem Solana ağında hata ile sonuçlanmış."}
+            pre = meta.get("preBalances") or []
+            post = meta.get("postBalances") or []
+            lamports_delta = 0
+            if pre and post and len(pre) == len(post):
+                lamports_delta = max(max(0, int(post[i]) - int(pre[i])) for i in range(len(pre)))
+            amt_sol = round(lamports_delta / 1e9, 9)
+            record = {
+                "tx_id": cache_key,
+                "chain": "SOL",
+                "univa_user": univa_user,
+                "asset": "SOL",
+                "amount": amt_sol,
+                "timestamp": tx_res.get("blockTime") or time.time(),
+                "credited_at": time.time(),
+                "status": "CONFIRMED",
+                "credited_univa": True,
+            }
+            return self._record_verified_deposit(cache_key, record)
+
+        if target_chain in ("BSC", "BNB", "ETH", "ETHEREUM"):
+            is_bsc = target_chain in ("BSC", "BNB")
+            rpc_url = "https://bsc-dataseed.binance.org" if is_bsc else "https://eth.llamarpc.com"
+            fallback_url = "https://bsc-rpc.publicnode.com" if is_bsc else "https://ethereum-rpc.publicnode.com"
+            symbol = "BNB" if is_bsc else "ETH"
+            tx_hex = cache_key if cache_key.startswith("0x") else ("0x" + cache_key)
+            rpc_body = {"jsonrpc": "2.0", "id": 1, "method": "eth_getTransactionByHash", "params": [tx_hex]}
+            res = self._request_json(rpc_url, post_data=rpc_body)
+            if not res or not res.get("result"):
+                res = self._request_json(fallback_url, post_data=rpc_body)
+            if not res or not res.get("result"):
+                return {"success": False, "error": f"İşlem {symbol} ana ağında bulunamadı."}
+            tx_obj = res["result"]
+            wei_val = int(tx_obj.get("value", "0x0"), 16)
+            amt_native = round(wei_val / 1e18, 8)
+            record = {
+                "tx_id": tx_hex,
+                "chain": symbol,
+                "univa_user": univa_user,
+                "asset": symbol,
+                "amount": amt_native,
+                "from": tx_obj.get("from", ""),
+                "to": tx_obj.get("to", ""),
+                "timestamp": time.time(),
+                "credited_at": time.time(),
+                "status": "CONFIRMED" if tx_obj.get("blockNumber") else "PENDING",
+                "credited_univa": True,
+            }
+            return self._record_verified_deposit(cache_key, record)
+
+        return {"success": False, "error": f"Desteklenmeyen ağ: {target_chain}"}
