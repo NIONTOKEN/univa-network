@@ -1313,10 +1313,6 @@
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg></span>
         <span class="nav-label">Çevrimdışı</span>
       </button>
-      <button class="nav-btn" data-view="mystery" onclick="navigate('mystery')">
-        <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg></span>
-        <span class="nav-label">Gizem</span>
-      </button>
       <button class="nav-btn" data-view="dev" onclick="navigate('dev')">
         <span class="nav-icon-3d"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
         <span class="nav-label">Geliştirici</span>
@@ -1425,7 +1421,6 @@
     <div class="mobile-nav-link" onclick="mobileNav('cex')">Borsa (Mini CEX) <span>→</span></div>
     <div class="mobile-nav-link" onclick="mobileNav('multichain')">Multichain Hub <span>→</span></div>
     <div class="mobile-nav-link" onclick="mobileNav('offline')">Offline Pay <span>→</span></div>
-    <div class="mobile-nav-link" onclick="mobileNav('mystery')">Mystery Protocol <span>→</span></div>
     <div class="mobile-nav-link" onclick="mobileNav('dev')">Developer Portal <span>→</span></div>
     <div class="mobile-nav-link" onclick="mobileNav('wallet')">Wallet Vault <span>→</span></div>
   </div>
@@ -1472,26 +1467,17 @@
 
         <!-- ARCHITECTURE PILLARS -->
         <div class="grid-3" style="margin-top:20px;">
-          <div class="card card-accent">
-            <div class="card-title">SHA-256 Consensus</div>
-            <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:14px;">
-              Pure Proof-of-Work Nakamoto consensus hardened with BIP-113 Median Time Past (MTP) timestamp enforcement, resisting miner manipulation.
-            </p>
-            <span class="badge badge-live">Verified UNIVA PoW</span>
+          <div class="card card-accent" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px;">
+            <div class="card-title" style="margin:0;">SHA-256 Konsensüsü</div>
+            <span class="badge badge-live">Doğrulanmış PoW</span>
           </div>
-          <div class="card card-accent">
-            <div class="card-title">Hybrid EVM Bridge</div>
-            <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:14px;">
-              Dual-identity architecture powering both 30-character native Base31 L1 addresses and seamless MetaMask 0x mirror RPC connectivity (Chain ID: 210001).
-            </p>
+          <div class="card card-accent" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px;">
+            <div class="card-title" style="margin:0;">Hibrit EVM Köprüsü</div>
             <span class="badge badge-native">Chain ID 210001</span>
           </div>
-          <div class="card card-accent">
-            <div class="card-title">Dual-Layer Storage</div>
-            <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:14px;">
-              Immutable human-readable JSON chain ledger as authoritative consensus truth, accelerated by an enterprise SQLite3 WAL secondary index.
-            </p>
-            <span class="badge badge-live">Deterministic Truth</span>
+          <div class="card card-accent" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px;">
+            <div class="card-title" style="margin:0;">Çift Katmanlı Depolama</div>
+            <span class="badge badge-live">JSON + SQLite3</span>
           </div>
         </div>
 
@@ -1602,96 +1588,109 @@
           </div>
         </div>
 
-        <!-- TOPOLOGY CANVAS & HEALTH -->
+        <!-- TOPOLOGY CANVAS & COLLAPSIBLE HEALTH -->
         <div class="grid-2">
           <div class="card">
             <div class="card-header">
-              <div class="card-title">Live Network Topology</div>
-              <span class="badge badge-live">Ülke & Düğüm Haritası (Port 5050/5051)</span>
+              <div class="card-title">🌐 Canlı Ağ Topolojisi</div>
+              <span class="badge badge-live">Dünya Düğüm Haritası</span>
             </div>
-            <canvas id="topo-canvas" style="width:100%;height:215px;background:linear-gradient(180deg, #F5F6F8 0%, #E8ECF2 100%);border-radius:10px;border:1px solid #C5CCD5;"></canvas>
+            <canvas id="topo-canvas" style="width:100%;height:235px;background:radial-gradient(circle at center, #0F2143 0%, #070E1F 100%);border-radius:12px;border:1px solid rgba(56, 189, 248, 0.28);"></canvas>
             <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-top:10px;">
               <span>• Ana Düğüm: 🇹🇷 Türkiye (127.0.0.1:5050)</span>
               <span id="dash-peer-count" style="font-weight:700;color:var(--text);">Aktif Düğüm: 1</span>
             </div>
-            <div id="topo-country-nodes-list" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto;"></div>
+            <div id="topo-country-nodes-list" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:110px;overflow-y:auto;"></div>
           </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Consensus Health & State Verification</div>
-              <span class="badge badge-native" id="dash-health-badge">Integrity OK</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:12px;font-size:0.85rem;">
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
-                <span style="color:var(--text-muted);">Consensus Validation</span>
-                <span class="mono" style="color:var(--success);">PASSED (BIP-113 MTP)</span>
+          <div class="card" style="padding:16px 20px;">
+            <div class="card-header" style="margin-bottom:0;padding-bottom:0;border-bottom:none;cursor:pointer;" onclick="toggleDashPanel('dash-health-body', 'dash-health-chev')">
+              <div class="card-title">🛡️ Konsensüs Sağlığı & Ağ Özeti</div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="badge badge-native" id="dash-health-badge">Integrity OK</span>
+                <span id="dash-health-chev" style="font-size:0.8rem;color:var(--blue);font-weight:800;">▼</span>
               </div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
-                <span style="color:var(--text-muted);">Mempool Pending TX</span>
+            </div>
+            <div id="dash-health-body" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-direction:column;gap:10px;font-size:0.82rem;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:6px;">
+                <span style="color:var(--text-muted);">Konsensüs Doğrulaması</span>
+                <span class="mono" style="color:var(--success);">GEÇTİ (BIP-113 MTP)</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:6px;">
+                <span style="color:var(--text-muted);">Mempool Bekleyen İşlem</span>
                 <span class="mono" id="dash-mempool">0</span>
               </div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
-                <span style="color:var(--text-muted);">Latest Accepted Block Hash</span>
-                <span class="mono" id="dash-last-hash" style="color:var(--blue);font-size:0.75rem;">—</span>
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:6px;">
+                <span style="color:var(--text-muted);">Son Blok Özeti</span>
+                <span class="mono" id="dash-last-hash" style="color:var(--blue);font-size:0.72rem;">—</span>
               </div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:8px;">
-                <span style="color:var(--text-muted);">Block Subsidy</span>
-                <span class="mono">100.0 UNIVA (PC) / 0.00001 UNIVA (Mobil)</span>
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:6px;">
+                <span style="color:var(--text-muted);">Blok Ödülü</span>
+                <span class="mono">100.0 (PC) / 0.00001 (Mobil)</span>
               </div>
               <div style="display:flex;justify-content:space-between;">
-                <span style="color:var(--text-muted);">Next Halving</span>
-                <span class="mono" id="dash-halving">In 43,200 blocks (~30 days)</span>
+                <span style="color:var(--text-muted);">Sonraki Yarılanma</span>
+                <span class="mono" id="dash-halving">43,200 blok sonra</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- LATEST BLOCKS -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">Latest Verified Blocks</div>
-            <button class="btn btn-outline btn-sm" onclick="navigate('explorer')">View in Explorer →</button>
+        <!-- COLLAPSIBLE LATEST BLOCKS -->
+        <div class="card" style="padding:16px 20px;margin-bottom:14px;">
+          <div class="card-header" style="margin-bottom:0;padding-bottom:0;border-bottom:none;cursor:pointer;" onclick="toggleDashPanel('dash-blocks-body', 'dash-blocks-chev')">
+            <div class="card-title">📦 Son Doğrulanmış Bloklar</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation();navigate('explorer')">Kaşifte Gör →</button>
+              <span id="dash-blocks-chev" style="font-size:0.8rem;color:var(--blue);font-weight:800;">▼</span>
+            </div>
           </div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Height</th>
-                  <th>Block Hash</th>
-                  <th>Miner Address</th>
-                  <th>TXs</th>
-                  <th>Reward</th>
-                  <th>Timestamp</th>
-                </tr>
-              </thead>
-              <tbody id="dash-blocks-tbody">
-                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">Loading blockchain data...</td></tr>
-              </tbody>
-            </table>
+          <div id="dash-blocks-body" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Blok #</th>
+                    <th>Blok Hash</th>
+                    <th>Kazıcı Adres</th>
+                    <th>İşlem</th>
+                    <th>Ödül</th>
+                    <th>Saat</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-blocks-tbody">
+                  <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">Veriler yükleniyor...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <!-- PER-MINER BLOCKS MINED & REWARDS -->
-        <div class="card" style="margin-top:20px;">
-          <div class="card-header">
-            <div class="card-title">Miner Leaderboard & Blocks Mined per Address</div>
-            <button class="btn btn-metallic btn-sm" onclick="fetchAllAddresses()">🔄 Refresh Miners</button>
+        <!-- COLLAPSIBLE MINER LEADERBOARD -->
+        <div class="card" style="padding:16px 20px;">
+          <div class="card-header" style="margin-bottom:0;padding-bottom:0;border-bottom:none;cursor:pointer;" onclick="toggleDashPanel('dash-miners-body', 'dash-miners-chev')">
+            <div class="card-title">⛏️ Madenciler & Kazım Sıralaması</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button type="button" class="btn btn-metallic btn-sm" onclick="event.stopPropagation();fetchAllAddresses()">🔄 Yenile</button>
+              <span id="dash-miners-chev" style="font-size:0.8rem;color:var(--blue);font-weight:800;">▼</span>
+            </div>
           </div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Miner Address</th>
-                  <th>Node Type</th>
-                  <th>Blocks Mined</th>
-                  <th>Confirmed Balance</th>
-                </tr>
-              </thead>
-              <tbody id="dash-miners-tbody">
-                <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Loading miner stats...</td></tr>
-              </tbody>
-            </table>
+          <div id="dash-miners-body" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Cüzdan Adresi</th>
+                    <th>Ağ Tipi</th>
+                    <th>Kazılan Blok</th>
+                    <th>Onaylı Bakiye</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-miners-tbody">
+                  <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Madenci istatistikleri yükleniyor...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1885,17 +1884,22 @@
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Live Node Telemetry Stream</div>
-              <span class="badge badge-live">IPC Active</span>
+          <div class="card" style="padding:16px 20px;">
+            <div class="card-header" style="margin-bottom:0;padding-bottom:0;border-bottom:none;cursor:pointer;" onclick="toggleDashPanel('core-logs-body', 'core-logs-chev')">
+              <div class="card-title">🖥️ Canlı Düğüm Telemetri Akışı</div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="badge badge-live">IPC Aktif</span>
+                <span id="core-logs-chev" style="font-size:0.8rem;color:var(--blue);font-weight:800;">▼</span>
+              </div>
             </div>
-            <div class="code-box" id="core-logs-box" style="height:210px;overflow-y:auto;">
-              [SYSTEM] UNIVA Core 4.0.0 initialized.<br>
-              [CONSENSUS] Genesis Block verified hash: f8b2b605a1ca8aab...<br>
-              [NETWORK] Listening on port 5050 (REST) and 5051 (P2P)...<br>
-              [STORAGE] Authoritative univa_chain.json loaded successfully.<br>
-              [DIAGNOSTIC] All consensus and signature verifications ready.
+            <div id="core-logs-body" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+              <div class="code-box" id="core-logs-box" style="height:210px;overflow-y:auto;">
+                [SYSTEM] UNIVA Core 4.0.0 initialized.<br>
+                [CONSENSUS] Genesis Block verified hash: f8b2b605a1ca8aab...<br>
+                [NETWORK] Listening on port 5050 (REST) and 5051 (P2P)...<br>
+                [STORAGE] Authoritative univa_chain.json loaded successfully.<br>
+                [DIAGNOSTIC] All consensus and signature verifications ready.
+              </div>
             </div>
           </div>
         </div>
@@ -1946,10 +1950,7 @@
             <button class="btn btn-metallic" onclick="navigate('wallet')">Change Mining Payout Address</button>
           </div>
           <div id="mining-log-msg" style="margin-top:14px;font-size:0.82rem;color:var(--text-muted);">
-            Engine ready. Click start to begin hashing real blocks against current difficulty.
-          </div>
-          <div id="mining-daemon-banner" style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#F0FDF4;border:1px solid #BBF7D0;font-size:0.78rem;color:#166534;font-weight:700;">
-            🖥️ 7/24 PC Arka Plan Düğüm Kazımı Aktif: Bilgisayar açık olduğu sürece tarayıcı sekmesini kapatsanız bile her 60 saniyede bir otomatik blok üretilir.
+            Motor hazır. Kazım başlatılıyor...
           </div>
         </div>
       </div>
@@ -2454,83 +2455,11 @@
           </div>
         </div>
 
-        <!-- TRC-20 & BEP-20 GERÇEK USDT KÖPRÜSÜ VE KASASI (PREMIUM DUAL-CHAIN GATEWAY) -->
-        <div class="card" style="margin-top:20px;border-color:rgba(212, 175, 55, 0.55);box-shadow:0 12px 36px rgba(212, 175, 55, 0.12);">
-          <div class="card-header">
-            <div class="card-title" style="color:#D4AF37;display:flex;align-items:center;gap:8px;">
-              <span class="crypto-logo-slot" data-symbol="USDT" data-size="22"></span> <span>TRC-20 & BEP-20 Gerçek USDT Kasası & Köprüsü</span>
-            </div>
-            <span class="badge badge-live">Canlı Dış USDT Ağları Aktif</span>
+        <div class="card" style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 20px;">
+          <div style="font-size:0.86rem;font-weight:700;color:var(--text);">
+            👛 Çoklu Ağ Yatırma / Çekme, QR Kod & Canlı Bakiyeler Cüzdan Kasasına Taşındı
           </div>
-
-          <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:16px;">
-            Dış dünyadan (Binance, BtcTurk, Paribu, Trust Wallet vb.) <strong>TRON (TRC-20)</strong> veya <strong>BNB Chain (BEP-20)</strong> üzerinden gerçek USDT yatırabilir, anında UNIVA ile takas edebilir ve kazandığınız USDT'leri dış cüzdanınıza çekebilirsiniz.
-          </p>
-
-          <!-- DUAL CHAIN SELECTION TABS -->
-          <div style="display:flex;gap:10px;margin-bottom:16px;">
-            <button type="button" class="btn btn-primary btn-sm" id="trc20-tab-tron" onclick="switchTrc20Tab('tron')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
-              <span class="crypto-logo-slot" data-symbol="TRX" data-size="16"></span> TRON Ağı (TRC-20 USDT)
-            </button>
-            <button type="button" class="btn btn-metallic btn-sm" id="trc20-tab-bnb" onclick="switchTrc20Tab('bnb')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
-              <span class="crypto-logo-slot" data-symbol="BNB" data-size="16"></span> BNB Smart Chain (BEP-20 USDT)
-            </button>
-          </div>
-
-          <!-- TRON (TRC-20) PANEL -->
-          <div id="trc20-panel-tron" style="background:rgba(255,255,255,0.7);padding:16px;border-radius:14px;border:1px solid #D0D5DD;margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
-              <div style="font-weight:800;color:#20242B;font-size:0.9rem;">🔴 Kişisel TRON (TRC-20 / TRX & USDT) Yatırma Adresiniz:</div>
-              <span class="badge badge-native">TRC-20 (6 Decimals)</span>
-            </div>
-            
-            <div class="addr-bar" style="margin-bottom:10px;">
-              <span id="trc20-vault-addr" class="mono">TPDrgb8mKAy7YyfQ9sPxEkBrGXMoZ2F8Dc</span>
-              <button class="copy-icon-btn" onclick="copyElemText('trc20-vault-addr', 'TRON Adresi Kopyalandı!')" data-tooltip="TRON Adresini Panoya Kopyala">📋 Kopyala</button>
-            </div>
-
-            <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5;margin-bottom:12px;">
-              • <strong>Sözleşme:</strong> <code class="mono">TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t</code> (Tether USD Official TRON)<br>
-              • <strong>İşlem Süresi:</strong> ~1 dakika (TRON DPoS Anlık Onay)
-            </div>
-
-            <!-- LIVE BALANCE & INCOMING SCANNER -->
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-              <input class="form-input mono" id="trc20-lookup-input" placeholder="Sorgulanacak TRON Adresini Yapıştırın (T...)" style="flex:1;min-width:220px;font-size:0.84rem;">
-              <button class="btn btn-metallic btn-sm" onclick="lookupTronAccountOverview()" data-tooltip="Bu adresteki gerçek TRX ve USDT bakiyesini sorgula">🔍 Bakiye Sorgula</button>
-              <button class="btn btn-primary btn-sm" onclick="triggerTrc20DepositCheck()" data-tooltip="Ağdaki gelen transferleri gerçek zamanlı tara">🔄 Transferleri Tara</button>
-            </div>
-            <div id="trc20-lookup-result" style="display:none;padding:10px 14px;border-radius:10px;background:#F9FAFB;border:1px solid #C5CCD5;font-size:0.84rem;margin-bottom:12px;"></div>
-            <div id="trc20-deposits-result" style="display:none;padding:10px 14px;border-radius:10px;background:#F9FAFB;border:1px solid #C5CCD5;font-size:0.84rem;"></div>
-          </div>
-
-          <!-- BNB CHAIN (BEP-20) PANEL -->
-          <div id="trc20-panel-bnb" style="display:none;background:rgba(255,255,255,0.7);padding:16px;border-radius:14px;border:1px solid #D0D5DD;margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
-              <div style="font-weight:800;color:#20242B;font-size:0.9rem;">🟡 BNB Smart Chain (BEP-20) Yatırma Adresi:</div>
-              <span class="badge badge-native">BEP-20 (EVM Mirror)</span>
-            </div>
-            <div class="addr-bar" style="margin-bottom:10px;">
-              <span id="trc20-bnb-addr" class="mono">0x915ee9e3ef45a87a20b6a9aa450ac4d6e7552be3</span>
-              <button class="copy-icon-btn" onclick="copyElemText('trc20-bnb-addr', 'BNB Adresi Kopyalandı!')" data-tooltip="BNB Adresini Kopyala">📋 Kopyala</button>
-            </div>
-            <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5;">
-              • <strong>Sözleşme:</strong> <code class="mono">0x55d398326f99059fF775485246999027B3197955</code> (Binance-Peg BSC-USD)<br>
-              • <strong>Komisyon:</strong> ~$0.05 (En ucuz transfer)<br>
-              • <strong>EVM Uyumlu:</strong> MetaMask veya Binance'ten doğrudan çekilebilir.
-            </div>
-          </div>
-
-          <!-- WITHDRAWAL ACTION -->
-          <div style="border-top:1px solid var(--border);padding-top:14px;">
-            <div style="font-weight:800;color:#20242B;font-size:0.88rem;margin-bottom:8px;">💸 Dış Cüzdana Gerçek USDT Çek (Withdraw):</div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
-              <input class="form-input mono" id="trc20-withdraw-addr" placeholder="Alıcı TRON Adresi (T...)" style="flex:2;min-width:200px;font-size:0.84rem;">
-              <input class="form-input mono" type="number" id="trc20-withdraw-amt" placeholder="Miktar (USDT)" min="1" style="flex:1;min-width:110px;font-size:0.84rem;">
-              <button class="btn btn-primary btn-sm" onclick="executeTrc20Withdrawal()" data-tooltip="Belirtilen TRON adresine USDT çekim emri ver">Çekim Talebi Ver</button>
-            </div>
-            <div id="trc20-withdraw-feedback" style="margin-top:8px;font-size:0.82rem;"></div>
-          </div>
+          <button type="button" class="btn btn-primary btn-sm" onclick="navigate('wallet')">Cüzdana Git →</button>
         </div>
       </div>
     </section>
@@ -2691,74 +2620,18 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top:18px;border-color:var(--warning);">
-          <div class="card-header">
-            <div class="card-title">Protokol Güvenlik & Android / iOS Altyapı Bildirimi</div>
+        <div class="card" style="margin-top:18px;border-color:var(--warning);padding:14px 18px;">
+          <div class="card-header" style="margin-bottom:0;padding-bottom:0;border-bottom:none;cursor:pointer;" onclick="toggleDashPanel('off-sec-body', 'off-sec-chev')">
+            <div class="card-title">🛡️ Protokol Güvenlik & Cihaz Altyapısı</div>
+            <span id="off-sec-chev" style="font-size:0.8rem;color:var(--warning);font-weight:800;">▼</span>
           </div>
-          <div style="font-size:0.84rem;color:var(--text-muted);line-height:1.6;">
-            <p style="margin-bottom:8px;"><strong style="color:var(--warning);">KESİNLEŞME KURALI:</strong> Çevrimdışı imzalı ödeme fişi özel anahtar içermez; alıcı cihaz imzayı ve son kullanma süresini internetsiz doğrulayabilir ancak bu <strong>kesinleşmiş ödeme değildir</strong>. Ödeme yalnızca internete bağlanıp <strong>UNIVA L1 Mempool</strong> üzerinden madencilik bloğuna (<code>confirmed</code>) girdiğinde kesinleşir.</p>
-            <p id="off-cap-detail" style="margin:0;font-size:0.8rem;"></p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 10. MYSTERY PROTOCOL -->
-    <section class="view-section" id="view-mystery">
-      <div class="content-wrap">
-        <div class="card-header" style="margin-bottom:24px;">
-          <div>
-            <h2 class="univa-sec-title" style="font-size:1.6rem;font-weight:800;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg></span><span>UNIVA Gizem Protokolü</span></h2>
-            <p style="font-size:0.85rem;color:var(--text-muted);">Her 100.000 blokta havai fişeklerle açılan gizemli bilmece ve 50.00 UNIVA ödül döngüsü.</p>
-          </div>
-          <span class="badge badge-native">100.000 Blokluk Dönem</span>
-        </div>
-
-        <div class="grid-2">
-          <div class="card card-accent">
-            <div class="card-header">
-              <div class="card-title" id="myst-epoch-title">Dönem #1 Ödül Geri Sayımı</div>
-              <span class="badge badge-live" id="myst-epoch-badge">Aktif Döngü</span>
-            </div>
-            <div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:16px;line-height:1.7;">
-              Hedef Blok: <strong style="color:var(--text);" class="mono" id="myst-target">#100,000</strong><br>
-              Mevcut Yükseklik: <strong style="color:var(--blue);" class="mono" id="myst-height">0</strong><br>
-              Kalan Blok: <strong style="color:var(--warning);" class="mono" id="myst-remain">100,000</strong>
-            </div>
-            <div class="stat-box" style="margin-bottom:14px;">
-              <div class="stat-label">Gizem Ödülü</div>
-              <div class="stat-num" style="color:var(--gold);">50.00 UNIVA</div>
-              <div class="stat-sub">Doğru cevabı ilk bilen cüzdana Master Hazine'den zincir içi gönderilir</div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Gizemli Bilmece & Çözüm Konsolu</div>
-            </div>
-            <div id="myst-riddle-box" style="padding:14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;font-size:0.9rem;line-height:1.65;color:var(--text);">
-              🔒 Gizem Kapısı henüz kilitli. Zincir hedef bloğa ulaştığında havai fişeklerle birlikte dönemin gizemli bilmecesi burada açılacak!
-            </div>
-            <div class="form-group">
-              <input class="form-input" id="myst-solution-input" placeholder="Bilmecenin cevabını yazın...">
-            </div>
-            <button class="btn btn-primary" onclick="verifyMysteryCandidate()" style="width:100%;">✨ Cevabı Gönder & 50 UNIVA Kazan</button>
-            <div id="myst-eval-out" style="margin-top:12px;font-size:0.84rem;"></div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:18px;">
-          <div class="card-header">
-            <div class="card-title">🏆 Gizem Kazananları Onur Listesi</div>
-          </div>
-          <div id="myst-winners-list" style="font-size:0.84rem;color:var(--text-muted);">
-            Henüz çözülen gizem dönemi yok. İlk kazanan siz olabilirsiniz!
+          <div id="off-sec-body" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:0.82rem;color:var(--text-muted);line-height:1.55;">
+            <p style="margin-bottom:8px;"><strong style="color:var(--warning);">KESİNLEŞME KURALI:</strong> Çevrimdışı imzalı ödeme fişi özel anahtar içermez; ödeme yalnızca internete bağlanıp <strong>UNIVA L1 Mempool</strong> üzerinden madencilik bloğuna (<code>confirmed</code>) girdiğinde kesinleşir.</p>
+            <p id="off-cap-detail" style="margin:0;font-size:0.78rem;"></p>
           </div>
         </div>
       </div>
     </section>
-
-    <canvas id="univa-fireworks-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99999;display:none;"></canvas>
 
     <!-- 11. DEVELOPERS PORTAL -->
     <section class="view-section" id="view-dev">
@@ -2771,31 +2644,39 @@
           <span class="badge badge-native">Developer Ready</span>
         </div>
 
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Quickstart Node Setup</div>
-            </div>
-            <div class="code-box">
+        <div class="card" style="padding:16px 20px;margin-bottom:18px;">
+          <div class="card-header" style="margin-bottom:0;padding-bottom:0;border-bottom:none;cursor:pointer;" onclick="toggleDashPanel('dev-docs-body', 'dev-docs-chev')">
+            <div class="card-title">📘 Hızlı Düğüm Kurulumu & JSON-RPC Yapılandırması</div>
+            <span id="dev-docs-chev" style="font-size:0.8rem;color:var(--blue);font-weight:800;">▼</span>
+          </div>
+          <div id="dev-docs-body" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+            <div class="grid-2" style="margin-bottom:0;">
+              <div class="card" style="box-shadow:none;">
+                <div class="card-header">
+                  <div class="card-title">Quickstart Node Setup</div>
+                </div>
+                <div class="code-box">
 git clone https://github.com/NIONTOKEN/univa-network.git<br>
 cd univa-network<br>
 pip install -r requirements.txt<br>
 python run.py --node
-            </div>
-            <p style="font-size:0.82rem;color:var(--text-muted);margin-top:12px;">
-              Starts API on <span class="mono">http://127.0.0.1:5050</span> and P2P gossip on <span class="mono">port 5051</span>.
-            </p>
-          </div>
+                </div>
+                <p style="font-size:0.82rem;color:var(--text-muted);margin-top:12px;">
+                  API: <span class="mono">http://127.0.0.1:5050</span> · P2P: <span class="mono">port 5051</span>.
+                </p>
+              </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">JSON-RPC / Web3 Configuration</div>
-            </div>
-            <div class="code-box">
+              <div class="card" style="box-shadow:none;">
+                <div class="card-header">
+                  <div class="card-title">JSON-RPC / Web3 Configuration</div>
+                </div>
+                <div class="code-box">
 RPC URL: http://127.0.0.1:5050/rpc<br>
 Chain ID: 210001 (0x33451)<br>
 Currency Symbol: UNIVA<br>
 Block Explorer: https://univa-network-l1.vercel.app
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2909,67 +2790,123 @@ Block Explorer: https://univa-network-l1.vercel.app
               <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
                 <span class="crypto-logo-slot" data-symbol="UNIVA" data-size="28"></span>
                 <div style="min-width:0;flex:1;">
-                  <span class="chain-pill-badge" style="color:#FCD34D;">UNIVA Native (L1)</span>
-                  <div class="mono" id="mc-addr-univa" style="font-size:0.76rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+                    <span class="chain-pill-badge" style="color:#FCD34D;">UNIVA Native (L1)</span>
+                    <span class="mono" id="mc-bal-univa" style="font-size:0.72rem;font-weight:800;color:#34D399;">0.0000 UNIVA</span>
+                  </div>
+                  <div class="mono" id="mc-addr-univa" style="font-size:0.74rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
                 </div>
               </div>
-              <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-univa', 'UNIVA L1 Adresi Kopyalandı')">📋 Kopyala</button>
+              <div style="display:flex;gap:5px;flex-shrink:0;">
+                <button type="button" class="dark-copy-btn" onclick="openQrModal('UNIVA', 'mc-addr-univa')" title="QR Kod Göster">📱 QR</button>
+                <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-univa', 'UNIVA L1 Adresi Kopyalandı')">📋</button>
+              </div>
             </div>
             <div class="chain-addr-row">
               <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
                 <span class="crypto-logo-slot" data-symbol="TRX" data-size="28"></span>
                 <div style="min-width:0;flex:1;">
-                  <span class="chain-pill-badge" style="color:#FCA5A5;">TRON (TRC-20 / TRX & USDT)</span>
-                  <div class="mono" id="mc-addr-trx" style="font-size:0.76rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+                    <span class="chain-pill-badge" style="color:#FCA5A5;">TRON (TRC-20)</span>
+                    <span class="mono" id="mc-bal-trx" style="font-size:0.72rem;font-weight:800;color:#FCA5A5;">0.00 TRX · 0.00 USDT</span>
+                  </div>
+                  <div class="mono" id="mc-addr-trx" style="font-size:0.74rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
                 </div>
               </div>
-              <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-trx', 'TRON Adresi Kopyalandı')">📋 Kopyala</button>
+              <div style="display:flex;gap:5px;flex-shrink:0;">
+                <button type="button" class="dark-copy-btn" onclick="openQrModal('TRX', 'mc-addr-trx')" title="QR Kod Göster">📱 QR</button>
+                <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-trx', 'TRON Adresi Kopyalandı')">📋</button>
+              </div>
             </div>
             <div class="chain-addr-row">
               <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
                 <span class="crypto-logo-slot" data-symbol="BNB" data-size="28"></span>
                 <div style="min-width:0;flex:1;">
-                  <span class="chain-pill-badge" style="color:#FDE047;">BNB Smart Chain (BEP-20)</span>
-                  <div class="mono" id="mc-addr-bnb" style="font-size:0.76rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+                    <span class="chain-pill-badge" style="color:#FDE047;">BNB Smart Chain</span>
+                    <span class="mono" id="mc-bal-bnb" style="font-size:0.72rem;font-weight:800;color:#FDE047;">0.0000 BNB</span>
+                  </div>
+                  <div class="mono" id="mc-addr-bnb" style="font-size:0.74rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
                 </div>
               </div>
-              <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-bnb', 'BNB Adresi Kopyalandı')">📋 Kopyala</button>
+              <div style="display:flex;gap:5px;flex-shrink:0;">
+                <button type="button" class="dark-copy-btn" onclick="openQrModal('BNB', 'mc-addr-bnb')" title="QR Kod Göster">📱 QR</button>
+                <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-bnb', 'BNB Adresi Kopyalandı')">📋</button>
+              </div>
             </div>
             <div class="chain-addr-row">
               <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
                 <span class="crypto-logo-slot" data-symbol="ETH" data-size="28"></span>
                 <div style="min-width:0;flex:1;">
-                  <span class="chain-pill-badge" style="color:#93C5FD;">Ethereum / EVM (ERC-20)</span>
-                  <div class="mono" id="mc-addr-eth" style="font-size:0.76rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+                    <span class="chain-pill-badge" style="color:#93C5FD;">Ethereum (ERC-20)</span>
+                    <span class="mono" id="mc-bal-eth" style="font-size:0.72rem;font-weight:800;color:#93C5FD;">0.0000 ETH</span>
+                  </div>
+                  <div class="mono" id="mc-addr-eth" style="font-size:0.74rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
                 </div>
               </div>
-              <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-eth', 'ETH Adresi Kopyalandı')">📋 Kopyala</button>
+              <div style="display:flex;gap:5px;flex-shrink:0;">
+                <button type="button" class="dark-copy-btn" onclick="openQrModal('ETH', 'mc-addr-eth')" title="QR Kod Göster">📱 QR</button>
+                <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-eth', 'ETH Adresi Kopyalandı')">📋</button>
+              </div>
             </div>
             <div class="chain-addr-row">
               <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
                 <span class="crypto-logo-slot" data-symbol="BTC" data-size="28"></span>
                 <div style="min-width:0;flex:1;">
-                  <span class="chain-pill-badge" style="color:#FDBA74;">Bitcoin Mainnet (SegWit bc1q)</span>
-                  <div class="mono" id="mc-addr-btc" style="font-size:0.76rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
-                  <div class="mono" id="mc-addr-btc-legacy" style="font-size:0.66rem;color:#64748B;margin-top:2px;word-break:break-all;">Legacy: —</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+                    <span class="chain-pill-badge" style="color:#FDBA74;">Bitcoin (SegWit bc1q)</span>
+                    <span class="mono" id="mc-bal-btc" style="font-size:0.72rem;font-weight:800;color:#FDBA74;">0.000000 BTC</span>
+                  </div>
+                  <div class="mono" id="mc-addr-btc" style="font-size:0.74rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
+                  <div class="mono" id="mc-addr-btc-legacy" style="font-size:0.65rem;color:#64748B;margin-top:2px;word-break:break-all;">Legacy: —</div>
                 </div>
               </div>
-              <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-btc', 'Bitcoin SegWit Adresi Kopyalandı')">📋 Kopyala</button>
+              <div style="display:flex;gap:5px;flex-shrink:0;">
+                <button type="button" class="dark-copy-btn" onclick="openQrModal('BTC', 'mc-addr-btc')" title="QR Kod Göster">📱 QR</button>
+                <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-btc', 'Bitcoin SegWit Adresi Kopyalandı')">📋</button>
+              </div>
             </div>
             <div class="chain-addr-row">
               <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
                 <span class="crypto-logo-slot" data-symbol="SOL" data-size="28"></span>
                 <div style="min-width:0;flex:1;">
-                  <span class="chain-pill-badge" style="color:#D8B4FE;">Solana Mainnet (SOL / SPL)</span>
-                  <div class="mono" id="mc-addr-sol" style="font-size:0.76rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
+                    <span class="chain-pill-badge" style="color:#D8B4FE;">Solana (SOL / SPL)</span>
+                    <span class="mono" id="mc-bal-sol" style="font-size:0.72rem;font-weight:800;color:#D8B4FE;">0.0000 SOL</span>
+                  </div>
+                  <div class="mono" id="mc-addr-sol" style="font-size:0.74rem;color:#E2E8F0;margin-top:4px;word-break:break-all;">—</div>
                 </div>
               </div>
-              <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-sol', 'Solana Adresi Kopyalandı')">📋 Kopyala</button>
+              <div style="display:flex;gap:5px;flex-shrink:0;">
+                <button type="button" class="dark-copy-btn" onclick="openQrModal('SOL', 'mc-addr-sol')" title="QR Kod Göster">📱 QR</button>
+                <button type="button" class="dark-copy-btn" onclick="copyElemText('mc-addr-sol', 'Solana Adresi Kopyalandı')">📋</button>
+              </div>
+            </div>
+
+            <!-- REFRESH REAL BALANCES + EXTERNAL WEB3 CONNECT -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="fetchAllMultichainBalances(true)" style="flex:1;min-width:160px;">🔄 Canlı Çoklu Ağ Bakiyelerini Güncelle</button>
+              <button type="button" class="btn btn-metallic btn-sm" onclick="connectExternalWeb3Wallet()" style="flex:1;min-width:180px;">🦊 MetaMask / Web3 Cüzdana Ekle</button>
+            </div>
+
+            <!-- CLEAN TRON / USDT WITHDRAWAL INSIDE WALLET -->
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(148,163,184,0.18);">
+              <div style="font-size:0.76rem;font-weight:800;color:#F8FAFC;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                <span class="crypto-logo-slot" data-symbol="USDT" data-size="16"></span>
+                <span>Dış Cüzdana Gerçek USDT Çek (TRON TRC-20)</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input class="form-input mono" id="trc20-withdraw-addr" placeholder="Alıcı TRON Adresi (T...)" style="flex:2;min-width:170px;background:#090F1D;border-color:rgba(148,163,184,0.28);color:#FFFFFF;font-size:0.78rem;padding:8px 10px;">
+                <input class="form-input mono" type="number" id="trc20-withdraw-amt" placeholder="USDT" min="1" style="flex:1;min-width:80px;background:#090F1D;border-color:rgba(148,163,184,0.28);color:#FFFFFF;font-size:0.78rem;padding:8px 10px;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="executeTrc20Withdrawal()">Çek</button>
+              </div>
+              <div id="trc20-withdraw-feedback" style="margin-top:6px;font-size:0.76rem;"></div>
             </div>
           </div>
         </div>
 
-        <div class="card-header" style="margin-bottom:24px;">
+        <div class="card-header" style="margin-bottom:18px;">
           <div>
             <h2 class="univa-sec-title" style="font-size:1.45rem;font-weight:800;"><span class="univa-sec-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14" r="1.5"/></svg></span><span>UNIVA Wallet Vault</span></h2>
             <p style="font-size:0.84rem;color:var(--text-muted);">Client-side AES-256-GCM + SHA-256 HMAC encrypted sovereign keys with L1 & EVM dual-address identity.</p>
@@ -2977,25 +2914,25 @@ Block Explorer: https://univa-network-l1.vercel.app
           <span class="badge badge-live">🛡️ AES-256-GCM Shield</span>
         </div>
 
-        <!-- CRITICAL TRANSFER & WEB3 ADDRESS WARNING BANNER -->
-        <div class="card" style="border: 1px solid var(--warning); background: linear-gradient(135deg, rgba(217, 119, 6, 0.10) 0%, #FFFBEB 100%); margin-bottom: 24px;">
-          <div style="display:flex; gap:14px; align-items:flex-start;">
-            <div style="font-size:1.75rem; line-height:1;">⚠️</div>
-            <div style="flex:1; min-width:0;">
-              <div style="font-weight:800; color:var(--warning); font-size:0.95rem; letter-spacing:0.3px; margin-bottom:6px;">
-                ÖNEMLİ TRANSFER VE CÜZDAN UYARISI / CRITICAL TRANSFER NOTICE
+        <!-- COLLAPSIBLE TRANSFER & CONTRACT INFO -->
+        <div class="card" style="border: 1px solid var(--warning); background: linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, #FFFBEB 100%); margin-bottom: 20px; padding:14px 18px;">
+          <div class="card-header" style="margin-bottom:0;padding-bottom:0;border-bottom:none;cursor:pointer;" onclick="toggleDashPanel('w-notice-body', 'w-notice-chev')">
+            <div class="card-title" style="color:var(--warning);">⚠️ Transfer & Kontrat Adresi Bilgisi</div>
+            <span id="w-notice-chev" style="font-size:0.8rem;color:var(--warning);font-weight:800;">▼</span>
+          </div>
+          <div id="w-notice-body" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(217,119,6,0.25);">
+            <p style="font-size:0.82rem; color:var(--text); line-height:1.55; margin-bottom:8px;">
+              • <strong>UNIVA İçi:</strong> <span class="mono" style="color:var(--blue);">univa...</span> (30 kar.) · <strong>Web3 / MetaMask:</strong> <span class="mono" style="color:var(--warning);">0x...</span> EVM adresi kullanılır.<br>
+              • <strong>Gaz Ücreti:</strong> Ağ üzerindeki her transfer ücreti doğrudan o bloğu üreten madenciye gider.
+            </p>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; background:#FFFFFF; border-radius:8px; border:1px solid var(--border);">
+              <div style="font-size:0.74rem; color:var(--text-muted);">
+                <strong>UNIVA Contract (Chain ID: 210001):</strong>
+                <span class="mono" id="w-system-contract" style="color:var(--metallic-light); margin-left:6px;">0x0000000000000000000000000000000000210001</span>
               </div>
-              <p style="font-size:0.84rem; color:var(--text); line-height:1.6; margin-bottom:8px;">
-                • <strong>UNIVA Cüzdan İçi Transferler:</strong> UNIVA kendi cüzdan kasası (Wallet Vault) içindeki transferlerde <strong><span class="mono" style="color:var(--blue);">univa...</span> ile başlayan 30 karakterli yerel L1 adresi</strong> kullanılır.<br>
-                • <strong>⚠️ MetaMask, Trust Wallet, OKX Wallet ve Tüm Web3 Cüzdanları:</strong> Dış Web3 cüzdanlarına gönderim yaparken veya bu cüzdanlardan transfer alırken <strong>mutlaka <span class="mono" style="color:var(--warning);">0x...</span> ile başlayan EVM Adresi</strong> kullanılmalıdır!<br>
-                • <strong>⛽ Gaz (Ağ) Ücreti Nereye Gider?:</strong> Ağ üzerindeki her transferden kesilen küçük gaz ücreti aracıya gitmez; doğrudan o bloğu doğrulayıp üreten <strong>madencinin blok ödülüne</strong> eklenir.
-              </p>
-              <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; background:#FFFFFF; border-radius:8px; border:1px solid var(--border);">
-                <div style="font-size:0.76rem; color:var(--text-muted);">
-                  <strong>UNIVA Native System / Bridge Contract (Chain ID: 210001):</strong>
-                  <span class="mono" id="w-system-contract" style="color:var(--metallic-light); margin-left:6px;">0x0000000000000000000000000000000000210001</span>
-                </div>
-                <button class="copy-icon-btn" onclick="copyElemText('w-system-contract', 'UNIVA System Contract Copied')">📋 Copy Contract</button>
+              <div style="display:flex;gap:6px;">
+                <button type="button" class="copy-icon-btn" onclick="openQrModal('UNIVA Contract', 'w-system-contract')">📱 QR</button>
+                <button type="button" class="copy-icon-btn" onclick="copyElemText('w-system-contract', 'UNIVA Kontrat Adresi Kopyalandı')">📋 Kopyala</button>
               </div>
             </div>
           </div>
@@ -3010,13 +2947,19 @@ Block Explorer: https://univa-network-l1.vercel.app
             <div class="form-label" style="margin-top:16px;">UNIVA L1 SOVEREIGN ADDRESS (30-CHAR)</div>
             <div class="addr-bar" style="margin-bottom:14px;">
               <span id="w-l1-full">Generating Secure Key...</span>
-              <button class="copy-icon-btn" onclick="copyElemText('w-l1-full', 'L1 Address Copied')">📋 Copy</button>
+              <div style="display:flex;gap:4px;">
+                <button type="button" class="copy-icon-btn" onclick="openQrModal('UNIVA', 'w-l1-full')">📱 QR</button>
+                <button type="button" class="copy-icon-btn" onclick="copyElemText('w-l1-full', 'L1 Address Copied')">📋 Copy</button>
+              </div>
             </div>
 
             <div class="form-label">EVM / METAMASK MIRROR ADDRESS (0x...)</div>
             <div class="addr-bar">
               <span id="w-evm-full">—</span>
-              <button class="copy-icon-btn" onclick="copyElemText('w-evm-full', 'EVM Mirror Address Copied')">📋 Copy</button>
+              <div style="display:flex;gap:4px;">
+                <button type="button" class="copy-icon-btn" onclick="openQrModal('EVM', 'w-evm-full')">📱 QR</button>
+                <button type="button" class="copy-icon-btn" onclick="copyElemText('w-evm-full', 'EVM Mirror Address Copied')">📋 Copy</button>
+              </div>
             </div>
           </div>
 
@@ -3110,7 +3053,6 @@ Block Explorer: https://univa-network-l1.vercel.app
           <li><a onclick="navigate('core')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></span><span>UNIVA Core Node</span></a></li>
           <li><a onclick="navigate('multichain')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/></svg></span><span>Multichain Hub</span></a></li>
           <li><a onclick="navigate('offline')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM17 17h4v4h-4z"/></svg></span><span>Offline Pay Protocol</span></a></li>
-          <li><a onclick="navigate('mystery')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span>Mystery Protocol</span></a></li>
           <li><a onclick="navigate('dev')"><span class="footer-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span><span>Developer API / RPC</span></a></li>
         </ul>
       </div>
@@ -3146,6 +3088,24 @@ Block Explorer: https://univa-network-l1.vercel.app
       <span>BORSA / HAVUZ</span>
     </button>
   </nav>
+
+  <!-- QR CODE RECEIVE & CONTRACT MODAL -->
+  <div class="modal-overlay" id="qr-modal" onclick="if(event.target===this)this.classList.remove('active')">
+    <div class="modal-content" style="max-width:360px;text-align:center;background:#0F172A;border:1px solid rgba(212,175,55,0.4);color:#F8FAFC;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="qr-modal-logo"></span>
+          <strong id="qr-modal-title" style="font-size:0.98rem;">QR Adres</strong>
+        </div>
+        <button type="button" class="btn btn-metallic btn-sm" onclick="document.getElementById('qr-modal').classList.remove('active')">✕</button>
+      </div>
+      <div style="background:#FFFFFF;padding:14px;border-radius:16px;display:inline-block;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,0.3);">
+        <canvas id="qr-modal-canvas" width="210" height="210" style="display:block;"></canvas>
+      </div>
+      <div class="mono" id="qr-modal-addr" style="font-size:0.74rem;color:#CBD5E1;word-break:break-all;background:#090F1D;padding:10px 12px;border-radius:10px;border:1px solid rgba(148,163,184,0.2);margin-bottom:12px;">—</div>
+      <button type="button" class="btn btn-primary" style="width:100%;" onclick="copyElemText('qr-modal-addr', 'QR Adresi Panoya Kopyalandı!')">📋 Adresi Kopyala</button>
+    </div>
+  </div>
 
   <!-- PIN ENCRYPTION & MULTI-USER VAULT MODAL -->
   <div class="modal-overlay" id="vault-modal">
@@ -3314,7 +3274,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (viewId === 'dex') refreshDexState();
       if (viewId === 'pazar') { syncCexUserAddresses(); if (typeof refreshPazarData === 'function') refreshPazarData(); }
       if (viewId === 'cex') { syncCexUserAddresses(); if (typeof refreshBorsaData === 'function') refreshBorsaData(); }
-      if (viewId === 'wallet') { syncCexUserAddresses(); fetchWalletBalance(); }
+      if (viewId === 'wallet') { syncCexUserAddresses(); fetchWalletBalance(); if (typeof fetchAllMultichainBalances === 'function') fetchAllMultichainBalances(false); }
       if (viewId === 'offline') refreshOfflineView();
       if (viewId === 'dashboard' || viewId === 'explorer' || viewId === 'network') {
         fetchLiveStats();
@@ -6089,7 +6049,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       const localOrders = getBorsaCexOrders().filter(o => o.quote === activeBorsaQuote || activeBorsaQuote === 'USDT');
       liveMarketTrades = localOrders.concat(poolTrades);
 
-      window.borsaLastPoolVol = Math.max(poolVolUsd, 12800.0);
+      window.borsaLastPoolVol = Number(poolVolUsd || 0.0);
       updateBorsaPairHeader();
       renderBorsaChart(activeBorsaTimeframe);
       renderBorsaLiveTrades();
@@ -6153,7 +6113,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       if (uEl) uEl.textContent = `≈ $${window.borsaUnivaUsdPrice.toFixed(6)} USD`;
       if (lowEl) lowEl.textContent = (priceInQuote * 0.945).toFixed(prec);
       if (highEl) highEl.textContent = (priceInQuote * 1.052).toFixed(prec);
-      if (volEl) volEl.textContent = '$' + Number(window.borsaLastPoolVol || 12800).toLocaleString('en-US', { maximumFractionDigits: 2 });
+      if (volEl) volEl.textContent = '$' + Number(window.borsaLastPoolVol || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
       if (pLbl) pLbl.textContent = `FİYAT (${activeBorsaQuote})`;
       if (inpPrice && activeBorsaOrderType === 'MARKET') inpPrice.value = priceInQuote.toFixed(prec);
       if (topTick) topTick.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;vertical-align:middle;">${getCryptoLogoHtml(activeBorsaQuote, 15)} UNIVA/${activeBorsaQuote}: <strong style="color:#10B981;">${priceInQuote.toFixed(prec)} ${activeBorsaQuote}</strong> <span style="color:#34D399;">(+4.8%)</span></span>`;
@@ -6348,9 +6308,92 @@ Block Explorer: https://univa-network-l1.vercel.app
       submitBorsaTrade();
     }
 
+    function toggleDashPanel(bodyId, chevId) {
+      const body = document.getElementById(bodyId);
+      const chev = document.getElementById(chevId);
+      if (!body) return;
+      const isHidden = (body.style.display === 'none' || !body.style.display);
+      body.style.display = isHidden ? (bodyId === 'dash-health-body' ? 'flex' : 'block') : 'none';
+      if (chev) chev.textContent = isHidden ? '▲' : '▼';
+    }
+
+    function openQrModal(symbol, elemId) {
+      const el = document.getElementById(elemId);
+      const val = el ? el.textContent.trim() : '';
+      if (!val || val === '—' || val.includes('Yükleniyor') || val.includes('Generating')) {
+        showToast('Önce cüzdan adresi yüklenmelidir.');
+        return;
+      }
+      const cleanSym = symbol.toUpperCase().includes('UNIVA') ? 'UNIVA' : (symbol.toUpperCase() === 'EVM' ? 'ETH' : symbol.toUpperCase());
+      const logoEl = document.getElementById('qr-modal-logo');
+      const titleEl = document.getElementById('qr-modal-title');
+      const addrEl = document.getElementById('qr-modal-addr');
+      const canvas = document.getElementById('qr-modal-canvas');
+      const modal = document.getElementById('qr-modal');
+      if (logoEl) logoEl.innerHTML = getCryptoLogoHtml(cleanSym, 26);
+      if (titleEl) titleEl.textContent = symbol + ' Al / Gönder QR';
+      if (addrEl) addrEl.textContent = val;
+      if (canvas && typeof drawUnivaQrCanvas === 'function') {
+        drawUnivaQrCanvas(canvas, val);
+      }
+      if (modal) modal.classList.add('active');
+    }
+
+    async function fetchAllMultichainBalances(showFeedback = false) {
+      const evm = walletEvm || '0x915ee9e3ef45a87a20b6a9aa450ac4d6e7552be3';
+      const univa = walletAddr || '';
+      if (showFeedback) showToast('🔄 Çoklu ağ canlı bakiyeleri sorgulanıyor...');
+      const res = await apiCall('/api/v1/bridge/multichain/balances/' + encodeURIComponent(evm) + '?univa_address=' + encodeURIComponent(univa));
+      if (!res || !res.balances) return;
+      const b = res.balances;
+      const setBal = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+      setBal('mc-bal-univa', `${Number(b.UNIVA || 0).toFixed(4)} UNIVA`);
+      setBal('mc-bal-trx', `${Number(b.TRX || 0).toFixed(2)} TRX · ${Number(b.USDT || 0).toFixed(2)} USDT`);
+      setBal('mc-bal-bnb', `${Number(b.BNB || 0).toFixed(5)} BNB`);
+      setBal('mc-bal-eth', `${Number(b.ETH || 0).toFixed(5)} ETH`);
+      setBal('mc-bal-btc', `${Number(b.BTC || 0).toFixed(6)} BTC`);
+      setBal('mc-bal-sol', `${Number(b.SOL || 0).toFixed(4)} SOL`);
+
+      // Update real bridge USD value in Portfolio Hero Card (zero fake numbers!)
+      const qUsd = window.borsaQuoteUsd || { USDT: 1.0, TRX: 0.20, BNB: 615.0, ETH: 3250.0, BTC: 94500.0, SOL: 215.0 };
+      const realExternalUsd =
+        (Number(b.USDT || 0) * 1.0) +
+        (Number(b.TRX || 0) * (qUsd.TRX || 0.20)) +
+        (Number(b.BNB || 0) * (qUsd.BNB || 615.0)) +
+        (Number(b.ETH || 0) * (qUsd.ETH || 3250.0)) +
+        (Number(b.BTC || 0) * (qUsd.BTC || 94500.0)) +
+        (Number(b.SOL || 0) * (qUsd.SOL || 215.0));
+      walletBridgeUsdtBal = realExternalUsd;
+      updatePortfolioSuiteCard(Number(b.UNIVA || window.liveUnivaBalance || 0));
+      if (showFeedback) showToast('✓ Tüm ağların gerçek bakiyeleri güncellendi!');
+    }
+
+    async function connectExternalWeb3Wallet() {
+      if (typeof window.ethereum === 'undefined') {
+        showToast('Tarayıcıda MetaMask / Trust Wallet / OKX eklentisi bulunamadı.');
+        return;
+      }
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: '0x33451', // 210001
+            chainName: 'UNIVA Sovereign L1',
+            nativeCurrency: { name: 'UNIVA', symbol: 'UNIVA', decimals: 18 },
+            rpcUrls: [NODE_URL + '/rpc'],
+            blockExplorerUrls: ['https://univa-network-l1.vercel.app']
+          }]
+        });
+        showToast('✓ UNIVA Ağı (Chain ID: 210001) Web3 Cüzdanınıza başarıyla eklendi!');
+      } catch (err) {
+        showToast('Web3 bağlantı notu: ' + (err.message || 'İptal edildi'));
+      }
+    }
+
     // ─── PAZAR YERİ ENGINE (SCREENSHOT 3) ───
     function getPazarPairs() {
-      const poolVol = window.borsaLastPoolVol || 12800.0;
+      const poolVol = Number(window.borsaLastPoolVol || 0.0);
       return [
         { pair: 'UNIVA/USDT', base: 'UNIVA', quote: 'USDT', name: 'UNIVA Sovereign L1', network: 'TRC-20 / BEP-20', icon: '💎', color: '#10B981', volUsd: poolVol, price: (window.borsaUnivaUsdPrice / window.borsaQuoteUsd.USDT).toFixed(5), pct: '+4.8%' },
         { pair: 'UNIVA/TRX', base: 'UNIVA', quote: 'TRX', name: 'UNIVA / TRON Bridge', network: 'TRON Mainnet', icon: '🔴', color: '#EF4444', volUsd: poolVol * 0.42, price: (window.borsaUnivaUsdPrice / window.borsaQuoteUsd.TRX).toFixed(5), pct: '+3.2%' },
@@ -7489,76 +7532,162 @@ Block Explorer: https://univa-network-l1.vercel.app
       }
     }
 
+    let topoGlobeLoopStarted = false;
     function initTopologyCanvas() {
       const canvas = document.getElementById('topo-canvas');
-      if (!canvas) return;
+      if (!canvas || topoGlobeLoopStarted) return;
+      topoGlobeLoopStarted = true;
       const ctx = canvas.getContext('2d');
-      const w = canvas.width = canvas.offsetWidth || 480;
-      const h = canvas.height = canvas.offsetHeight || 215;
-      const cx = w / 2, cy = h / 2;
 
-      ctx.clearRect(0, 0, w, h);
-
-      // Subtle concentric metric rings
-      [44, 82].forEach(r => {
-        ctx.strokeStyle = 'rgba(115, 123, 135, 0.25)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      ctx.setLineDash([]);
-
-      // Draw active connected satellite nodes with country labels
-      const satellites = latestConnectedNodes.slice(1);
-      const angles = [0, 60, 120, 180, 240, 300];
-      angles.forEach((deg, idx) => {
-        const rad = (deg * Math.PI) / 180;
-        const x = cx + Math.cos(rad) * 82;
-        const y = cy + Math.sin(rad) * 82;
-        const satNode = satellites[idx];
-        const isActive = Boolean(satNode);
-
-        // Connection line
-        ctx.strokeStyle = isActive ? 'rgba(22, 163, 74, 0.65)' : 'rgba(90, 98, 112, 0.28)';
-        ctx.lineWidth = isActive ? 2.2 : 1.3;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-
-        // Node circle
-        ctx.fillStyle = isActive ? '#16A34A' : '#9AA3B2';
-        ctx.beginPath();
-        ctx.arc(x, y, isActive ? 8.5 : 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Country label on active satellite node
-        if (satNode) {
-          ctx.fillStyle = '#20242B';
-          ctx.font = '700 10px Plus Jakarta Sans, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText((satNode.country_code || 'TR') + ' · ' + (satNode.device.includes('Mobil') ? 'Mobil' : 'Düğüm'), x, y - 13);
+      // Colorful procedural continent clusters (lat, lon, color)
+      const continentSeeds = [
+        // Europe & Turkey
+        [41, 29, '#10B981'], [39, 35, '#F59E0B'], [48, 10, '#34D399'], [52, 0, '#10B981'], [55, 37, '#22D3EE'], [40, -4, '#34D399'],
+        // Asia
+        [35, 105, '#22D3EE'], [31, 121, '#38BDF8'], [36, 139, '#60A5FA'], [22, 78, '#10B981'], [13, 100, '#34D399'], [25, 55, '#F59E0B'],
+        // Africa
+        [30, 31, '#34D399'], [10, 8, '#10B981'], [-2, 36, '#22D3EE'], [-26, 28, '#38BDF8'], [14, -15, '#10B981'],
+        // North America
+        [40, -74, '#38BDF8'], [37, -122, '#22D3EE'], [45, -93, '#60A5FA'], [19, -99, '#34D399'], [56, -106, '#38BDF8'],
+        // South America
+        [-23, -46, '#10B981'], [-34, -58, '#34D399'], [-12, -77, '#22D3EE'], [4, -74, '#10B981'],
+        // Australia
+        [-25, 134, '#F59E0B'], [-33, 151, '#FBBF24'], [-37, 144, '#34D399']
+      ];
+      // Expand seeds into rich continent dot-cloud
+      const landDots = [];
+      continentSeeds.forEach(([lat, lon, col], idx) => {
+        for (let k = 0; k < 10; k++) {
+          const jLat = lat + Math.sin(idx * 7 + k * 2.1) * 7.5;
+          const jLon = lon + Math.cos(idx * 5 + k * 1.7) * 9.5;
+          landDots.push({ lat: jLat * Math.PI / 180, lon: jLon * Math.PI / 180, col });
         }
       });
 
-      // Central UNIVA Genesis Node (TR)
-      ctx.fillStyle = '#20242B';
-      ctx.beginPath();
-      ctx.arc(cx, cy, 15, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#16A34A';
-      ctx.lineWidth = 3;
-      ctx.stroke();
+      let rotLon = -0.55;
+      function drawGlobeFrame() {
+        const w = canvas.width = canvas.offsetWidth || 480;
+        const h = canvas.height = canvas.offsetHeight || 235;
+        const cx = w / 2, cy = h / 2;
+        const R = Math.min(w, h) * 0.40;
+        const nowSec = performance.now() * 0.001;
+        rotLon += 0.0045;
 
-      ctx.fillStyle = '#20242B';
-      ctx.font = '800 11px Plus Jakarta Sans, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('🇹🇷 TR · Ana Düğüm', cx, cy + 28);
+        ctx.clearRect(0, 0, w, h);
+
+        // Starlight backdrop
+        for (let s = 0; s < 24; s++) {
+          const sx = ((s * 97 + 23) % 100) * 0.01 * w;
+          const sy = ((s * 53 + 17) % 100) * 0.01 * h;
+          ctx.fillStyle = s % 3 === 0 ? 'rgba(56, 189, 248, 0.45)' : 'rgba(255, 255, 255, 0.25)';
+          ctx.fillRect(sx, sy, 1.5, 1.5);
+        }
+
+        // Outer colorful atmospheric glow
+        const atmo = ctx.createRadialGradient(cx, cy, R * 0.78, cx, cy, R * 1.24);
+        atmo.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
+        atmo.addColorStop(0.6, 'rgba(16, 185, 129, 0.14)');
+        atmo.addColorStop(1, 'rgba(7, 14, 31, 0)');
+        ctx.fillStyle = atmo;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R * 1.24, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ocean sphere gradient
+        const sphereGrad = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R);
+        sphereGrad.addColorStop(0, '#1E3A8A');
+        sphereGrad.addColorStop(0.65, '#0F172A');
+        sphereGrad.addColorStop(1, '#060B18');
+        ctx.fillStyle = sphereGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        // Latitude / Longitude grid lines
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
+        ctx.lineWidth = 0.8;
+        [-0.5, 0, 0.5].forEach(latF => {
+          const yL = cy - latF * R * 0.86;
+          const rx = Math.sqrt(Math.max(0, R * R - (yL - cy) * (yL - cy)));
+          ctx.beginPath();
+          ctx.ellipse(cx, yL, rx, rx * 0.22, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+
+        const tilt = 0.28;
+        const project = (lat, lon) => {
+          const l = lon + rotLon;
+          const x = Math.cos(lat) * Math.sin(l);
+          const y = Math.sin(lat) * Math.cos(tilt) - Math.cos(lat) * Math.cos(l) * Math.sin(tilt);
+          const z = Math.sin(lat) * Math.sin(tilt) + Math.cos(lat) * Math.cos(l) * Math.cos(tilt);
+          return { sx: cx + x * R, sy: cy - y * R, z };
+        };
+
+        // Render colorful glowing continents
+        landDots.forEach(d => {
+          const p = project(d.lat, d.lon);
+          if (p.z > -0.08) {
+            const alpha = Math.min(1, 0.32 + p.z * 0.72);
+            ctx.fillStyle = d.col;
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.arc(p.sx, p.sy, p.z > 0.4 ? 2.4 : 1.7, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+        ctx.globalAlpha = 1;
+
+        // Node pins on the rotating globe (Turkey Primary + connected satellites)
+        const pinCoords = [
+          [39 * Math.PI / 180, 35 * Math.PI / 180, '🇹🇷 TR Ana Düğüm', '#F59E0B', true],
+          [50 * Math.PI / 180, 8 * Math.PI / 180, 'EU Node', '#10B981', false],
+          [40 * Math.PI / 180, -74 * Math.PI / 180, 'US Node', '#38BDF8', false],
+          [35 * Math.PI / 180, 139 * Math.PI / 180, 'JP Node', '#A855F7', false]
+        ];
+        const trPin = project(pinCoords[0][0], pinCoords[0][1]);
+        const satCount = Math.max(1, latestConnectedNodes.length);
+
+        pinCoords.forEach(([lat, lon, label, col, isPrimary], idx) => {
+          if (idx > satCount && idx > 1) return;
+          const p = project(lat, lon);
+          if (p.z > 0) {
+            if (!isPrimary && trPin.z > 0) {
+              ctx.strokeStyle = col;
+              ctx.globalAlpha = 0.55;
+              ctx.lineWidth = 1.4;
+              ctx.beginPath();
+              ctx.moveTo(trPin.sx, trPin.sy);
+              ctx.quadraticCurveTo((trPin.sx + p.sx) / 2, Math.min(trPin.sy, p.sy) - 22, p.sx, p.sy);
+              ctx.stroke();
+              ctx.globalAlpha = 1;
+            }
+            const pulse = 5 + Math.sin(nowSec * 3.5 + idx) * 2.5;
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(p.sx, p.sy, pulse + (isPrimary ? 3 : 1), 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = col;
+            ctx.beginPath();
+            ctx.arc(p.sx, p.sy, isPrimary ? 5 : 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (isPrimary) {
+              ctx.fillStyle = '#FFFFFF';
+              ctx.font = '800 10px Plus Jakarta Sans, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText(label, p.sx, p.sy - 12);
+            }
+          }
+        });
+
+        requestAnimationFrame(drawGlobeFrame);
+      }
+      drawGlobeFrame();
     }
 
     // ─── BOOTSTRAP ───
@@ -8049,8 +8178,7 @@ Block Explorer: https://univa-network-l1.vercel.app
       renderBorsaChart('24H');
       renderBorsaLiveTrades();
       fetchLiveStats();
-      fetchMysteryStatus();
-      setInterval(() => { fetchLiveStats(); fetchMysteryStatus(); }, 6000);
+      setInterval(() => { fetchLiveStats(); }, 6000);
 
       // Auto-start persistent SHA-256 block searching on PC (or resumed mobile sessions)
       setTimeout(() => {

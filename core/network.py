@@ -2251,6 +2251,78 @@ def multichain_addresses(evm_address: str, univa_address: str = "", pub_key_hex:
     return {"status": "ok", "addresses": addrs}
 
 
+@app.get("/api/v1/bridge/multichain/balances/{evm_address}")
+def multichain_balances(evm_address: str, univa_address: str = ""):
+    from concurrent.futures import ThreadPoolExecutor
+    try:
+        addrs = MultiChainAddress.derive_all_addresses(evm_address=evm_address, univa_address=univa_address)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    def _safe_trx():
+        try:
+            ov = trc20_gateway.get_account_overview(addrs["trx"])
+            return {"trx": float(ov.get("trx_balance", 0.0)), "usdt_trc20": float(ov.get("usdt_balance", 0.0))}
+        except Exception:
+            return {"trx": 0.0, "usdt_trc20": 0.0}
+
+    def _safe_evm(chain_name: str):
+        try:
+            r = trc20_gateway.get_evm_chain_balance(addrs["evm"], chain_name)
+            return float(r.get("balance", 0.0))
+        except Exception:
+            return 0.0
+
+    def _safe_btc():
+        try:
+            r = trc20_gateway.get_btc_account_info(addrs["btc_segwit"])
+            return float(r.get("total_btc", 0.0))
+        except Exception:
+            return 0.0
+
+    def _safe_sol():
+        try:
+            r = trc20_gateway.get_sol_account_info(addrs["sol"])
+            return float(r.get("sol", 0.0))
+        except Exception:
+            return 0.0
+
+    pool = ThreadPoolExecutor(max_workers=5)
+    f_trx = pool.submit(_safe_trx)
+    f_bnb = pool.submit(_safe_evm, "bsc")
+    f_eth = pool.submit(_safe_evm, "eth")
+    f_btc = pool.submit(_safe_btc)
+    f_sol = pool.submit(_safe_sol)
+    pool.shutdown(wait=False)
+
+    def _safe_res(fut, default):
+        try:
+            return fut.result(timeout=6)
+        except Exception:
+            return default
+
+    trx_res = _safe_res(f_trx, {"trx": 0.0, "usdt_trc20": 0.0})
+    bnb_val = _safe_res(f_bnb, 0.0)
+    eth_val = _safe_res(f_eth, 0.0)
+    btc_val = _safe_res(f_btc, 0.0)
+    sol_val = _safe_res(f_sol, 0.0)
+
+    univa_val = float(_get_effective_balance(univa_address)) if univa_address else 0.0
+    return {
+        "status": "ok",
+        "addresses": addrs,
+        "balances": {
+            "UNIVA": univa_val,
+            "TRX": trx_res["trx"],
+            "USDT": trx_res["usdt_trc20"],
+            "BNB": bnb_val,
+            "ETH": eth_val,
+            "BTC": btc_val,
+            "SOL": sol_val,
+        },
+    }
+
+
 @app.post("/api/v1/bridge/multichain/verify-tx")
 def multichain_verify_tx(req: MultiChainVerifyTxRequest):
     res = trc20_gateway.verify_multichain_tx(
