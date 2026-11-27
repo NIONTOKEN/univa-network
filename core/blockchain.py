@@ -989,6 +989,27 @@ class Blockchain:
     def stats(self) -> dict:
         elapsed_months = self.height // HALVING_INTERVAL
         next_halving   = HALVING_INTERVAL - (self.height % HALVING_INTERVAL)
+        tip_hash = self.last_block.hash if self.chain else ""
+        tip_key = (self.height, tip_hash)
+        cached_key = getattr(self, "_stats_valid_key", None)
+        if cached_key == tip_key:
+            chain_ok = getattr(self, "_stats_valid_val", True)
+        elif (
+            cached_key is not None
+            and getattr(self, "_stats_valid_val", False)
+            and self.height == cached_key[0] + 1
+            and self.chain
+            and self.last_block.previous_hash == cached_key[1]
+            and self.last_block.hash == self.last_block.compute_hash()
+        ):
+            chain_ok = True
+            self._stats_valid_key = tip_key
+            self._stats_valid_val = True
+        else:
+            chain_ok = self.is_chain_valid()
+            self._stats_valid_key = tip_key
+            self._stats_valid_val = chain_ok
+
         return {
             "network":         self.net_config["network_name"],
             "network_id":      self.network,
@@ -1005,8 +1026,8 @@ class Blockchain:
             "next_halving_in": next_halving,
             "months_elapsed":  elapsed_months,
             "pending_tx":      len(self.pending_transactions),
-            "chain_valid":     self.is_chain_valid(),
-            "last_hash":       self.last_block.hash,
+            "chain_valid":     chain_ok,
+            "last_hash":       tip_hash,
             "peer_count":      self.peer_count,
             "dex_consensus_enabled": True,
             "offline_escrow_enabled": True,
