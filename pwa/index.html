@@ -2938,6 +2938,49 @@ Block Explorer: https://univa-network-l1.vercel.app
           </div>
         </div>
 
+        <!-- COLLAPSIBLE WEB3 WALLET SETUP GUIDE (METAMASK / TRUST WALLET / OKX) -->
+        <div class="card" style="border: 1px solid rgba(59, 130, 246, 0.45); background: linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0%, #F8FAFC 100%); margin-bottom: 20px; padding:14px 18px;">
+          <div class="card-header" style="margin-bottom:0;padding-bottom:0;border-bottom:none;cursor:pointer;" onclick="toggleDashPanel('w-web3-guide-body', 'w-web3-guide-chev'); const rEl=document.getElementById('w-web3-rpc-url'); if(rEl && typeof NODE_URL!=='undefined') rEl.textContent=NODE_URL+'/rpc';">
+            <div class="card-title" style="color:var(--blue);">🦊 Başka Web3 Cüzdanlara Nasıl Kurulur? (MetaMask · Trust · OKX)</div>
+            <span id="w-web3-guide-chev" style="font-size:0.8rem;color:var(--blue);font-weight:800;">▼</span>
+          </div>
+          <div id="w-web3-guide-body" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid rgba(59,130,246,0.18);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:12px;background:#0F172A;border-radius:12px;color:#F8FAFC;">
+              <div style="font-size:0.8rem;line-height:1.45;">
+                <strong style="color:#FCD34D;">⚡ Tek Tıkla Otomatik Kurulum:</strong><br>
+                <span style="color:#94A3B8;">Tarayıcınızda MetaMask, Trust Wallet veya OKX eklentisi varsa hemen ekleyin.</span>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" onclick="connectExternalWeb3Wallet()">🦊 Otomatik Ekle</button>
+            </div>
+
+            <div style="font-size:0.82rem;color:var(--text);line-height:1.65;margin-bottom:12px;">
+              <strong>📲 Telefon / Manuel Kurulum Adımları (Trust Wallet · MetaMask · OKX):</strong><br>
+              1. Cüzdan uygulamanızı açıp <strong>Ayarlar → Ağlar → Özel Ağ Ekle (Add Custom Network)</strong> bölümüne girin.<br>
+              2. Aşağıdaki UNIVA ağ bilgilerini tek tıkla kopyalayıp ilgili alanlara yapıştırın:<br>
+              3. Kaydettikten sonra cüzdanınızda UNIVA ağı aktif olur. Dış cüzdanlardan transfer yaparken <strong><span class="mono" style="color:var(--blue);">0x...</span> EVM adresinizi</strong> kullanın.
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:0.78rem;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#FFFFFF;border-radius:8px;border:1px solid var(--border);">
+                <div><strong>Ağ Adı (Network Name):</strong> <span class="mono" id="w-web3-net-name">UNIVA Sovereign L1</span></div>
+                <button type="button" class="copy-icon-btn" onclick="copyElemText('w-web3-net-name', 'Ağ Adı Kopyalandı')">📋</button>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#FFFFFF;border-radius:8px;border:1px solid var(--border);">
+                <div style="min-width:0;word-break:break-all;"><strong>RPC URL:</strong> <span class="mono" id="w-web3-rpc-url">http://127.0.0.1:5050/rpc</span></div>
+                <button type="button" class="copy-icon-btn" onclick="copyElemText('w-web3-rpc-url', 'RPC URL Kopyalandı')">📋</button>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#FFFFFF;border-radius:8px;border:1px solid var(--border);">
+                <div><strong>Zincir Kimliği (Chain ID):</strong> <span class="mono" id="w-web3-chain-id">210001</span> <span style="color:var(--text-muted);">(Hex: 0x33451)</span></div>
+                <button type="button" class="copy-icon-btn" onclick="copyElemText('w-web3-chain-id', 'Chain ID Kopyalandı')">📋</button>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#FFFFFF;border-radius:8px;border:1px solid var(--border);">
+                <div><strong>Sembol (Symbol):</strong> <span class="mono" id="w-web3-sym">UNIVA</span> · <strong>Explorer:</strong> <span class="mono">https://univa-network-l1.vercel.app</span></div>
+                <button type="button" class="copy-icon-btn" onclick="copyElemText('w-web3-sym', 'Sembol Kopyalandı')">📋</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- WALLET OVERVIEW -->
         <div class="grid-2">
           <div class="card card-accent">
